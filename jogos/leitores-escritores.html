@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leitores e Escritores</title>
+    <link rel="stylesheet" href="../index_files/basecoat.cdn.min_jT6e.css" />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <a href="#conteudo" class="skip-link">Pular para o conteúdo</a>
+
+    <header class="site-header" role="banner">
+      <div class="header-inner">
+        <a class="branding" href="index.html" aria-label="Voltar para a página de jogos">
+          <img
+            id="prof-logo"
+            src="../index_files/logotipo.png"
+            alt="Logotipo da Professora Angelita Rettore"
+            class="brand-logo-img"
+            onerror="handleLogoError(this)"
+            style="display: none;"
+          />
+          <div id="prof-logo-fallback" class="brand-logo-fallback" aria-hidden="true" style="display: inline-flex;">
+            AR
+          </div>
+
+          <div class="brand-text">
+            <h1>Sistemas Operacionais</h1>
+            <p>Leitores e Escritores</p>
+          </div>
+        </a>
+
+        <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Ativar tema escuro" title="Mudar para o tema escuro">
+          <span id="theme-icon" aria-hidden="true">🌙</span>
+          <span id="theme-label">Escuro</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="conteudo" class="main-content">
+      <section class="featured-games-box" aria-labelledby="titulo-jogo">
+        <div class="section-header" style="margin-bottom: 1rem;">
+          <h2 id="titulo-jogo" class="section-title">
+            <span aria-hidden="true">📖</span>
+            <span>Leitores e Escritores</span>
+          </h2>
+          <p class="section-subtitle">Acesso concorrente a dados compartilhados</p>
+        </div>
+
+        <div class="hero-container" style="max-width: 100%; margin: 0; text-align: left;">
+          <p class="hero-desc">
+            A simulação explora o problema em que múltiplos leitores podem acessar um recurso ao mesmo tempo,
+            mas escritores exigem exclusividade para manter a consistência da informação.
+          </p>
+        </div>
+
+        <div class="games-list" style="margin-top: 2rem;">
+          <article class="game-item-card">
+            <div>
+              <div class="game-header">
+                <h3 class="game-name">Desafio</h3>
+                <span class="game-badge">Condição</span>
+              </div>
+              <p class="game-description" style="margin-top: 0.5rem;">
+                Equilibrar leitura concorrente com a necessidade de evitar conflitos e preservar integridade dos dados.
+              </p>
+            </div>
+          </article>
+
+          <article class="game-item-card">
+            <div>
+              <div class="game-header">
+                <h3 class="game-name">Solução</h3>
+                <span class="game-badge">Implementação</span>
+              </div>
+              <p class="game-description" style="margin-top: 0.5rem;">
+                O modelo usa contadores de leitores e um mutex para controlar acesso e priorizar ou evitar starvation dependendo da política.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" role="contentinfo">
+      <div class="footer-container">
+        <p class="footer-brand">Sistemas Operacionais · Profª Angelita Rettore</p>
+        <p class="footer-pill">Jogos educacionais</p>
+        <p class="footer-year">© 2026 · Bacharelado em Ciência da Computação</p>
+      </div>
+    </footer>
+
+    <script>
+      function handleLogoError(img) {
+        img.style.display = 'none';
+        const fallback = document.getElementById('prof-logo-fallback');
+        if (fallback) {
+          fallback.style.display = 'inline-flex';
+        }
+      }
+
+      (function initTheme() {
+        const STORAGE_KEY = 'so-theme';
+        const rootHtml = document.documentElement;
+        const toggle = document.getElementById('theme-toggle');
+        const icon = document.getElementById('theme-icon');
+        const label = document.getElementById('theme-label');
+
+        function getPreferredTheme() {
+          const savedTheme = localStorage.getItem(STORAGE_KEY);
+          if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+          return 'light';
+        }
+
+        function applyTheme(theme) {
+          if (theme === 'dark') {
+            rootHtml.classList.add('dark');
+            rootHtml.setAttribute('data-theme', 'dark');
+            if (icon) icon.textContent = '☀️';
+            if (label) label.textContent = 'Claro';
+            if (toggle) {
+              toggle.setAttribute('title', 'Mudar para o tema claro');
+              toggle.setAttribute('aria-label', 'Ativar tema claro');
+            }
+          } else {
+            rootHtml.classList.remove('dark');
+            rootHtml.setAttribute('data-theme', 'light');
+            if (icon) icon.textContent = '🌙';
+            if (label) label.textContent = 'Escuro';
+            if (toggle) {
+              toggle.setAttribute('title', 'Mudar para o tema escuro');
+              toggle.setAttribute('aria-label', 'Ativar tema escuro');
+            }
+          }
+          localStorage.setItem(STORAGE_KEY, theme);
+        }
+
+        applyTheme(getPreferredTheme());
+
+        if (toggle) {
+          toggle.addEventListener('click', function () {
+            const currentTheme = rootHtml.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

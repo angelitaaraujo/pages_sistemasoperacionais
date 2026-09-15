@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jogos — Sistemas Operacionais</title>
+    <link rel="stylesheet" href="../index_files/basecoat.cdn.min_jT6e.css" />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <a href="#jogos" class="skip-link">Pular para os jogos</a>
+
+    <header class="site-header" role="banner">
+      <div class="header-inner">
+        <a class="branding" href="../index.html" aria-label="Voltar para a página inicial">
+          <img
+            id="prof-logo"
+            src="../index_files/logotipo.png"
+            alt="Logotipo da Professora Angelita Rettore"
+            class="brand-logo-img"
+            onerror="handleLogoError(this)"
+            style="display: none;"
+          />
+          <div id="prof-logo-fallback" class="brand-logo-fallback" aria-hidden="true" style="display: inline-flex;">
+            AR
+          </div>
+
+          <div class="brand-text">
+            <h1>Sistemas Operacionais</h1>
+            <p>Jogos · Ciência da Computação</p>
+          </div>
+        </a>
+
+        <button
+          type="button"
+          id="theme-toggle"
+          class="theme-toggle-btn"
+          aria-label="Ativar tema escuro"
+          title="Mudar para o tema escuro"
+        >
+          <span id="theme-icon" aria-hidden="true">🌙</span>
+          <span id="theme-label">Escuro</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="conteudo-principal">
+      <section class="hero-section" aria-labelledby="hero-heading">
+        <div class="hero-container">
+          <span class="hero-tag">Prática e aprendizagem</span>
+          <h2 id="hero-heading" class="hero-title">Jogos de Sistemas Operacionais</h2>
+          <p class="hero-desc">
+            Explore simulações interativas para compreender concorrência, sincronização,
+            escalonamento e o comportamento de processos em sistemas operacionais.
+          </p>
+
+          <div class="hero-topics" aria-label="Tópicos dos jogos">
+            <span class="topic-pill">Semáforos</span>
+            <span class="topic-pill">Concorrência</span>
+            <span class="topic-pill">Sincronização</span>
+            <span class="topic-pill">Escalonamento</span>
+            <span class="topic-pill">Memória</span>
+          </div>
+
+          <a href="#jogos" class="btn-hero-action">
+            <span>Ver jogos</span>
+            <span aria-hidden="true">↓</span>
+          </a>
+        </div>
+      </section>
+
+      <div class="main-content">
+        <section id="jogos" aria-labelledby="jogos-heading">
+          <div class="section-header">
+            <h2 id="jogos-heading" class="section-title">
+              <span aria-hidden="true">🎮</span>
+              <span>Jogos em destaque</span>
+            </h2>
+            <p class="section-subtitle">Atividades para consolidar os conceitos da disciplina</p>
+          </div>
+
+          <div class="cards-grid" role="list">
+            <a href="produtores-consumidores.html" class="material-card featured" role="listitem">
+              <span class="card-badge-novo">Novo</span>
+              <div>
+                <div class="card-top">
+                  <span class="card-icon" aria-hidden="true">🧵</span>
+                  <div class="card-title-group">
+                    <h3 class="card-title">Produtores e Consumidores</h3>
+                    <p class="card-desc">
+                      Simulação de buffer compartilhado com sincronização por semáforos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer" aria-hidden="true">
+                <span>Jogar</span> →
+              </div>
+            </a>
+
+            <a href="leitores-escritores.html" class="material-card" role="listitem">
+              <div>
+                <div class="card-top">
+                  <span class="card-icon" aria-hidden="true">📖</span>
+                  <div class="card-title-group">
+                    <h3 class="card-title">Leitores e Escritores</h3>
+                    <p class="card-desc">
+                      Exercite políticas de acesso concorrente e prevenção de starvation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer" aria-hidden="true">
+                <span>Jogar</span> →
+              </div>
+            </a>
+
+            <a href="#" class="material-card" role="listitem" aria-disabled="true" onclick="return false;">
+              <div>
+                <div class="card-top">
+                  <span class="card-icon" aria-hidden="true">⏳</span>
+                  <div class="card-title-group">
+                    <h3 class="card-title">Escalonamento de CPU</h3>
+                    <p class="card-desc">
+                      Em breve: simulação de fila, quantum e prioridades de processos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer" aria-hidden="true">
+                <span>Em breve</span> →
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <section class="featured-games-box" aria-labelledby="como-usar-heading">
+          <div class="section-header" style="margin-bottom: 0.5rem;">
+            <h2 id="como-usar-heading" class="section-title">
+              <span aria-hidden="true">🧠</span>
+              <span>Como usar os jogos</span>
+            </h2>
+            <p class="section-subtitle">Aprendizado prático com foco em conceitos de concorrência</p>
+          </div>
+
+          <div class="games-list">
+            <article class="game-item-card">
+              <div>
+                <div class="game-header">
+                  <h3 class="game-name">Observe o comportamento</h3>
+                  <span class="game-badge">Análise</span>
+                </div>
+                <p class="game-description" style="margin-top: 0.5rem;">
+                  Veja como diferentes processos competem por recursos e como a sincronização altera o fluxo da execução.
+                </p>
+              </div>
+              <div class="game-action">
+                <span>Entender</span>
+                <span aria-hidden="true">→</span>
+              </div>
+            </article>
+
+            <article class="game-item-card">
+              <div>
+                <div class="game-header">
+                  <h3 class="game-name">Compare cenários</h3>
+                  <span class="game-badge">Reflexão</span>
+                </div>
+                <p class="game-description" style="margin-top: 0.5rem;">
+                  Experimente diferentes configurações para verificar os impactos em deadlock, starvation e throughput.
+                </p>
+              </div>
+              <div class="game-action">
+                <span>Comparar</span>
+                <span aria-hidden="true">→</span>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer" role="contentinfo">
+      <div class="footer-container">
+        <p class="footer-brand">Sistemas Operacionais · Profª Angelita Rettore de Araujo</p>
+        <p class="footer-pill">Jogos educacionais</p>
+        <p class="footer-year">© 2026 · Bacharelado em Ciência da Computação</p>
+      </div>
+    </footer>
+
+    <script>
+      function handleLogoError(img) {
+        img.style.display = 'none';
+        const fallback = document.getElementById('prof-logo-fallback');
+        if (fallback) {
+          fallback.style.display = 'inline-flex';
+        }
+      }
+
+      (function initTheme() {
+        const STORAGE_KEY = 'so-theme';
+        const rootHtml = document.documentElement;
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeLabel = document.getElementById('theme-label');
+
+        function getPreferredTheme() {
+          const savedTheme = localStorage.getItem(STORAGE_KEY);
+          if (savedTheme === 'light' || savedTheme === 'dark') {
+            return savedTheme;
+          }
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+          }
+          return 'light';
+        }
+
+        function applyTheme(theme) {
+          if (theme === 'dark') {
+            rootHtml.classList.add('dark');
+            rootHtml.setAttribute('data-theme', 'dark');
+            if (themeIcon) themeIcon.textContent = '☀️';
+            if (themeLabel) themeLabel.textContent = 'Claro';
+            if (themeToggleBtn) {
+              themeToggleBtn.setAttribute('title', 'Mudar para o tema claro');
+              themeToggleBtn.setAttribute('aria-label', 'Ativar tema claro');
+            }
+          } else {
+            rootHtml.classList.remove('dark');
+            rootHtml.setAttribute('data-theme', 'light');
+            if (themeIcon) themeIcon.textContent = '🌙';
+            if (themeLabel) themeLabel.textContent = 'Escuro';
+            if (themeToggleBtn) {
+              themeToggleBtn.setAttribute('title', 'Mudar para o tema escuro');
+              themeToggleBtn.setAttribute('aria-label', 'Ativar tema escuro');
+            }
+          }
+          localStorage.setItem(STORAGE_KEY, theme);
+        }
+
+        const initialTheme = getPreferredTheme();
+        applyTheme(initialTheme);
+
+        if (themeToggleBtn) {
+          themeToggleBtn.addEventListener('click', function () {
+            const currentTheme = rootHtml.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+          });
+        }
+
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+            if (!localStorage.getItem(STORAGE_KEY)) {
+              applyTheme(e.matches ? 'dark' : 'light');
+            }
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
