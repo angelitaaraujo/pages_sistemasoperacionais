@@ -1394,18 +1394,15 @@ sobrescrevem dados não consumidos e consumidores leem slots vazios antes
           }
         });
 
-        dom.quizFeedback.classList.remove('success', 'error');
-        dom.quizFeedback.style.display = 'block';
-
         if (isCorrect) {
           state.quizScore++;
           dom.quizScoreBadge.textContent = `Acertos: ${state.quizScore} / ${QUIZ_QUESTIONS.length}`;
-          dom.quizFeedback.classList.add('success');
+          dom.quizFeedback.className = 'quiz-feedback success';
           dom.quizFeedbackTitle.textContent = '✓ Resposta Correta!';
           dom.quizFeedbackDesc.textContent = questionObj.explanation;
         } else {
           selectedBtn.classList.add('wrong');
-          dom.quizFeedback.classList.add('error');
+          dom.quizFeedback.className = 'quiz-feedback error';
           dom.quizFeedbackTitle.textContent = '✕ Resposta Incorreta!';
           dom.quizFeedbackDesc.innerHTML = `A opção certa era: <em>"${escapeHtml(questionObj.correct)}"</em>.<br>${questionObj.explanation}`;
         }

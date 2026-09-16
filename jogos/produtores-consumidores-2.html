@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtores e Consumidores - Simulador Educacional de SO</title>
+  <link rel="stylesheet" href="produtores-consumidores-2_files/basecoat.cdn.min_pG9o.css">
+  <style>
+/* Skip artifact shell — fixed styles served beside every artifact.
+   Complements basecoat; artifacts override --accent for their own identity. */
+:root {
+  color-scheme: light dark;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-text: color-mix(in srgb, var(--accent) 72%, #000);
+  --bg: #f8f9fb;
+  --surface: #ffffff;
+  --text: #14171f;
+  --text-muted: #5b6472;
+  --border: rgba(20, 23, 31, 0.10);
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(20, 23, 31, 0.08);
+  --space: 16px;
+}
+/* Theme resolution. Without data-theme the viewer's system preference decides,
+   as it always did. With it, the artifact's own choice wins in BOTH directions:
+   a page that hardcodes one palette must not be handed the opposite set of
+   tokens by the machine it happens to be opened on. The dark values appear
+   twice because a media query cannot be folded into a selector list.
+   The attribute sits inside :where() so these blocks keep the specificity of a
+   bare :root — the page's own <style> is linked after this file and must go on
+   overriding any token it wants, exactly as it could before. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+    --bg: #101318;
+    --surface: #181c23;
+    --text: #eef1f6;
+    --text-muted: #9aa4b2;
+    --border: rgba(238, 241, 246, 0.12);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+:root:where([data-theme="dark"]) {
+  color-scheme: dark;
+  --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+  --bg: #101318;
+  --surface: #181c23;
+  --text: #eef1f6;
+  --text-muted: #9aa4b2;
+  --border: rgba(238, 241, 246, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+:root:where([data-theme="light"]) { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+
+.shell-container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.shell-section { padding: calc(var(--space) * 2) 0; }
+.shell-grid { display: grid; gap: var(--space); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.shell-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: var(--space); }
+.shell-footer { padding: 24px 0 40px; color: var(--text-muted); font-size: 13px; }
+
+.shell-hero { padding: calc(var(--space) * 3) 0 calc(var(--space) * 2); }
+.shell-hero h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.15; margin: 0 0 10px; text-wrap: balance; }
+.shell-hero p { color: var(--text-muted); max-width: 60ch; margin: 0; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space);
+}
+
+.kpi { display: flex; flex-direction: column; gap: 4px; }
+.kpi .kpi-value { font-size: 28px; font-weight: 650; line-height: 1.1; }
+.kpi .kpi-label { font-size: 13px; color: var(--text-muted); }
+.kpi .kpi-delta { font-size: 12.5px; font-weight: 600; }
+.kpi .kpi-delta.up { color: #0a8f3c; }
+.kpi .kpi-delta.down { color: #cf3131; }
+
+table.shell-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.shell-table th {
+  text-align: left; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+table.shell-table th, table.shell-table td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--border); }
+table.shell-table td.num, table.shell-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+.chart-box { width: 100%; min-height: 220px; }
+.chart-box svg { width: 100%; height: auto; display: block; }
+
+.muted { color: var(--text-muted); }
+.accent { color: var(--accent-text); }
+.shell-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-fade { animation: shell-fade 400ms ease both; }
+  @keyframes shell-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+</style>
+  
+  <style>
+    :root {
+      --accent: #0ea5e9;
+      --prod-color: #10b981;
+      --prod-glow: rgba(16, 185, 129, 0.25);
+      --cons-color: #f59e0b;
+      --cons-glow: rgba(245, 158, 11, 0.25);
+      --danger-color: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.35);
+      --item-color: #8b5cf6;
+      --item-glow: rgba(139, 92, 246, 0.4);
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      line-height: 1.45;
+    }
+
+    .app-header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(180deg, rgba(14, 165, 233, 0.08) 0%, transparent 100%);
+    }
+
+    .badge-mode {
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .badge-sync {
+      background-color: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-race {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      animation: pulse-danger 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-danger {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.3); }
+    }
+
+    /* Layout da simulação */
+    .sim-arena {
+      display: grid;
+      grid-template-columns: 240px 1fr 240px;
+      gap: 1.25rem;
+      align-items: stretch;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .sim-arena {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .actor-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .actor-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      position: relative;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .actor-card.producer {
+      border-left: 4px solid var(--prod-color);
+    }
+
+    .actor-card.consumer {
+      border-left: 4px solid var(--cons-color);
+    }
+
+    .actor-card.blocked {
+      border-color: var(--danger-color);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .actor-card.active-action {
+      transform: scale(1.02);
+      box-shadow: 0 0 12px var(--prod-glow);
+    }
+
+    .actor-card.consumer.active-action {
+      box-shadow: 0 0 12px var(--cons-glow);
+    }
+
+    .actor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .actor-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .actor-status {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .status-producing { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .status-consuming { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .status-blocked { background: rgba(239, 68, 68, 0.25); color: #f87171; font-weight: 800; }
+    .status-waiting { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+    .status-transferring { background: rgba(139, 92, 246, 0.25); color: #a78bfa; }
+
+    /* Barra de progresso interna do ator */
+    .actor-progress-bg {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .actor-progress-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    .producer .actor-progress-fill { background: var(--prod-color); }
+    .consumer .actor-progress-fill { background: var(--cons-color); }
+
+    /* Centro: Buffer Limitado */
+    .buffer-stage {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.25rem;
+      position: relative;
+    }
+
+    .buffer-visual-area {
+      position: relative;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .buffer-cells {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      padding: 1rem 0;
+    }
+
+    .buffer-cell {
+      width: 68px;
+      height: 82px;
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.35rem 0.25rem;
+      position: relative;
+      background: rgba(0, 0, 0, 0.25);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .buffer-cell.occupied {
+      border: 2px solid var(--item-color);
+      background: rgba(139, 92, 246, 0.15);
+      box-shadow: 0 0 10px var(--item-glow);
+    }
+
+    .buffer-cell.race-clash {
+      border: 2px solid var(--danger-color) !important;
+      background: rgba(239, 68, 68, 0.35) !important;
+      animation: cell-shake 0.4s ease infinite;
+      box-shadow: 0 0 15px var(--danger-glow);
+    }
+
+    @keyframes cell-shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px) rotate(-1deg); }
+      75% { transform: translateX(3px) rotate(1deg); }
+    }
+
+    .cell-index {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .cell-item {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.75rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      transform: scale(0.9);
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .cell-item.corrupted {
+      background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+      border: 1px solid #fff;
+    }
+
+    .cell-empty-label {
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.25);
+      font-weight: 600;
+      margin: auto 0;
+      text-transform: uppercase;
+    }
+
+    .cell-pointers {
+      display: flex;
+      gap: 0.25rem;
+      min-height: 14px;
+    }
+
+    .pointer-tag {
+      font-size: 0.6rem;
+      font-weight: 800;
+      padding: 0.05rem 0.3rem;
+      border-radius: 3px;
+      letter-spacing: 0.03em;
+    }
+
+    .pointer-in { background: #10b981; color: #022c22; }
+    .pointer-out { background: #f59e0b; color: #451a03; }
+
+    @keyframes popIn {
+      from { transform: scale(0.3); opacity: 0; }
+      to { transform: scale(0.9); opacity: 1; }
+    }
+
+    /* Semáforos e sincronização visual */
+    .semaphores-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sem-card {
+      text-align: center;
+      padding: 0.5rem;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .sem-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .sem-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: monospace;
+      margin-top: 0.2rem;
+    }
+
+    /* Banner de Alerta de Race Condition */
+    .race-alert-box {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      padding: 0.6rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    /* Painel de Controles */
+    .controls-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .control-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .mode-selector {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.3rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: calc(var(--radius) - 2px);
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .mode-btn:hover {
+      color: var(--text);
+    }
+
+    .mode-btn.active-sync {
+      background: var(--prod-color);
+      color: #022c22;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+    }
+
+    .mode-btn.active-race {
+      background: var(--danger-color);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Logs e Ticker de Eventos */
+    .log-panel {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-family: monospace;
+      font-size: 0.78rem;
+      height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 0.3rem;
+    }
+
+    .log-item {
+      display: flex;
+      gap: 0.5rem;
+      line-height: 1.3;
+    }
+
+    .log-time { color: var(--text-muted); }
+    .log-prod { color: #34d399; }
+    .log-cons { color: #fbbf24; }
+    .log-warn { color: #f87171; font-weight: bold; }
+    .log-mutex { color: #38bdf8; }
+
+    /* Aba educativa e teoria */
+    .theory-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .code-block {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.85rem;
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      line-height: 1.4;
+    }
+
+    .code-kw { color: #f472b6; font-weight: bold; }
+    .code-fn { color: #38bdf8; }
+    .code-comm { color: #64748b; font-style: italic; }
+    .code-var { color: #a78bfa; }
+
+    /* Botões da toolbar */
+    .btn-action-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      flex: 1;
+      min-width: 90px;
+      padding: 0.55rem 0.8rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+
+    .btn-action:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-action.btn-start {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+    .btn-action.btn-start:hover {
+      background: #0369a1;
+    }
+
+    .btn-action.btn-pause {
+      background: #ca8a04;
+      color: #ffffff;
+      border-color: #ca8a04;
+    }
+
+    .btn-action.btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-action.btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+  </style>
+</head>
+<body cz-shortcut-listen="true">
+  <div class="shell-container">
+
+    <!-- CABEÇALHO DO APLICATIVO -->
+    <header class="app-header">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h1 style="font-size: 1.65rem; font-weight: 800; margin: 0 0 0.25rem 0; letter-spacing: -0.02em;">
+            Produtores e Consumidores
+          </h1>
+          <p class="muted" style="margin: 0; font-size: 0.95rem;">
+            Laboratório Interativo de Sincronização e Condição de Corrida em Sistemas Operacionais
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span id="mode-badge-display" class="badge-mode badge-sync">
+            <span style="font-size: 0.8rem;">🔒</span> MODO SINCRONIZADO
+          </span>
+          <span id="sim-status-pill" class="badge-mode" style="background: rgba(255, 255, 255, 0.08); color: var(--text);">
+            🟢 EM EXECUÇÃO
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- SELETOR DIDÁTICO DE MODO (O CORAÇÃO PEDAGÓGICO) -->
+    <div class="panel" style="margin-bottom: 1.25rem; border-left: 4px solid var(--accent);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="max-width: 650px;">
+          <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.2rem;">
+            Selecione o Paradigma de Concorrência:
+          </div>
+          <div id="mode-description-text" class="muted" style="font-size: 0.85rem;">
+            <strong>Modo Seguro:</strong> Semáforos e exclusão mútua 
+(Mutex) coordenam o acesso ao buffer limitado. Produtores dormem quando o
+ buffer enche, consumidores dormem quando esvazia. Nenhum dado é perdido
+ ou corrompido.
+          </div>
+        </div>
+        <div class="mode-selector" style="min-width: 320px;">
+          <button id="btn-mode-sync" class="mode-btn active-sync" onclick="setSimulationMode(true)">
+            ✅ Com Sincronização
+          </button>
+          <button id="btn-mode-race" class="mode-btn" onclick="setSimulationMode(false)">
+            ⚠️ Sem Sincronização
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARENA DA SIMULAÇÃO (PRODUTORES | BUFFER | CONSUMIDORES) -->
+    <div class="sim-arena">
+      <!-- COLUNA DA ESQUERDA: PRODUTORES -->
+      <div class="actor-column">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.25rem; border-bottom: 2px solid var(--prod-color);">
+          <span style="font-weight: 800; color: #34d399; font-size: 0.9rem; text-transform: uppercase;">
+            🏭 Produtores (<span id="prod-count-lbl">2</span>)
+          </span>
+          <span class="muted" style="font-size: 0.75rem;">Geram Itens</span>
+        </div>
+        <div id="producers-list" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <div class="actor-card producer  ">
+              <div class="actor-header">
+                <span class="actor-name" style="color: #34d399;">
+                  <span>⚙️</span> Produtor P1
+                </span>
+                <span class="actor-status status-producing">Produzindo...</span>
+              </div>
+              <div class="actor-progress-bg">
+                <div class="actor-progress-fill" style="width: 28%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                <span>Ciclo atual:</span>
+                <span>28%</span>
+              </div>
+            </div>
+          
+            <div class="actor-card producer  ">
+              <div class="actor-header">
+                <span class="actor-name" style="color: #34d399;">
+                  <span>⚙️</span> Produtor P2
+                </span>
+                <span class="actor-status status-producing">Produzindo...</span>
+              </div>
+              <div class="actor-progress-bg">
+                <div class="actor-progress-fill" style="width: 14%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                <span>Ciclo atual:</span>
+                <span>14%</span>
+              </div>
+            </div>
+          </div>
+      </div>
+
+      <!-- CENTRO: BUFFER LIMITADO & SINCRONIZAÇÃO -->
+      <div class="buffer-stage">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 800; font-size: 1rem;">📦 BUFFER CIRCULAR COMPARTILHADO</span>
+              <span id="buffer-usage-badge" class="badge-mode" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8; font-size: 0.72rem;">Ocupação: 2 / 5</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; font-size: 0.75rem;">
+              <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <span class="pointer-tag pointer-in">IN</span> Próx. Produção
+              </span>
+              <span style="display: flex; align-items: center; gap: 0.25rem;">
+                <span class="pointer-tag pointer-out">OUT</span> Próx. Consumo
+              </span>
+            </div>
+          </div>
+
+          <!-- Alerta dinâmico de conflito de concorrência -->
+          <div id="race-condition-alert" class="race-alert-box" style="display: none; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.1rem;">⚠️</span>
+            <div id="race-condition-msg" style="flex: 1; font-weight: 600;">
+              COLISÃO DETECTADA: Dois processos acessaram a região crítica simultaneamente!
+            </div>
+          </div>
+
+          <!-- Renderização das Células do Buffer -->
+          <div class="buffer-visual-area">
+            <div id="buffer-cells-container" class="buffer-cells"><div id="cell-0" class="buffer-cell occupied"><div class="cell-pointers"><span class="pointer-tag pointer-out" title="Próxima posição de remoção (out)">OUT</span></div>
+            <div class="cell-item ">
+              <span style="font-size: 0.65rem; opacity: 0.85;">P1</span>
+              <span>#11</span>
+            </div>
+          <span class="cell-index">[0]</span></div><div id="cell-1" class="buffer-cell occupied"><div class="cell-pointers"></div>
+            <div class="cell-item ">
+              <span style="font-size: 0.65rem; opacity: 0.85;">P2</span>
+              <span>#12</span>
+            </div>
+          <span class="cell-index">[1]</span></div><div id="cell-2" class="buffer-cell "><div class="cell-pointers"><span class="pointer-tag pointer-in" title="Próxima posição de inserção (in)">IN</span></div><span class="cell-empty-label">Vazio</span><span class="cell-index">[2]</span></div><div id="cell-3" class="buffer-cell "><div class="cell-pointers"></div><span class="cell-empty-label">Vazio</span><span class="cell-index">[3]</span></div><div id="cell-4" class="buffer-cell "><div class="cell-pointers"></div><span class="cell-empty-label">Vazio</span><span class="cell-index">[4]</span></div></div>
+          </div>
+        </div>
+
+        <!-- Indicadores de Primitivas de Sincronização (Semáforos / Mutex) -->
+        <div>
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.4rem;">
+            Primitivas de Sincronização em Tempo Real (POSIX/Dijkstra)
+          </div>
+          <div class="semaphores-grid">
+            <div class="sem-card" id="sem-mutex-card">
+              <div class="sem-name">Mutex (Região Crítica)</div>
+              <div class="sem-val" id="sem-mutex-val" style="color: rgb(52, 211, 153);">1 (LIVRE)</div>
+              <div class="muted" style="font-size: 0.65rem;" id="sem-mutex-desc">Região Crítica Desbloqueada</div>
+            </div>
+            <div class="sem-card" id="sem-empty-card">
+              <div class="sem-name">Semáforo "Vazios" (empty)</div>
+              <div class="sem-val" id="sem-empty-val" style="color: #34d399;">3</div>
+              <div class="muted" style="font-size: 0.65rem;">Vagas para depósito</div>
+            </div>
+            <div class="sem-card" id="sem-full-card">
+              <div class="sem-name">Semáforo "Cheios" (full)</div>
+              <div class="sem-val" id="sem-full-val" style="color: #fbbf24;">2</div>
+              <div class="muted" style="font-size: 0.65rem;">Itens disponíveis</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUNA DA DIREITA: CONSUMIDORES -->
+      <div class="actor-column">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.25rem; border-bottom: 2px solid var(--cons-color);">
+          <span style="font-weight: 800; color: #fbbf24; font-size: 0.9rem; text-transform: uppercase;">
+            🍴 Consumidores (<span id="cons-count-lbl">2</span>)
+          </span>
+          <span class="muted" style="font-size: 0.75rem;">Retiram Itens</span>
+        </div>
+        <div id="consumers-list" style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <div class="actor-card consumer  ">
+              <div class="actor-header">
+                <span class="actor-name" style="color: #fbbf24;">
+                  <span>🍽️</span> Consumidor C1
+                </span>
+                <span class="actor-status status-consuming">Consumindo #9...</span>
+              </div>
+              <div class="actor-progress-bg">
+                <div class="actor-progress-fill" style="width: 54%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                <span>Consumindo:</span>
+                <span>#9</span>
+              </div>
+            </div>
+          
+            <div class="actor-card consumer  ">
+              <div class="actor-header">
+                <span class="actor-name" style="color: #fbbf24;">
+                  <span>🍽️</span> Consumidor C2
+                </span>
+                <span class="actor-status status-consuming">Consumindo #10...</span>
+              </div>
+              <div class="actor-progress-bg">
+                <div class="actor-progress-fill" style="width: 42%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                <span>Consumindo:</span>
+                <span>#10</span>
+              </div>
+            </div>
+          </div>
+      </div>
+    </div>
+
+    <!-- PAINEL DE CONTROLES E AJUSTES -->
+    <div class="controls-panel">
+      <div class="control-row">
+        <!-- Botões de Ação -->
+        <div class="control-group" style="grid-column: span 1.5;">
+          <label class="control-label">Comandos da Simulação</label>
+          <div class="btn-action-group">
+            <button id="btn-toggle-play" class="btn-action btn-start" onclick="togglePlayPause()">
+              <span id="play-btn-icon">⏸️</span> <span id="play-btn-text">Pausar</span>
+            </button>
+            <button class="btn-action" onclick="stepSimulation()" title="Executa um ciclo único da simulação">
+              ⏭️ Passo a Passo
+            </button>
+            <button class="btn-action btn-danger" onclick="resetSimulation()" title="Reinicia todas as variáveis">
+              🔄 Reiniciar
+            </button>
+          </div>
+        </div>
+
+        <!-- Slider Velocidade -->
+        <div class="control-group">
+          <label class="control-label" for="slider-speed">
+            <span>Velocidade</span>
+            <span id="speed-label" style="color: var(--accent); font-weight: 700;">1.0x</span>
+          </label>
+          <input type="range" id="slider-speed" min="0.3" max="3" step="0.1" value="1.0" oninput="updateSpeed(this.value)" style="width: 100%;">
+        </div>
+
+        <!-- Slider Capacidade Buffer -->
+        <div class="control-group">
+          <label class="control-label" for="slider-buffer">
+            <span>Capacidade Buffer (N)</span>
+            <span id="buffer-size-label" style="font-weight: 700; color: #a78bfa;">5</span>
+          </label>
+          <input type="range" id="slider-buffer" min="2" max="10" step="1" value="5" oninput="updateBufferSize(this.value)" style="width: 100%;">
+        </div>
+
+        <!-- Slider Produtores -->
+        <div class="control-group">
+          <label class="control-label" for="slider-prods">
+            <span>Nº de Produtores</span>
+            <span id="prods-val-label" style="font-weight: 700; color: #34d399;">2</span>
+          </label>
+          <input type="range" id="slider-prods" min="1" max="5" step="1" value="2" oninput="updateProducersCount(this.value)" style="width: 100%;">
+        </div>
+
+        <!-- Slider Consumidores -->
+        <div class="control-group">
+          <label class="control-label" for="slider-cons">
+            <span>Nº de Consumidores</span>
+            <span id="cons-val-label" style="font-weight: 700; color: #fbbf24;">2</span>
+          </label>
+          <input type="range" id="slider-cons" min="1" max="5" step="1" value="2" oninput="updateConsumersCount(this.value)" style="width: 100%;">
+        </div>
+      </div>
+    </div>
+
+    <!-- PAINEL DE ESTATÍSTICAS E KPIS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div class="panel kpi">
+        <div class="kpi-label">Itens Produzidos</div>
+        <div class="kpi-value" id="kpi-produced" style="color: #34d399;">12</div>
+        <div class="muted" style="font-size: 0.75rem;">Total gerado</div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-label">Itens Consumidos</div>
+        <div class="kpi-value" id="kpi-consumed" style="color: #fbbf24;">10</div>
+        <div class="muted" style="font-size: 0.75rem;">Total processado</div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-label">Produtores Bloqueados</div>
+        <div class="kpi-value" id="kpi-prod-blocked" style="color: #f87171;">0</div>
+        <div class="muted" style="font-size: 0.75rem;">Espera por vaga (cheio)</div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-label">Consumidores Bloqueados</div>
+        <div class="kpi-value" id="kpi-cons-blocked" style="color: #f87171;">2</div>
+        <div class="muted" style="font-size: 0.75rem;">Espera por item (vazio)</div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-label">Perdas / Sobrescritas</div>
+        <div class="kpi-value" id="kpi-race-clashes" style="color: #ef4444;">0</div>
+        <div class="muted" style="font-size: 0.75rem;">Conflitos de corrida</div>
+      </div>
+      <div class="panel kpi">
+        <div class="kpi-label">Ocupação Atual</div>
+        <div class="kpi-value" id="kpi-occupancy" style="color: #38bdf8;">40%</div>
+        <div class="muted" style="font-size: 0.75rem;" id="kpi-occupancy-ratio">2 de 5 slots</div>
+      </div>
+    </div>
+
+    <!-- REGISTRO DE EVENTOS (CONSOLE DO SISTEMA OPERACIONAL) -->
+    <div class="panel" style="margin-bottom: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+        <span style="font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+          📜 Log do Kernel / Scheduler de Processos
+        </span>
+        <button onclick="clearLogs()" style="background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer;">
+          Limpar Log
+        </button>
+      </div>
+      <div id="sim-log" class="log-panel"><div class="log-item"><span class="log-time">[17.5s]</span> <span class="log-prod">➕ Produtor P2 depositou item #12 na célula [1].</span></div><div class="log-item"><span class="log-time">[17.1s]</span> <span class="log-prod">➕ Produtor P1 depositou item #11 na célula [0].</span></div><div class="log-item"><span class="log-time">[16.5s]</span> <span class="log-cons">🍴 Consumidor C2 retirou item #10 da célula [4].</span></div><div class="log-item"><span class="log-time">[16.1s]</span> <span class="log-cons">🍴 Consumidor C1 retirou item #9 da célula [3].</span></div><div class="log-item"><span class="log-time">[14.5s]</span> <span class="log-prod">➕ Produtor P2 depositou item #10 na célula [4].</span></div><div class="log-item"><span class="log-time">[14.1s]</span> <span class="log-prod">➕ Produtor P1 depositou item #9 na célula [3].</span></div><div class="log-item"><span class="log-time">[13.0s]</span> <span class="log-cons">🍴 Consumidor C2 retirou item #8 da célula [2].</span></div><div class="log-item"><span class="log-time">[12.6s]</span> <span class="log-cons">🍴 Consumidor C1 retirou item #7 da célula [1].</span></div><div class="log-item"><span class="log-time">[11.5s]</span> <span class="log-prod">➕ Produtor P2 depositou item #8 na célula [2].</span></div><div class="log-item"><span class="log-time">[11.1s]</span> <span class="log-prod">➕ Produtor P1 depositou item #7 na célula [1].</span></div><div class="log-item"><span class="log-time">[09.5s]</span> <span class="log-cons">🍴 Consumidor C2 retirou item #6 da célula [0].</span></div><div class="log-item"><span class="log-time">[09.1s]</span> <span class="log-cons">🍴 Consumidor C1 retirou item #5 da célula [4].</span></div><div class="log-item"><span class="log-time">[08.5s]</span> <span class="log-prod">➕ Produtor P2 depositou item #6 na célula [0].</span></div><div class="log-item"><span class="log-time">[08.1s]</span> <span class="log-prod">➕ Produtor P1 depositou item #5 na célula [4].</span></div><div class="log-item"><span class="log-time">[06.0s]</span> <span class="log-cons">🍴 Consumidor C2 retirou item #4 da célula [3].</span></div><div class="log-item"><span class="log-time">[05.6s]</span> <span class="log-cons">🍴 Consumidor C1 retirou item #3 da célula [2].</span></div><div class="log-item"><span class="log-time">[05.5s]</span> <span class="log-prod">➕ Produtor P2 depositou item #4 na célula [3].</span></div><div class="log-item"><span class="log-time">[05.1s]</span> <span class="log-prod">➕ Produtor P1 depositou item #3 na célula [2].</span></div><div class="log-item"><span class="log-time">[02.5s]</span> <span class="log-cons">🍴 Consumidor C2 retirou item #2 da célula [1].</span></div><div class="log-item"><span class="log-time">[02.5s]</span> <span class="log-prod">➕ Produtor P2 depositou item #2 na célula [1].</span></div><div class="log-item"><span class="log-time">[02.1s]</span> <span class="log-cons">🍴 Consumidor C1 retirou item #1 da célula [0].</span></div><div class="log-item"><span class="log-time">[02.1s]</span> <span class="log-prod">➕ Produtor P1 depositou item #1 na célula [0].</span></div><div class="log-item"><span class="log-time">[00.2s]</span> <span class="log-warn">⛔ Consumidor C2 BLOQUEADO: sem_wait(&amp;full) retornou bloqueio (buffer vazio).</span></div><div class="log-item"><span class="log-time">[00.2s]</span> <span class="log-warn">⛔ Consumidor C1 BLOQUEADO: sem_wait(&amp;full) retornou bloqueio (buffer vazio).</span></div><div class="log-item"><span class="log-time">[00.0s]</span> <span class="">Simulação configurada: Buffer=5, Prod=2, Cons=2</span></div>
+        <div class="log-item"><span class="log-time">[00.00s]</span> <span>Kernel inicializado. Primitivas de sincronização prontas.</span></div>
+      </div>
+    </div>
+
+    <!-- PAINEL DIDÁTICO / EXPLICAÇÃO DE CONCEITOS TEÓRICOS -->
+    <div class="theory-box">
+      <h3 style="margin-top: 0; font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🎓</span> O Problema do Buffer Limitado (Produtores e Consumidores)
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+        Este é um dos problemas mais célebres de concorrência na Ciência da Computação, formulado originalmente por <strong>Edsger Dijkstra em 1965</strong>.
+ Ele modela a cooperação entre processos concorrentes que se comunicam 
+através de uma região de memória compartilhada de tamanho fixo (buffer).
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 1.25rem;">
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+          <h4 style="margin: 0 0 0.5rem 0; color: #34d399; font-size: 0.95rem;">1. As Duas Condições de Bloqueio</h4>
+          <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+            <li><strong>Buffer Cheio:</strong> Se todos os espaços estiverem ocupados, os produtores não podem depositar mais itens. Devem ser <em>bloqueados</em> para não sobrescrever dados.</li>
+            <li><strong>Buffer Vazio:</strong> Se o buffer estiver vazio, os consumidores não têm o que retirar. Devem ser <em>bloqueados</em> até que um produtor insira algo.</li>
+          </ul>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+          <h4 style="margin: 0 0 0.5rem 0; color: #38bdf8; font-size: 0.95rem;">2. A Solução com Semáforos</h4>
+          <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+            <li><code>sem_t mutex = 1</code>: Garante que apenas 1 processo (produtor ou consumidor) modifique os ponteiros do buffer por vez.</li>
+            <li><code>sem_t empty = N</code>: Conta quantas posições livres restam no buffer.</li>
+            <li><code>sem_t full = 0</code>: Conta quantos itens estão prontos para consumo.</li>
+          </ul>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+          <h4 style="margin: 0 0 0.5rem 0; color: #f87171; font-size: 0.95rem;">3. Por que Ocorre Race Condition?</h4>
+          <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+            Sem semáforos, duas threads podem ler a mesma posição <code>in</code> ao mesmo tempo, gerando perda silenciosa de dados. Além disso, operações como <code>count++</code> e <code>count--</code>
+ no nível assembly realizam 3 instruções (carregar, somar, salvar). 
+Interrupções no meio do ciclo corrompem a integridade dos dados!
+          </p>
+        </div>
+      </div>
+
+      <!-- PSEUDOCÓDIGO DIDÁTICO -->
+      <div style="margin-top: 1.5rem;">
+        <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text);">
+          Pseudocódigo Clássico com Semáforos (Padrão POSIX Threads)
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #34d399; margin-bottom: 0.3rem;">Thread Produtor()</div>
+            <pre class="code-block"><code><span class="code-kw">while</span> (true) {
+  item = <span class="code-fn">produzir_item</span>();
+  <span class="code-fn">sem_wait</span>(&amp;empty);  <span class="code-comm">// decrementa 'empty', dorme se 0</span>
+  <span class="code-fn">pthread_mutex_lock</span>(&amp;mutex); <span class="code-comm">// entra na reg. crítica</span>
+
+  buffer[in] = item;
+  in = (in + <span class="code-var">1</span>) % BUFFER_SIZE;
+
+  <span class="code-fn">pthread_mutex_unlock</span>(&amp;mutex); <span class="code-comm">// sai da reg. crítica</span>
+  <span class="code-fn">sem_post</span>(&amp;full);   <span class="code-comm">// avisa consumidor acordando-o</span>
+}</code></pre>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.3rem;">Thread Consumidor()</div>
+            <pre class="code-block"><code><span class="code-kw">while</span> (true) {
+  <span class="code-fn">sem_wait</span>(&amp;full);   <span class="code-comm">// dorme se não houver itens</span>
+  <span class="code-fn">pthread_mutex_lock</span>(&amp;mutex); <span class="code-comm">// entra na reg. crítica</span>
+
+  item = buffer[out];
+  out = (out + <span class="code-var">1</span>) % BUFFER_SIZE;
+
+  <span class="code-fn">pthread_mutex_unlock</span>(&amp;mutex); <span class="code-comm">// libera o buffer</span>
+  <span class="code-fn">sem_post</span>(&amp;empty);  <span class="code-comm">// avisa produtor: há vaga livre</span>
+  <span class="code-fn">consumir_item</span>(item);
+}</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="shell-footer" style="margin-top: 2rem; border-top: 1px solid var(--border); padding: 1.25rem 0; text-align: center;">
+      <p class="muted" style="margin: 0; font-size: 0.82rem;">
+        Simulador Didático de Sistemas Operacionais • Conceitos de Threads, Semáforos e Exclusão Mútua
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    /* =========================================================================
+       ESTADO GLOBAL DA SIMULAÇÃO
+       ========================================================================= */
+    const state = {
+      isSynchronized: true, // true = Semáforos/Mutex; false = Race condition ativo
+      isRunning: true,
+      speed: 1.0,
+      bufferCapacity: 5,
+      buffer: [], // array de itens { id, producerId, timestamp, corrupted?: boolean }
+      inPointer: 0,
+      outPointer: 0,
+
+      // Semáforos simulados
+      mutex: 1, // 1 = livre, 0 = travado por uma thread
+      mutexOwner: null,
+
+      // Atores
+      producersCount: 2,
+      consumersCount: 2,
+      producers: [],
+      consumers: [],
+
+      // Estatísticas
+      stats: {
+        produced: 0,
+        consumed: 0,
+        prodBlockedCount: 0,
+        consBlockedCount: 0,
+        raceClashes: 0,
+        itemsLost: 0
+      },
+
+      nextItemId: 1,
+      simTime: 0,
+      timerId: null
+    };
+
+    /* Estados possíveis de um ator:
+       - 'WAITING': esperando tempo de trabalho
+       - 'WORKING': produzindo ou consumindo internamente
+       - 'READY_CRITICAL': quer acessar o buffer
+       - 'IN_CRITICAL': executando operação no buffer
+       - 'BLOCKED': parado por buffer cheio/vazio ou mutex
+    */
+
+    function createProducer(id) {
+      return {
+        id,
+        name: `Produtor P${id}`,
+        state: 'WORKING',
+        stateLabel: 'Produzindo...',
+        progress: Math.floor(Math.random() * 40),
+        workDuration: 18 + Math.floor(Math.random() * 10),
+        itemToDeposit: null,
+        blockedReason: null
+      };
+    }
+
+    function createConsumer(id) {
+      return {
+        id,
+        name: `Consumidor C${id}`,
+        state: 'WORKING',
+        stateLabel: 'Pronto / Aguardando',
+        progress: Math.floor(Math.random() * 30),
+        workDuration: 22 + Math.floor(Math.random() * 12),
+        currentConsumedItem: null,
+        blockedReason: null
+      };
+    }
+
+    /* =========================================================================
+       INICIALIZAÇÃO & CONFIGURAÇÃO
+       ========================================================================= */
+    function initSimulation() {
+      state.buffer = new Array(state.bufferCapacity).fill(null);
+      state.inPointer = 0;
+      state.outPointer = 0;
+      state.mutex = 1;
+      state.mutexOwner = null;
+
+      state.producers = [];
+      for (let i = 1; i <= state.producersCount; i++) {
+        state.producers.push(createProducer(i));
+      }
+
+      state.consumers = [];
+      for (let i = 1; i <= state.consumersCount; i++) {
+        state.consumers.push(createConsumer(i));
+      }
+
+      renderBufferCells();
+      renderActors();
+      updateUI();
+      addLog('info', `Simulação configurada: Buffer=${state.bufferCapacity}, Prod=${state.producersCount}, Cons=${state.consumersCount}`);
+    }
+
+    /* =========================================================================
+       MOTOR DA SIMULAÇÃO (STEP & LOOP)
+       ========================================================================= */
+    function simulationStep() {
+      state.simTime += 0.1 * state.speed;
+
+      // 1. Processamento dos Produtores
+      state.producers.forEach(p => {
+        if (p.state === 'WORKING') {
+          p.progress += 3.5 * state.speed;
+          p.stateLabel = 'Produzindo...';
+          p.blockedReason = null;
+
+          if (p.progress >= 100) {
+            p.progress = 100;
+            p.itemToDeposit = {
+              id: state.nextItemId++,
+              producerId: p.id,
+              time: state.simTime.toFixed(1)
+            };
+            p.state = 'READY_CRITICAL';
+            p.stateLabel = 'Item pronto!';
+          }
+        } else if (p.state === 'READY_CRITICAL') {
+          attemptProducerDeposit(p);
+        } else if (p.state === 'BLOCKED') {
+          // Tenta novamente a cada ciclo
+          attemptProducerDeposit(p);
+        }
+      });
+
+      // 2. Processamento dos Consumidores
+      state.consumers.forEach(c => {
+        if (c.state === 'WORKING') {
+          if (c.currentConsumedItem) {
+            c.progress += 3.0 * state.speed;
+            c.stateLabel = `Consumindo #${c.currentConsumedItem.id}...`;
+            if (c.progress >= 100) {
+              c.currentConsumedItem = null;
+              c.progress = 0;
+              c.state = 'READY_CRITICAL';
+              c.stateLabel = 'Quer consumir';
+            }
+          } else {
+            c.state = 'READY_CRITICAL';
+            c.stateLabel = 'Quer consumir';
+          }
+        } else if (c.state === 'READY_CRITICAL') {
+          attemptConsumerRetrieve(c);
+        } else if (c.state === 'BLOCKED') {
+          attemptConsumerRetrieve(c);
+        }
+      });
+
+      renderActors();
+      renderBufferCells();
+      updateUI();
+    }
+
+    /* Lógica de Depósito do Produtor */
+    function attemptProducerDeposit(p) {
+      const occupiedCount = state.buffer.filter(x => x !== null).length;
+      const isBufferFull = occupiedCount >= state.bufferCapacity;
+
+      if (state.isSynchronized) {
+        // --- MODO SEGURO: COM SEMÁFOROS / MUTEX ---
+        if (isBufferFull) {
+          if (p.state !== 'BLOCKED') {
+            state.stats.prodBlockedCount++;
+            addLog('warn', `⛔ ${p.name} BLOQUEADO: sem_wait(&empty) retornou bloqueio (buffer cheio).`);
+          }
+          p.state = 'BLOCKED';
+          p.stateLabel = 'BLOQUEADO: BUFFER CHEIO';
+          p.blockedReason = 'buffer_full';
+          return;
+        }
+
+        // Tenta obter o Mutex
+        if (state.mutex === 0 && state.mutexOwner !== p.name) {
+          p.state = 'BLOCKED';
+          p.stateLabel = 'ESPERANDO MUTEX...';
+          p.blockedReason = 'mutex';
+          return;
+        }
+
+        // Seção Crítica concedida
+        state.mutex = 0;
+        state.mutexOwner = p.name;
+        p.state = 'IN_CRITICAL';
+        p.stateLabel = `Gravando na célula [${state.inPointer}]`;
+
+        // Deposita item
+        const targetSlot = state.inPointer;
+        state.buffer[targetSlot] = p.itemToDeposit;
+        state.inPointer = (state.inPointer + 1) % state.bufferCapacity;
+        state.stats.produced++;
+
+        addLog('prod', `➕ ${p.name} depositou item #${p.itemToDeposit.id} na célula [${targetSlot}].`);
+
+        // Libera Mutex e Semáforo
+        state.mutex = 1;
+        state.mutexOwner = null;
+
+        // Reset do produtor para novo trabalho
+        p.itemToDeposit = null;
+        p.progress = 0;
+        p.state = 'WORKING';
+        p.stateLabel = 'Produzindo...';
+
+      } else {
+        // --- MODO SEM SINCRONIZAÇÃO: CONDICÃO DE CORRIDA! ---
+        const targetSlot = state.inPointer;
+
+        if (state.buffer[targetSlot] !== null) {
+          // RACE CONDITION: SOBRESCRITA DE DADOS!
+          state.stats.raceClashes++;
+          state.stats.itemsLost++;
+          flashRaceClash(targetSlot, `RACE CONDITION: ${p.name} sobrescreveu a célula [${targetSlot}] sem exclusão mútua! Dado anterior perdido.`);
+          addLog('warn', `💥 CORRUPÇÃO! ${p.name} sobrescreveu célula [${targetSlot}] ocupada!`);
+
+          const lostItem = state.buffer[targetSlot];
+          state.buffer[targetSlot] = {
+            ...p.itemToDeposit,
+            corrupted: true
+          };
+        } else {
+          // Gravação direta sem trava
+          state.buffer[targetSlot] = p.itemToDeposit;
+          addLog('prod', `➕ ${p.name} gravou sem trava na célula [${targetSlot}].`);
+        }
+
+        state.stats.produced++;
+        state.inPointer = (state.inPointer + 1) % state.bufferCapacity;
+        p.itemToDeposit = null;
+        p.progress = 0;
+        p.state = 'WORKING';
+      }
+    }
+
+    /* Lógica de Retirada do Consumidor */
+    function attemptConsumerRetrieve(c) {
+      const occupiedCount = state.buffer.filter(x => x !== null).length;
+      const isBufferEmpty = occupiedCount === 0;
+
+      if (state.isSynchronized) {
+        // --- MODO SEGURO: COM SEMÁFOROS / MUTEX ---
+        if (isBufferEmpty) {
+          if (c.state !== 'BLOCKED') {
+            state.stats.consBlockedCount++;
+            addLog('warn', `⛔ ${c.name} BLOQUEADO: sem_wait(&full) retornou bloqueio (buffer vazio).`);
+          }
+          c.state = 'BLOCKED';
+          c.stateLabel = 'BLOQUEADO: BUFFER VAZIO';
+          c.blockedReason = 'buffer_empty';
+          return;
+        }
+
+        // Tenta obter o Mutex
+        if (state.mutex === 0 && state.mutexOwner !== c.name) {
+          c.state = 'BLOCKED';
+          c.stateLabel = 'ESPERANDO MUTEX...';
+          c.blockedReason = 'mutex';
+          return;
+        }
+
+        // Seção Crítica Concedida
+        state.mutex = 0;
+        state.mutexOwner = c.name;
+        c.state = 'IN_CRITICAL';
+        c.stateLabel = `Lendo da célula [${state.outPointer}]`;
+
+        const targetSlot = state.outPointer;
+        const retrievedItem = state.buffer[targetSlot];
+        state.buffer[targetSlot] = null;
+        state.outPointer = (state.outPointer + 1) % state.bufferCapacity;
+        state.stats.consumed++;
+
+        addLog('cons', `🍴 ${c.name} retirou item #${retrievedItem ? retrievedItem.id : '?'} da célula [${targetSlot}].`);
+
+        // Libera Mutex
+        state.mutex = 1;
+        state.mutexOwner = null;
+
+        // Inicia consumo do item
+        c.currentConsumedItem = retrievedItem;
+        c.progress = 0;
+        c.state = 'WORKING';
+        c.stateLabel = `Consumindo #${retrievedItem.id}`;
+
+      } else {
+        // --- MODO SEM SINCRONIZAÇÃO: CONDICÃO DE CORRIDA! ---
+        const targetSlot = state.outPointer;
+        const retrievedItem = state.buffer[targetSlot];
+
+        if (retrievedItem === null) {
+          // RACE CONDITION: LEITURA FANTASMA / DADO VAZIO
+          state.stats.raceClashes++;
+          flashRaceClash(targetSlot, `LEITURA FANTASMA: ${c.name} tentou ler da célula vazia [${targetSlot}] sem conferir semáforo!`);
+          addLog('warn', `💥 ERRO DE CORRIDA: ${c.name} leu célula VAZIA [${targetSlot}]!`);
+
+          c.currentConsumedItem = { id: 'NULO', corrupted: true };
+        } else {
+          state.buffer[targetSlot] = null;
+          state.stats.consumed++;
+          c.currentConsumedItem = retrievedItem;
+          addLog('cons', `🍴 ${c.name} retirou sem proteção da célula [${targetSlot}].`);
+        }
+
+        state.outPointer = (state.outPointer + 1) % state.bufferCapacity;
+        c.progress = 0;
+        c.state = 'WORKING';
+      }
+    }
+
+    /* Efeito de destaque para colisão de corrida */
+    function flashRaceClash(slotIndex, message) {
+      const alertBox = document.getElementById('race-condition-alert');
+      const alertMsg = document.getElementById('race-condition-msg');
+      if (alertBox && alertMsg) {
+        alertMsg.innerText = message;
+        alertBox.style.display = 'flex';
+        clearTimeout(alertBox.hideTimeout);
+        alertBox.hideTimeout = setTimeout(() => {
+          alertBox.style.display = 'none';
+        }, 3500);
+      }
+
+      const cellEl = document.getElementById(`cell-${slotIndex}`);
+      if (cellEl) {
+        cellEl.classList.add('race-clash');
+        setTimeout(() => {
+          cellEl.classList.remove('race-clash');
+        }, 800);
+      }
+    }
+
+    /* =========================================================================
+       RENDERIZAÇÃO VISUAL DA INTERFACE
+       ========================================================================= */
+    function renderBufferCells() {
+      const container = document.getElementById('buffer-cells-container');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      for (let i = 0; i < state.bufferCapacity; i++) {
+        const item = state.buffer[i];
+        const isOccupied = item !== null;
+        const isPointerIn = state.inPointer === i;
+        const isPointerOut = state.outPointer === i;
+
+        const cell = document.createElement('div');
+        cell.id = `cell-${i}`;
+        cell.className = `buffer-cell ${isOccupied ? 'occupied' : ''}`;
+
+        // Topo: Indicador de ponteiros (IN / OUT)
+        let pointersHtml = '<div class="cell-pointers">';
+        if (isPointerIn) pointersHtml += '<span class="pointer-tag pointer-in" title="Próxima posição de inserção (in)">IN</span>';
+        if (isPointerOut) pointersHtml += '<span class="pointer-tag pointer-out" title="Próxima posição de remoção (out)">OUT</span>';
+        pointersHtml += '</div>';
+
+        // Centro: Item ou Espaço Vazio
+        let contentHtml = '';
+        if (isOccupied) {
+          contentHtml = `
+            <div class="cell-item ${item.corrupted ? 'corrupted' : ''}">
+              <span style="font-size: 0.65rem; opacity: 0.85;">P${item.producerId || '?'}</span>
+              <span>#${item.id}</span>
+            </div>
+          `;
+        } else {
+          contentHtml = '<span class="cell-empty-label">Vazio</span>';
+        }
+
+        // Base: Índice da célula
+        const indexHtml = `<span class="cell-index">[${i}]</span>`;
+
+        cell.innerHTML = pointersHtml + contentHtml + indexHtml;
+        container.appendChild(cell);
+      }
+    }
+
+    function renderActors() {
+      // Renderiza Produtores
+      const prodList = document.getElementById('producers-list');
+      if (prodList) {
+        prodList.innerHTML = state.producers.map(p => {
+          let statusClass = 'status-waiting';
+          if (p.state === 'WORKING') statusClass = 'status-producing';
+          if (p.state === 'BLOCKED') statusClass = 'status-blocked';
+          if (p.state === 'IN_CRITICAL') statusClass = 'status-transferring';
+
+          return `
+            <div class="actor-card producer ${p.state === 'BLOCKED' ? 'blocked' : ''} ${p.state === 'IN_CRITICAL' ? 'active-action' : ''}">
+              <div class="actor-header">
+                <span class="actor-name" style="color: #34d399;">
+                  <span>⚙️</span> ${p.name}
+                </span>
+                <span class="actor-status ${statusClass}">${p.stateLabel}</span>
+              </div>
+              <div class="actor-progress-bg">
+                <div class="actor-progress-fill" style="width: ${p.progress}%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                <span>Ciclo atual:</span>
+                <span>${Math.round(p.progress)}%</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Renderiza Consumidores
+      const consList = document.getElementById('consumers-list');
+      if (consList) {
+        consList.innerHTML = state.consumers.map(c => {
+          let statusClass = 'status-waiting';
+          if (c.state === 'WORKING') statusClass = 'status-consuming';
+          if (c.state === 'BLOCKED') statusClass = 'status-blocked';
+          if (c.state === 'IN_CRITICAL') statusClass = 'status-transferring';
+
+          return `
+            <div class="actor-card consumer ${c.state === 'BLOCKED' ? 'blocked' : ''} ${c.state === 'IN_CRITICAL' ? 'active-action' : ''}">
+              <div class="actor-header">
+                <span class="actor-name" style="color: #fbbf24;">
+                  <span>🍽️</span> ${c.name}
+                </span>
+                <span class="actor-status ${statusClass}">${c.stateLabel}</span>
+              </div>
+              <div class="actor-progress-bg">
+                <div class="actor-progress-fill" style="width: ${c.progress}%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted);">
+                <span>Consumindo:</span>
+                <span>${c.currentConsumedItem ? `#${c.currentConsumedItem.id}` : 'Nenhum'}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function updateUI() {
+      const occupiedCount = state.buffer.filter(x => x !== null).length;
+      const emptyCount = state.bufferCapacity - occupiedCount;
+
+      // KPIs
+      document.getElementById('kpi-produced').innerText = state.stats.produced;
+      document.getElementById('kpi-consumed').innerText = state.stats.consumed;
+      document.getElementById('kpi-prod-blocked').innerText = state.stats.prodBlockedCount;
+      document.getElementById('kpi-cons-blocked').innerText = state.stats.consBlockedCount;
+      document.getElementById('kpi-race-clashes').innerText = state.stats.raceClashes;
+
+      const pct = Math.round((occupiedCount / state.bufferCapacity) * 100);
+      document.getElementById('kpi-occupancy').innerText = `${pct}%`;
+      document.getElementById('kpi-occupancy-ratio').innerText = `${occupiedCount} de ${state.bufferCapacity} slots`;
+      document.getElementById('buffer-usage-badge').innerText = `Ocupação: ${occupiedCount} / ${state.bufferCapacity}`;
+
+      // Semáforos no Card
+      const mutexCard = document.getElementById('sem-mutex-card');
+      const mutexVal = document.getElementById('sem-mutex-val');
+      const mutexDesc = document.getElementById('sem-mutex-desc');
+      const emptyVal = document.getElementById('sem-empty-val');
+      const fullVal = document.getElementById('sem-full-val');
+
+      if (state.isSynchronized) {
+        mutexVal.innerText = state.mutex === 1 ? '1 (LIVRE)' : `0 (${state.mutexOwner})`;
+        mutexVal.style.color = state.mutex === 1 ? '#34d399' : '#ef4444';
+        mutexDesc.innerText = state.mutex === 1 ? 'Região Crítica Desbloqueada' : 'Processo Dentro da Reg. Crítica';
+        emptyVal.innerText = emptyCount;
+        fullVal.innerText = occupiedCount;
+      } else {
+        mutexVal.innerText = 'DESATIVADO';
+        mutexVal.style.color = '#ef4444';
+        mutexDesc.innerText = 'Sem Exclusão Mútua!';
+        emptyVal.innerText = 'N/A';
+        fullVal.innerText = 'N/A';
+      }
+    }
+
+    /* Adiciona linha no terminal/log */
+    function addLog(type, text) {
+      const logEl = document.getElementById('sim-log');
+      if (!logEl) return;
+
+      const timeStr = `[${state.simTime.toFixed(1).padStart(4, '0')}s]`;
+      const item = document.createElement('div');
+      item.className = 'log-item';
+
+      let typeClass = '';
+      if (type === 'prod') typeClass = 'log-prod';
+      else if (type === 'cons') typeClass = 'log-cons';
+      else if (type === 'warn') typeClass = 'log-warn';
+      else if (type === 'mutex') typeClass = 'log-mutex';
+
+      item.innerHTML = `<span class="log-time">${timeStr}</span> <span class="${typeClass}">${text}</span>`;
+      logEl.insertBefore(item, logEl.firstChild);
+
+      // Limita em 80 itens no log para performance
+      if (logEl.children.length > 80) {
+        logEl.removeChild(logEl.lastChild);
+      }
+    }
+
+    function clearLogs() {
+      const logEl = document.getElementById('sim-log');
+      if (logEl) logEl.innerHTML = '';
+      addLog('info', 'Log limpo pelo usuário.');
+    }
+
+    /* =========================================================================
+       CONTROLES INTERATIVOS DO USUÁRIO
+       ========================================================================= */
+    function setSimulationMode(isSync) {
+      state.isSynchronized = isSync;
+      const btnSync = document.getElementById('btn-mode-sync');
+      const btnRace = document.getElementById('btn-mode-race');
+      const badgeDisplay = document.getElementById('mode-badge-display');
+      const descEl = document.getElementById('mode-description-text');
+
+      if (isSync) {
+        btnSync.className = 'mode-btn active-sync';
+        btnRace.className = 'mode-btn';
+        badgeDisplay.className = 'badge-mode badge-sync';
+        badgeDisplay.innerHTML = '<span>🔒</span> MODO SINCRONIZADO';
+        descEl.innerHTML = '<strong>Modo Seguro:</strong> Semáforos e exclusão mútua (Mutex) coordenam o acesso ao buffer limitado. Produtores dormem quando o buffer enche, consumidores dormem quando esvazia. Nenhum dado é perdido ou corrompido.';
+        addLog('mutex', '🔄 MODO ALTERADO: Sincronização ativada com semáforos POSIX.');
+      } else {
+        btnSync.className = 'mode-btn';
+        btnRace.className = 'mode-btn active-race';
+        badgeDisplay.className = 'badge-mode badge-race';
+        badgeDisplay.innerHTML = '<span>⚠️</span> SEM SINCRONIZAÇÃO (RACE)';
+        descEl.innerHTML = '<strong style="color: #f87171;">Modo Corrida (Race Condition):</strong> Semáforos desativados! Os produtores e consumidores gravam e lêem simultaneamente sem proteção. Ocorrerão sobrescritas de dados, leituras fantasmas e corrupção de memória.';
+        addLog('warn', '🚨 MODO ALTERADO: Semáforos DESATIVADOS! Condições de corrida agora ativas.');
+      }
+      updateUI();
+    }
+
+    function togglePlayPause() {
+      state.isRunning = !state.isRunning;
+      const btnIcon = document.getElementById('play-btn-icon');
+      const btnText = document.getElementById('play-btn-text');
+      const pill = document.getElementById('sim-status-pill');
+
+      if (state.isRunning) {
+        btnIcon.innerText = '⏸️';
+        btnText.innerText = 'Pausar';
+        pill.innerHTML = '🟢 EM EXECUÇÃO';
+        pill.style.color = 'var(--text)';
+        startSimulationTimer();
+      } else {
+        btnIcon.innerText = '▶️';
+        btnText.innerText = 'Continuar';
+        pill.innerHTML = '⏸️ PAUSADO';
+        pill.style.color = '#fbbf24';
+        clearInterval(state.timerId);
+      }
+    }
+
+    function stepSimulation() {
+      if (state.isRunning) {
+        togglePlayPause();
+      }
+      simulationStep();
+      addLog('info', '⏭️ Ciclo manual executado passo a passo.');
+    }
+
+    function resetSimulation() {
+      state.stats.produced = 0;
+      state.stats.consumed = 0;
+      state.stats.prodBlockedCount = 0;
+      state.stats.consBlockedCount = 0;
+      state.stats.raceClashes = 0;
+      state.stats.itemsLost = 0;
+      state.nextItemId = 1;
+      state.simTime = 0;
+      initSimulation();
+      addLog('info', '🔄 Simulação reiniciada com sucesso.');
+    }
+
+    function updateSpeed(val) {
+      state.speed = parseFloat(val);
+      document.getElementById('speed-label').innerText = `${state.speed.toFixed(1)}x`;
+      if (state.isRunning) {
+        startSimulationTimer();
+      }
+    }
+
+    function updateBufferSize(val) {
+      state.bufferCapacity = parseInt(val, 10);
+      document.getElementById('buffer-size-label').innerText = val;
+      resetSimulation();
+    }
+
+    function updateProducersCount(val) {
+      state.producersCount = parseInt(val, 10);
+      document.getElementById('prods-val-label').innerText = val;
+      document.getElementById('prod-count-lbl').innerText = val;
+      resetSimulation();
+    }
+
+    function updateConsumersCount(val) {
+      state.consumersCount = parseInt(val, 10);
+      document.getElementById('cons-val-label').innerText = val;
+      document.getElementById('cons-count-lbl').innerText = val;
+      resetSimulation();
+    }
+
+    function startSimulationTimer() {
+      clearInterval(state.timerId);
+      const intervalMs = Math.max(30, Math.floor(100 / state.speed));
+      state.timerId = setInterval(simulationStep, intervalMs);
+    }
+
+    /* INICIALIZAÇÃO NA CARGA DA PÁGINA */
+    document.addEventListener('DOMContentLoaded', () => {
+      initSimulation();
+      startSimulationTimer();
+    });
+  </script>
+<script>
+/* Skip artifact shell — fixed helpers served beside every artifact. */
+(function () {
+  "use strict";
+
+  var fmt = {
+    num: function (v, opts) { return new Intl.NumberFormat("pt-BR", opts || {}).format(v); },
+    brl: function (v) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v); },
+    pct: function (v) { return new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 }).format(v); }
+  };
+
+  // axisFmt keeps axis tick labels short (compact notation) so long values
+  // (e.g. full BRL amounts) never clip against the plot edge.
+  function axisFmt(v) {
+    return fmt.num(v, { notation: "compact", maximumFractionDigits: 1 });
+  }
+
+  // format accepts a function OR one of the fmt names ("num" | "brl" | "pct").
+  function coerceFormat(spec) {
+    if (typeof spec === "function") return spec;
+    if (typeof spec === "string" && fmt[spec]) return fmt[spec];
+    return function (v) { return fmt.num(v); };
+  }
+
+  function accent() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2563eb";
+  }
+  function mutedColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#5b6472";
+  }
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function frame(el, w, h) {
+    var svg = svgEl("svg", { viewBox: "0 0 " + w + " " + h, role: "img" });
+    el.innerHTML = "";
+    el.appendChild(svg);
+    return svg;
+  }
+
+  // maxOf guards the axis scale: empty values would give -Infinity (truthy,
+  // so "|| 1" can't catch it) and a non-positive max would flip the chart.
+  function maxOf(values) {
+    var m = values.length ? Math.max.apply(null, values) : 0;
+    return m > 0 ? m : 1;
+  }
+
+  // bar(el, {labels:[], values:[], color?, format?}) — vertical bar chart.
+  function bar(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 12, plotH = H - padT - padB;
+    var step = plotW / n, bw = Math.min(step * 0.62, 64);
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 12, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    cfg.values.forEach(function (v, i) {
+      var bh = Math.max(0, (v / max) * plotH);
+      var x = padL + i * step + (step - bw) / 2;
+      var y = padT + plotH - bh;
+      var r = svgEl("rect", { x: x, y: y, width: bw, height: bh, rx: 4, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(v);
+      r.appendChild(t);
+      svg.appendChild(r);
+      var tx = svgEl("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // line(el, {labels:[], values:[], color?, format?}) — single-series line.
+  function line(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 16, plotH = H - padT - padB;
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 16, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    var pts = cfg.values.map(function (v, i) {
+      var x = padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+      var y = padT + plotH - (v / max) * plotH;
+      return [x, y];
+    });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round" }));
+    pts.forEach(function (p, i) {
+      var c = svgEl("circle", { cx: p[0], cy: p[1], r: 3.5, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(cfg.values[i]);
+      c.appendChild(t);
+      svg.appendChild(c);
+      var tx = svgEl("text", { x: p[0], y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // donut(el, {labels:[], values:[], colors?}) — donut with center total.
+  function donut(el, cfg) {
+    var W = 320, H = 280, cx = W / 2, cy = H / 2, R = 92, r = 58;
+    var svg = frame(el, W, H);
+    var total = cfg.values.reduce(function (a, b) { return a + b; }, 0) || 1;
+    var palette = cfg.colors || [accent(), "#1baf7a", "#eda100", "#e34948", "#4a3aa7", "#e87ba4"];
+    var a0 = -Math.PI / 2;
+    cfg.values.forEach(function (v, i) {
+      var a1 = a0 + (v / total) * Math.PI * 2;
+      var large = a1 - a0 > Math.PI ? 1 : 0;
+      var p = ["M", cx + R * Math.cos(a0), cy + R * Math.sin(a0),
+        "A", R, R, 0, large, 1, cx + R * Math.cos(a1), cy + R * Math.sin(a1),
+        "L", cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+        "A", r, r, 0, large, 0, cx + r * Math.cos(a0), cy + r * Math.sin(a0), "Z"].join(" ");
+      var path = svgEl("path", { d: p, fill: palette[i % palette.length] });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + fmt.num(v) + " (" + fmt.pct(v / total) + ")";
+      path.appendChild(t);
+      svg.appendChild(path);
+      a0 = a1;
+    });
+    var center = svgEl("text", { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 20, "font-weight": 650, fill: "currentColor" });
+    center.textContent = fmt.num(total);
+    svg.appendChild(center);
+  }
+
+  window.skipShell = { fmt: fmt };
+  window.skipChart = { bar: bar, line: line, donut: donut };
+})();
+
+</script>
+
+
+</body></html>

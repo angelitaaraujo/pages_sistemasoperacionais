@@ -1,151 +1,2967 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Leitores e Escritores</title>
-    <link rel="stylesheet" href="../index_files/basecoat.cdn.min_jT6e.css" />
-    <link rel="stylesheet" href="../styles.css" />
-  </head>
-  <body>
-    <a href="#conteudo" class="skip-link">Pular para o conteúdo</a>
+<html lang="pt-BR" data-theme="light"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leitores e Escritores</title>
+  <link rel="stylesheet" href="leitores-escritores_files/basecoat.cdn.min__1Ii.css">
+  <style>
+/* Skip artifact shell — fixed styles served beside every artifact.
+   Complements basecoat; artifacts override --accent for their own identity. */
+:root {
+  color-scheme: light dark;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-text: color-mix(in srgb, var(--accent) 72%, #000);
+  --bg: #f8f9fb;
+  --surface: #ffffff;
+  --text: #14171f;
+  --text-muted: #5b6472;
+  --border: rgba(20, 23, 31, 0.10);
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(20, 23, 31, 0.08);
+  --space: 16px;
+}
+/* Theme resolution. Without data-theme the viewer's system preference decides,
+   as it always did. With it, the artifact's own choice wins in BOTH directions:
+   a page that hardcodes one palette must not be handed the opposite set of
+   tokens by the machine it happens to be opened on. The dark values appear
+   twice because a media query cannot be folded into a selector list.
+   The attribute sits inside :where() so these blocks keep the specificity of a
+   bare :root — the page's own <style> is linked after this file and must go on
+   overriding any token it wants, exactly as it could before. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+    --bg: #101318;
+    --surface: #181c23;
+    --text: #eef1f6;
+    --text-muted: #9aa4b2;
+    --border: rgba(238, 241, 246, 0.12);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+:root:where([data-theme="dark"]) {
+  color-scheme: dark;
+  --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+  --bg: #101318;
+  --surface: #181c23;
+  --text: #eef1f6;
+  --text-muted: #9aa4b2;
+  --border: rgba(238, 241, 246, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+:root:where([data-theme="light"]) { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
 
-    <header class="site-header" role="banner">
-      <div class="header-inner">
-        <a class="branding" href="index.html" aria-label="Voltar para a página de jogos">
-          <img
-            id="prof-logo"
-            src="../index_files/logotipo.png"
-            alt="Logotipo da Professora Angelita Rettore"
-            class="brand-logo-img"
-            onerror="handleLogoError(this)"
-            style="display: none;"
-          />
-          <div id="prof-logo-fallback" class="brand-logo-fallback" aria-hidden="true" style="display: inline-flex;">
-            AR
-          </div>
+.shell-container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.shell-section { padding: calc(var(--space) * 2) 0; }
+.shell-grid { display: grid; gap: var(--space); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.shell-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: var(--space); }
+.shell-footer { padding: 24px 0 40px; color: var(--text-muted); font-size: 13px; }
 
-          <div class="brand-text">
-            <h1>Sistemas Operacionais</h1>
-            <p>Leitores e Escritores</p>
-          </div>
-        </a>
+.shell-hero { padding: calc(var(--space) * 3) 0 calc(var(--space) * 2); }
+.shell-hero h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.15; margin: 0 0 10px; text-wrap: balance; }
+.shell-hero p { color: var(--text-muted); max-width: 60ch; margin: 0; }
 
-        <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Ativar tema escuro" title="Mudar para o tema escuro">
-          <span id="theme-icon" aria-hidden="true">🌙</span>
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space);
+}
+
+.kpi { display: flex; flex-direction: column; gap: 4px; }
+.kpi .kpi-value { font-size: 28px; font-weight: 650; line-height: 1.1; }
+.kpi .kpi-label { font-size: 13px; color: var(--text-muted); }
+.kpi .kpi-delta { font-size: 12.5px; font-weight: 600; }
+.kpi .kpi-delta.up { color: #0a8f3c; }
+.kpi .kpi-delta.down { color: #cf3131; }
+
+table.shell-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.shell-table th {
+  text-align: left; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+table.shell-table th, table.shell-table td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--border); }
+table.shell-table td.num, table.shell-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+.chart-box { width: 100%; min-height: 220px; }
+.chart-box svg { width: 100%; height: auto; display: block; }
+
+.muted { color: var(--text-muted); }
+.accent { color: var(--accent-text); }
+.shell-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-fade { animation: shell-fade 400ms ease both; }
+  @keyframes shell-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+</style>
+  
+  <style>
+    :root {
+      --accent: #364C41;
+      --accent-text: #8FB39F;
+      --brand-green: #364C41;
+      --reader-green: #5E8B74;
+      --reader-light: #8FB39F;
+      --writer-orange: #EF692D;
+      --writer-light: #F2A06B;
+      --danger-red: #E0524D;
+      --neutral-gray: #A3A3A3;
+      --bg: #121614;
+      --surface: #1E2421;
+      --surface-elevated: #28302C;
+      --text: #F5F7F6;
+      --text-muted: #A3A3A3;
+      --border: #3A4440;
+      --radius: 10px;
+      --glow-reader: 0 0 16px rgba(94, 139, 116, 0.45);
+      --glow-writer: 0 0 16px rgba(239, 105, 45, 0.45);
+      --glow-danger: 0 0 20px rgba(224, 82, 77, 0.65);
+    }
+
+    html[data-theme="light"] {
+      --accent: #364C41;
+      --accent-text: #21352C;
+      --bg: #F5F7F6;
+      --surface: #FFFFFF;
+      --surface-elevated: #EBF0ED;
+      --text: #1E2421;
+      --text-muted: #626D68;
+      --border: #D8DEDB;
+      --glow-reader: 0 0 14px rgba(94, 139, 116, 0.3);
+      --glow-writer: 0 0 14px rgba(239, 105, 45, 0.3);
+      --glow-danger: 0 0 16px rgba(224, 82, 77, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Accessibility focus rings */
+    button:focus-visible, select:focus-visible, summary:focus-visible {
+      outline: 3px solid var(--writer-orange);
+      outline-offset: 2px;
+    }
+
+    /* Header */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--border);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .header-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+    .logo-img {
+      height: 56px;
+      width: auto;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+    .logo-fallback {
+      display: none;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--brand-green);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: 1px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 0 2px var(--reader-light);
+    }
+    .header-titles h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-titles p {
+      margin: 2px 0 0 0;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-icon {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-icon:hover {
+      border-color: var(--accent-text);
+      background: var(--surface);
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      max-width: 1280px;
+      margin: 18px auto 0 auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .tab-btn {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .tab-btn:hover {
+      border-color: var(--reader-light);
+      transform: translateY(-1px);
+    }
+    .tab-btn.active {
+      background: var(--brand-green);
+      border-color: var(--reader-light);
+      color: #FFFFFF;
+      box-shadow: var(--glow-reader);
+    }
+    .tab-num {
+      display: inline-flex;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      color: inherit;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+    .tab-check {
+      color: #8FB39F;
+      font-weight: 900;
+    }
+
+    /* Container */
+    .main-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* Collapsible Theory Accordion */
+    .theory-box {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .theory-box summary {
+      padding: 14px 18px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      background: var(--surface-elevated);
+    }
+    .theory-box summary:hover {
+      color: var(--reader-light);
+    }
+    .theory-content {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 0.92rem;
+    }
+    .theory-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      border-left: 4px solid var(--reader-green);
+    }
+    .theory-card.orange {
+      border-left-color: var(--writer-orange);
+    }
+    .theory-card.red {
+      border-left-color: var(--danger-red);
+    }
+    .theory-card h4 {
+      margin: 0 0 6px 0;
+      font-size: 0.96rem;
+      color: var(--text);
+    }
+    .theory-card p {
+      margin: 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Stage Header & Callout */
+    .stage-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .stage-card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .stage-card-title h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stage-badge {
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-sync-on {
+      background: rgba(94, 139, 116, 0.2);
+      color: var(--reader-light);
+      border: 1px solid var(--reader-green);
+    }
+    .badge-sync-off {
+      background: rgba(224, 82, 77, 0.2);
+      color: var(--danger-red);
+      border: 1px solid var(--danger-red);
+    }
+
+    /* Simulation Control Bar */
+    .controls-strip {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+    .stepper-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-elevated);
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stepper-btn:hover:not(:disabled) {
+      background: var(--brand-green);
+      color: #fff;
+    }
+    .stepper-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .stepper-val {
+      min-width: 24px;
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--text);
+      font-weight: 800;
+    }
+    .btn-action {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-start {
+      background: var(--reader-green);
+      color: #FFFFFF;
+    }
+    .btn-start:hover {
+      background: #4d7561;
+    }
+    .btn-pause {
+      background: var(--writer-orange);
+      color: #FFFFFF;
+    }
+    .btn-pause:hover {
+      background: #d8571f;
+    }
+    .btn-reset {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-reset:hover {
+      background: var(--border);
+    }
+
+    /* KPI Summary Row */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+    .kpi-card .kpi-num {
+      font-size: 1.7rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-top: 4px;
+      color: var(--text);
+    }
+    .kpi-card .kpi-lbl {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kpi-card.kpi-reader .kpi-num { color: var(--reader-light); }
+    .kpi-card.kpi-writer .kpi-num { color: var(--writer-orange); }
+    .kpi-card.kpi-danger .kpi-num { color: var(--danger-red); }
+
+    /* Arena Grid: Readers | DB Resource | Writers */
+    .arena-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      gap: 16px;
+      align-items: stretch;
+      position: relative;
+    }
+    @media (max-width: 980px) {
+      .arena-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .column-panel {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .column-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .column-panel-header h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Process Item Cards */
+    .process-card {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .process-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .process-id {
+      font-weight: 800;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .process-status {
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .status-idle {
+      background: var(--surface-elevated);
+      color: var(--text-muted);
+    }
+    .status-waiting {
+      background: rgba(239, 105, 45, 0.15);
+      color: var(--writer-orange);
+      border: 1px solid var(--writer-orange);
+    }
+    .status-active-read {
+      background: var(--reader-green);
+      color: #FFFFFF;
+      box-shadow: var(--glow-reader);
+    }
+    .status-active-write {
+      background: var(--writer-orange);
+      color: #FFFFFF;
+      box-shadow: var(--glow-writer);
+    }
+    .status-corrupt {
+      background: var(--danger-red);
+      color: #FFFFFF;
+      animation: flashPulse 0.4s infinite alternate;
+    }
+    @keyframes flashPulse {
+      from { opacity: 0.8; }
+      to { opacity: 1; transform: scale(1.02); }
+    }
+    .process-badge-block {
+      margin-top: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--writer-orange);
+      background: rgba(239, 105, 45, 0.1);
+      padding: 4px 6px;
+      border-radius: 4px;
+      border-left: 3px solid var(--writer-orange);
+    }
+    .starvation-warning {
+      color: var(--danger-red) !important;
+      background: rgba(224, 82, 77, 0.15) !important;
+      border-left-color: var(--danger-red) !important;
+      animation: pulseAlert 0.8s infinite alternate;
+    }
+    @keyframes pulseAlert {
+      from { transform: scale(1); }
+      to { transform: scale(1.02); }
+    }
+
+    /* Central Shared Resource (Database) */
+    .db-center {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      min-height: 480px;
+    }
+    .db-center.state-reading {
+      border-color: var(--reader-light);
+      box-shadow: var(--glow-reader);
+    }
+    .db-center.state-writing {
+      border-color: var(--writer-orange);
+      box-shadow: var(--glow-writer);
+    }
+    .db-center.state-corrupted {
+      border-color: var(--danger-red);
+      box-shadow: var(--glow-danger);
+      animation: screenGlitch 0.25s infinite alternate;
+    }
+    @keyframes screenGlitch {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(-2px, 1px); }
+      100% { transform: translate(2px, -1px); }
+    }
+
+    .db-header {
+      text-align: center;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .db-badge-status {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+    .db-records-view {
+      margin: 12px 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      overflow-x: auto;
+    }
+    .db-record-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .db-record-row:last-child {
+      border-bottom: none;
+    }
+    .db-record-row.active-edit {
+      background: rgba(239, 105, 45, 0.2);
+      color: var(--writer-orange);
+      font-weight: 700;
+    }
+    .db-record-row.active-read {
+      background: rgba(94, 139, 116, 0.2);
+      color: var(--reader-light);
+    }
+    .db-record-row.corrupted {
+      background: rgba(224, 82, 77, 0.25);
+      color: var(--danger-red);
+      text-decoration: line-through;
+    }
+
+    /* Beam / Connection overlay inside DB */
+    .active-beams-display {
+      background: var(--surface-elevated);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .beam-pip {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .beam-pip.green {
+      background: var(--reader-light);
+      box-shadow: 0 0 8px var(--reader-light);
+      animation: pulsePip 0.6s infinite alternate;
+    }
+    .beam-pip.orange {
+      background: var(--writer-orange);
+      box-shadow: 0 0 8px var(--writer-orange);
+      animation: pulsePip 0.4s infinite alternate;
+    }
+    .beam-pip.red {
+      background: var(--danger-red);
+      box-shadow: 0 0 10px var(--danger-red);
+      animation: pulsePip 0.2s infinite alternate;
+    }
+    @keyframes pulsePip {
+      from { transform: scale(0.8); opacity: 0.7; }
+      to { transform: scale(1.3); opacity: 1; }
+    }
+
+    /* Phase-specific Panels */
+    .subpanel-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 18px;
+    }
+    .subpanel-card h3 {
+      margin: 0 0 12px 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Semaphores UI (Phase 2) */
+    .semaphores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .semaphore-card {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .semaphore-info h4 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+    .semaphore-info span {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .semaphore-pill {
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+    .pill-free {
+      background: rgba(94, 139, 116, 0.25);
+      color: var(--reader-light);
+      border: 1px solid var(--reader-light);
+    }
+    .pill-locked {
+      background: rgba(239, 105, 45, 0.25);
+      color: var(--writer-orange);
+      border: 1px solid var(--writer-orange);
+    }
+
+    .trace-log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.86rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .trace-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      word-break: break-all;
+    }
+    .trace-line.reader-log { color: var(--reader-light); }
+    .trace-line.writer-log { color: var(--writer-orange); }
+
+    /* Race Condition Overlay / Notification in Phase 3 */
+    .race-alert-banner {
+      display: none;
+      background: rgba(224, 82, 77, 0.2);
+      border: 2px solid var(--danger-red);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--glow-danger);
+    }
+    .race-alert-banner.active {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: alertSlideIn 0.3s ease;
+    }
+    @keyframes alertSlideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .race-alert-banner .alert-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+    .race-alert-banner h3 {
+      margin: 0 0 4px 0;
+      color: var(--danger-red);
+      font-size: 1.15rem;
+    }
+
+    /* Modal / Dialog for Summary */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      max-width: 560px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .modal-card h3 {
+      margin: 0 0 14px 0;
+      font-size: 1.3rem;
+      color: var(--text);
+    }
+
+    /* Phase 4: Quiz Styling */
+    .quiz-container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .quiz-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    .quiz-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+    }
+    .quiz-q-num {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--reader-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .quiz-q-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin: 0 0 18px 0;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .quiz-options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .quiz-opt-btn {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+    .quiz-opt-btn:hover:not(:disabled) {
+      border-color: var(--reader-light);
+      background: var(--surface-elevated);
+      transform: translateX(3px);
+    }
+    .quiz-opt-btn:disabled {
+      cursor: default;
+    }
+    .quiz-opt-letter {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--surface-elevated);
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.88rem;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .quiz-opt-btn.opt-correct {
+      background: rgba(94, 139, 116, 0.25) !important;
+      border-color: var(--reader-green) !important;
+      color: var(--text) !important;
+    }
+    .quiz-opt-btn.opt-correct .quiz-opt-letter {
+      background: var(--reader-green);
+      color: #FFFFFF;
+      border-color: var(--reader-green);
+    }
+    .quiz-opt-btn.opt-wrong {
+      background: rgba(239, 105, 45, 0.25) !important;
+      border-color: var(--writer-orange) !important;
+      color: var(--text) !important;
+    }
+    .quiz-opt-btn.opt-wrong .quiz-opt-letter {
+      background: var(--writer-orange);
+      color: #FFFFFF;
+      border-color: var(--writer-orange);
+    }
+    .quiz-feedback-box {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.93rem;
+      font-weight: 600;
+      line-height: 1.45;
+      display: none;
+    }
+    .quiz-feedback-box.show-correct {
+      display: block;
+      background: rgba(94, 139, 116, 0.2);
+      border-left: 4px solid var(--reader-green);
+      color: var(--text);
+    }
+    .quiz-feedback-box.show-wrong {
+      display: block;
+      background: rgba(239, 105, 45, 0.2);
+      border-left: 4px solid var(--writer-orange);
+      color: var(--text);
+    }
+
+    .quiz-score-card {
+      background: var(--surface);
+      border: 3px solid var(--reader-green);
+      border-radius: 14px;
+      padding: 30px 24px;
+      text-align: center;
+      margin-top: 24px;
+      box-shadow: var(--glow-reader);
+    }
+
+    /* Selector styles */
+    .styled-select {
+      background: var(--surface-elevated);
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    /* Print utility */
+    @media print {
+      .app-header, .tabs-nav, .controls-strip, .btn-action, .btn-icon, .styled-select {
+        display: none !important;
+      }
+      body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+      }
+      .panel, .stage-card, .quiz-card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body cz-shortcut-listen="true">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="brand-group">
+        <div class="logo-container">
+          <img src="leitores-escritores_files/logotipo__1Ii.png" alt="Logotipo" class="logo-img" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';" style="display: none;">
+          <div id="logo-fallback" class="logo-fallback" style="display: flex;">AR</div>
+        </div>
+        <div class="header-titles">
+          <h1>
+            <span>Leitores e Escritores</span>
+          </h1>
+          <p>Jogo de Consolidação · Coordenação de Tarefas</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-sound-toggle" class="btn-icon" aria-label="Alternar som">
+          <span id="sound-icon">🔇</span>
+          <span id="sound-label">Mudo</span>
+        </button>
+        <button id="btn-theme-toggle" class="btn-icon" aria-label="Alternar tema">
+          <span id="theme-icon">🌙</span>
           <span id="theme-label">Escuro</span>
         </button>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main id="conteudo" class="main-content">
-      <section class="featured-games-box" aria-labelledby="titulo-jogo">
-        <div class="section-header" style="margin-bottom: 1rem;">
-          <h2 id="titulo-jogo" class="section-title">
-            <span aria-hidden="true">📖</span>
-            <span>Leitores e Escritores</span>
-          </h2>
-          <p class="section-subtitle">Acesso concorrente a dados compartilhados</p>
+  <!-- 4 Big Phase Tabs -->
+  <nav class="tabs-nav" aria-label="Fases de Aprendizagem">
+    <button class="tab-btn" data-tab="tab-1">
+      <span class="tab-num">1</span>
+      <span>Explorar</span>
+      <span class="tab-check" id="check-1" style="display: inline;">✓</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-2">
+      <span class="tab-num">2</span>
+      <span>Coordenar</span>
+      <span class="tab-check" id="check-2" style="display: inline;">✓</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-3">
+      <span class="tab-num">3</span>
+      <span>Detectar</span>
+      <span class="tab-check" id="check-3" style="display: inline;">✓</span>
+    </button>
+    <button class="tab-btn active" data-tab="tab-4">
+      <span class="tab-num">4</span>
+      <span>Consolidar (Quiz)</span>
+      <span class="tab-check" id="check-4" style="display:none;">✓</span>
+    </button>
+  </nav>
+
+  <main class="main-wrap">
+
+    <!-- Collapsible Theory Bar (Available in ALL phases) -->
+    <details class="theory-box" id="theory-accordion">
+      <summary>
+        <span>📖 <strong>Teoria em Resumo</strong> — Conceitos Fundamentais de Sincronização</span>
+        <span style="font-size: 0.88rem; color: var(--text-muted); font-weight:600;">(clique para abrir/fechar)</span>
+      </summary>
+      <div class="theory-content">
+        <div class="theory-card">
+          <h4>Acesso Compartilhado vs Exclusivo</h4>
+          <p>Vários <strong>leitores</strong> podem ler ao mesmo tempo porque ler não altera dados. Um <strong>escritor</strong> precisa de acesso exclusivo: ninguém mais pode ler ou escrever enquanto ele atua.</p>
         </div>
-
-        <div class="hero-container" style="max-width: 100%; margin: 0; text-align: left;">
-          <p class="hero-desc">
-            A simulação explora o problema em que múltiplos leitores podem acessar um recurso ao mesmo tempo,
-            mas escritores exigem exclusividade para manter a consistência da informação.
-          </p>
+        <div class="theory-card">
+          <h4>Semáforo Mutex</h4>
+          <p>Garante exclusão mútua sobre a variável contadora <strong>readcount</strong>. Evita que dois leitores atualizem o contador no mesmo instante.</p>
         </div>
-
-        <div class="games-list" style="margin-top: 2rem;">
-          <article class="game-item-card">
-            <div>
-              <div class="game-header">
-                <h3 class="game-name">Desafio</h3>
-                <span class="game-badge">Condição</span>
-              </div>
-              <p class="game-description" style="margin-top: 0.5rem;">
-                Equilibrar leitura concorrente com a necessidade de evitar conflitos e preservar integridade dos dados.
-              </p>
-            </div>
-          </article>
-
-          <article class="game-item-card">
-            <div>
-              <div class="game-header">
-                <h3 class="game-name">Solução</h3>
-                <span class="game-badge">Implementação</span>
-              </div>
-              <p class="game-description" style="margin-top: 0.5rem;">
-                O modelo usa contadores de leitores e um mutex para controlar acesso e priorizar ou evitar starvation dependendo da política.
-              </p>
-            </div>
-          </article>
+        <div class="theory-card orange">
+          <h4>Semáforo WRT (Exclusão da Escrita)</h4>
+          <p>Garante a <strong>exclusão mútua da escrita</strong>. O 1º leitor faz <code>wait(wrt)</code> (tranca a escrita); o último leitor faz <code>signal(wrt)</code> (libera a escrita). Escritores usam <code>wait(wrt)</code> e <code>signal(wrt)</code>.</p>
         </div>
-      </section>
-    </main>
-
-    <footer class="site-footer" role="contentinfo">
-      <div class="footer-container">
-        <p class="footer-brand">Sistemas Operacionais · Profª Angelita Rettore</p>
-        <p class="footer-pill">Jogos educacionais</p>
-        <p class="footer-year">© 2026 · Bacharelado em Ciência da Computação</p>
+        <div class="theory-card">
+          <h4>Contador de Leitores (readcount)</h4>
+          <p>Registra quantos leitores estão no recurso. Quando sobe de 0
+ para 1, bloqueia a escrita. Quando cai de 1 para 0, desbloqueia a 
+escrita.</p>
+        </div>
+        <div class="theory-card orange">
+          <h4>Inanição (Starvation) &amp; Políticas</h4>
+          <p>Na prioridade de leitores, novos leitores chegam sem parar e os escritores sofrem <strong>inanição</strong>. Na prioridade de escritores, leitores sofrem. A política justa (FIFO) evita a fome de processos.</p>
+        </div>
+        <div class="theory-card red">
+          <h4>Condição de Corrida (Race Condition)</h4>
+          <p>Ocorre quando dois ou mais processos acessam dados 
+compartilhados sem sincronização e o resultado final depende da ordem de
+ execução, corrompendo a informação.</p>
+        </div>
+        <div class="theory-card">
+          <h4>Ponte para Deadlocks: Coffman</h4>
+          <p>As 4 condições necessárias: Exclusão Mútua, Posse e Espera, Não Preempção e <strong>Espera Circular</strong>.</p>
+        </div>
       </div>
-    </footer>
+    </details>
 
-    <script>
-      function handleLogoError(img) {
-        img.style.display = 'none';
-        const fallback = document.getElementById('prof-logo-fallback');
-        if (fallback) {
-          fallback.style.display = 'inline-flex';
+    <!-- Phase 1: Explorar Header Card -->
+    <div id="phase-banner-1" class="stage-card" style="display: none;">
+      <div class="stage-card-title">
+        <h2><span>🔍 Fase 1: Explorar a Sincronização</span></h2>
+        <span class="stage-badge badge-sync-on">Sincronização: ATIVA</span>
+      </div>
+      <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">
+        Observe o comportamento correto: <strong>vários leitores simultâneos</strong> e <strong>apenas um escritor exclusivo</strong>. Alterne a política de escalonamento para ver quem corre risco de inanição (starvation).
+      </p>
+    </div>
+
+    <!-- Phase 2: Coordenar Header Card -->
+    <div id="phase-banner-2" class="stage-card" style="display: none;">
+      <div class="stage-card-title">
+        <h2><span>⚙️ Fase 2: Coordenar com Semáforos</span></h2>
+        <span class="stage-badge badge-sync-on">Sincronização: ATIVA</span>
+      </div>
+      <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">
+        Veja a mecânica interna dos semáforos <strong>MUTEX</strong> e <strong>WRT</strong> e a variável <strong>READCOUNT</strong>. O primeiro leitor bloqueia a escrita com <code>wait(wrt)</code> e o último leitor libera com <code>signal(wrt)</code>.
+      </p>
+    </div>
+
+    <!-- Phase 3: Detectar Header Card -->
+    <div id="phase-banner-3" class="stage-card" style="display: none; border-color: var(--danger-red);">
+      <div class="stage-card-title">
+        <h2><span>⚠️ Fase 3: Detectar Condição de Corrida</span></h2>
+        <span class="stage-badge badge-sync-off">Sincronização: DESATIVADA</span>
+      </div>
+      <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">
+        Aqui <strong>não há semáforos nem bloqueios</strong>! Leitores e escritores acessam o recurso a qualquer momento. Observe os dados corrompidos quando ocorrer uma <strong>condição de corrida</strong>.
+      </p>
+    </div>
+
+    <!-- Phase 4: Consolidar Header Card -->
+    <div id="phase-banner-4" class="stage-card" style="display: block;">
+      <div class="stage-card-title">
+        <h2><span>🎯 Fase 4: Consolidar Conhecimento (Quiz)</span></h2>
+        <span class="stage-badge badge-sync-on">11 Perguntas Objetivas</span>
+      </div>
+      <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">
+        Responda às 11 questões de múltipla escolha. Feedback imediato com explicações claras para fixar os conceitos.
+      </p>
+    </div>
+
+    <!-- SIMULATION SUITE (Shared by Phase 1, 2, 3) -->
+    <div id="simulation-suite" style="display: none;">
+
+      <!-- Race Condition Alert Banner (Phase 3 only) -->
+      <div id="race-alert" class="race-alert-banner">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <h3 id="race-alert-title">ESCRITA CONCORRENTE — CONDIÇÃO DE CORRIDA</h3>
+          <p id="race-alert-desc" style="margin:0; font-size: 0.94rem; font-weight:700;">Dois escritores (E1 e E2) tentaram escrever na memória ao mesmo tempo sem exclusão mútua!</p>
+        </div>
+      </div>
+
+      <!-- Controls Strip -->
+      <div class="controls-strip">
+        <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+          <!-- Leitores Counter -->
+          <div class="control-item">
+            <span style="color: var(--reader-light);">👁️ Leitores:</span>
+            <button class="stepper-btn" id="btn-sub-readers" aria-label="Diminuir leitores">-</button>
+            <span class="stepper-val" id="val-readers">3</span>
+            <button class="stepper-btn" id="btn-add-readers" aria-label="Aumentar leitores">+</button>
+          </div>
+
+          <!-- Escritores Counter -->
+          <div class="control-item">
+            <span style="color: var(--writer-orange);">✍️ Escritores:</span>
+            <button class="stepper-btn" id="btn-sub-writers" aria-label="Diminuir escritores">-</button>
+            <span class="stepper-val" id="val-writers">2</span>
+            <button class="stepper-btn" id="btn-add-writers" aria-label="Aumentar escritores">+</button>
+          </div>
+
+          <!-- Velocidade Selector -->
+          <div class="control-item">
+            <label for="select-speed" style="color: var(--neutral-gray);">Velocidade:</label>
+            <select id="select-speed" class="styled-select">
+              <option value="1800">Lenta (1.8s)</option>
+              <option value="1000" selected="selected">Normal (1.0s)</option>
+              <option value="500">Rápida (0.5s)</option>
+            </select>
+          </div>
+
+          <!-- Phase 1 Policy Selector -->
+          <div class="control-item" id="policy-control-wrap" style="display: none;">
+            <label for="select-policy" style="color: var(--accent-text);">Política:</label>
+            <select id="select-policy" class="styled-select">
+              <option value="readers" selected="selected">Prioridade de Leitores (Clássica)</option>
+              <option value="writers">Prioridade de Escritores</option>
+              <option value="fifo">Justa (FIFO / Fila Equilibrada)</option>
+            </select>
+          </div>
+
+          <!-- Phase 3 Freeze Duration Selector -->
+          <div class="control-item" id="freeze-control-wrap" style="display: flex;">
+            <label for="select-freeze" style="color: var(--danger-red);">Pausa na Corrida:</label>
+            <select id="select-freeze" class="styled-select">
+              <option value="1000">1 segundo</option>
+              <option value="2000">2 segundos</option>
+              <option value="3000" selected="selected">3 segundos (Padrão)</option>
+              <option value="5000">5 segundos</option>
+              <option value="8000">8 segundos</option>
+              <option value="10000">10 segundos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="btn-action btn-start" id="btn-sim-start">▶ Iniciar</button>
+          <button class="btn-action btn-pause" id="btn-sim-pause" disabled="disabled">⏸ Pausar</button>
+          <button class="btn-action btn-reset" id="btn-sim-reset">↺ Reiniciar</button>
+          <button class="btn-action btn-reset" id="btn-show-summary" style="display: inline-flex; border-color: var(--danger-red);">📊 Ver Resumo</button>
+        </div>
+      </div>
+
+      <!-- Real-Time KPIs -->
+      <div class="kpi-row">
+        <div class="kpi-card kpi-reader">
+          <div class="kpi-lbl">Leituras Concluídas</div>
+          <div class="kpi-num" id="stat-reads-done">3</div>
+        </div>
+        <div class="kpi-card kpi-writer">
+          <div class="kpi-lbl">Escritas Concluídas</div>
+          <div class="kpi-num" id="stat-writes-done">0</div>
+        </div>
+        <div class="kpi-card kpi-reader">
+          <div class="kpi-lbl">Leitores Ativos</div>
+          <div class="kpi-num" id="stat-readers-active">0</div>
+        </div>
+        <div class="kpi-card kpi-writer">
+          <div class="kpi-lbl">Escritor Ativo</div>
+          <div class="kpi-num" id="stat-writer-active">NÃO</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-lbl">Leitores Esperando</div>
+          <div class="kpi-num" id="stat-readers-waiting">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-lbl">Escritores Esperando</div>
+          <div class="kpi-num" id="stat-writers-waiting">0</div>
+        </div>
+        <div class="kpi-card kpi-danger" id="kpi-card-races" style="display: block;">
+          <div class="kpi-lbl">Condições de Corrida</div>
+          <div class="kpi-num" id="stat-race-count">12</div>
+        </div>
+        <div class="kpi-card kpi-danger" id="kpi-card-corrupt" style="display: block;">
+          <div class="kpi-lbl">Dados Corrompidos</div>
+          <div class="kpi-num" id="stat-corrupt-count">20</div>
+        </div>
+      </div>
+
+      <!-- Main Arena: Readers (Left) | DB (Center) | Writers (Right) -->
+      <div class="arena-grid">
+        <!-- Readers Column -->
+        <div class="column-panel" style="border-top: 4px solid var(--reader-green);">
+          <div class="column-panel-header">
+            <h3 style="color: var(--reader-light);">👁️ Processos Leitores</h3>
+            <span style="font-size: 0.8rem; font-weight:800; color:var(--reader-light);" id="reader-col-subtitle">Acesso Simultâneo</span>
+          </div>
+          <div id="readers-container" style="display: flex; flex-direction: column; gap: 10px;"><div class="process-card" id="reader-card-1"><div class="process-header"><div class="process-id" style="color: var(--reader-light);"><span>👁️</span> Leitor L1</div><span class="process-status status-idle">Ocioso</span></div></div><div class="process-card" id="reader-card-2"><div class="process-header"><div class="process-id" style="color: var(--reader-light);"><span>👁️</span> Leitor L2</div><span class="process-status status-idle">Ocioso</span></div></div><div class="process-card" id="reader-card-3"><div class="process-header"><div class="process-id" style="color: var(--reader-light);"><span>👁️</span> Leitor L3</div><span class="process-status status-idle">Ocioso</span></div></div></div>
+        </div>
+
+        <!-- Central DB Resource -->
+        <div class="db-center" id="db-resource-box">
+          <div class="db-header">
+            <div style="font-size: 0.82rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">
+              Recurso Compartilhado
+            </div>
+            <h2 style="margin: 4px 0 0 0; font-size: 1.35rem; color: var(--text);">
+              🗄️ Banco de Dados Central
+            </h2>
+            <div id="db-state-badge" class="db-badge-status" style="background: var(--surface-elevated); color: var(--text-muted);">MODO OCIOSO (Nenhum processo no recurso)</div>
+          </div>
+
+          <!-- Active Beams Visualization -->
+          <div class="active-beams-display" id="beam-status-line">
+            <span class="beam-pip" id="beam-indicator"></span>
+            <span id="beam-text">Nenhuma conexão de processo ativa</span>
+          </div>
+
+          <!-- Visual Records Table inside DB -->
+          <div class="db-records-view">
+            <div style="font-size: 0.76rem; font-weight:700; color:var(--text-muted); margin-bottom: 6px; text-transform:uppercase;">
+              Tabela: TB_MATRICULAS · Memória Principal
+            </div>
+            <div class="db-record-row" id="record-row-1">
+              <span>ID: 1041 · Aluna: Carla Souza</span>
+              <span id="record-data-1">Nota: 9.4 | APROVADA</span>
+            </div>
+            <div class="db-record-row" id="record-row-2">
+              <span>ID: 1042 · Aluno: Lucas Lima</span>
+              <span id="record-data-2">Nota: 8.0 | RESTAURADO</span>
+            </div>
+            <div class="db-record-row" id="record-row-3">
+              <span>ID: 1043 · Aluno: Daniel Prado</span>
+              <span id="record-data-3">Nota: 7.2 | RESTAURADO</span>
+            </div>
+            <div class="db-record-row" id="record-row-4">
+              <span>ID: 1044 · Aluna: Beatriz Reis</span>
+              <span id="record-data-4">Nota: 5.5 | EXAME</span>
+            </div>
+          </div>
+
+          <!-- Footnote inside DB -->
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 8px;">
+            <span id="db-sync-note">Regra: <strong>N</strong> Leitores OU <strong>1</strong> Escritor</span>
+          </div>
+        </div>
+
+        <!-- Writers Column -->
+        <div class="column-panel" style="border-top: 4px solid var(--writer-orange);">
+          <div class="column-panel-header">
+            <h3 style="color: var(--writer-orange);">✍️ Processos Escritores</h3>
+            <span style="font-size: 0.8rem; font-weight:800; color:var(--writer-orange);" id="writer-col-subtitle">Acesso Exclusivo</span>
+          </div>
+          <div id="writers-container" style="display: flex; flex-direction: column; gap: 10px;"><div class="process-card" id="writer-card-1"><div class="process-header"><div class="process-id" style="color: var(--writer-orange);"><span>✍️</span> Escritor E1</div><span class="process-status status-idle">Ocioso</span></div></div><div class="process-card" id="writer-card-2"><div class="process-header"><div class="process-id" style="color: var(--writer-orange);"><span>✍️</span> Escritor E2</div><span class="process-status status-idle">Ocioso</span></div></div></div>
+        </div>
+      </div>
+
+      <!-- Phase 1 Subpanel: "O que observar" -->
+      <div id="subpanel-phase-1" class="subpanel-card" style="display: none;">
+        <h3>🔍 O que observar nesta simulação:</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; font-size: 0.92rem;">
+          <div style="background: var(--bg); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--reader-light);">
+            <strong>1. Múltiplos Leitores Simultâneos:</strong> note que mais de um leitor pode ter feixe verde conectado ao banco sem qualquer conflito.
+          </div>
+          <div style="background: var(--bg); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--writer-orange);">
+            <strong>2. Apenas Um Escritor por Vez:</strong> quando um escritor entra, ele bloqueia TODOS os outros processos e o banco fica trancado (🔒).
+          </div>
+          <div style="background: var(--bg); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--danger-red);">
+            <strong>3. Inanição (Starvation):</strong> na política <em>Prioridade de Leitores</em>, se novos leitores continuarem chegando, os escritores ficam com badge <span style="color:var(--danger-red); font-weight:800;">INANIÇÃO?</span> piscando.
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2 Subpanel: "Mecanismos em Ação" -->
+      <div id="subpanel-phase-2" class="subpanel-card" style="display: none;">
+        <h3>⚙️ Mecanismos em Ação (Semáforos &amp; Contadores)</h3>
+
+        <div class="semaphores-grid">
+          <div class="semaphore-card">
+            <div class="semaphore-info">
+              <h4>Semáforo MUTEX</h4>
+              <span>Protege o readcount</span>
+            </div>
+            <div id="sem-mutex-pill" class="semaphore-pill pill-free">1 (LIVRE)</div>
+          </div>
+          <div class="semaphore-card">
+            <div class="semaphore-info">
+              <h4>Semáforo WRT</h4>
+              <span>Exclusão mútua da escrita</span>
+            </div>
+            <div id="sem-wrt-pill" class="semaphore-pill pill-free">1 (LIVRE)</div>
+          </div>
+          <div class="semaphore-card">
+            <div class="semaphore-info">
+              <h4>Contador READCOUNT</h4>
+              <span>Leitores ativos no recurso</span>
+            </div>
+            <div id="sem-readcount-val" style="font-size: 1.4rem; font-weight:900; color:var(--reader-light);">0</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 8px; font-size: 0.88rem; font-weight:700; color:var(--text-muted);">
+          HISTÓRICO DE SINCRONIZAÇÃO (ÚLTIMAS 4 OPERAÇÕES):
+        </div>
+        <div class="trace-log-box" id="trace-log-box"><div class="trace-line "></div><div class="trace-line ">Simulação reiniciada.</div></div>
+
+        <div style="margin-top: 12px; font-size: 0.9rem; color: var(--text-muted); background: var(--bg); padding: 10px 14px; border-radius: 8px;">
+          💡 <strong>Regra de ouro:</strong> O <em>primeiro leitor</em> bloqueia a escrita com <code>wait(wrt)</code>; o <em>último leitor</em> libera a escrita com <code>signal(wrt)</code>. O semáforo <code>mutex</code> protege as atualizações concorrentes em <code>readcount</code>.
+        </div>
+      </div>
+
+      <!-- Phase 3 Subpanel: "O que aconteceu? (Condição de Corrida)" -->
+      <div id="subpanel-phase-3" class="subpanel-card" style="display: block; border-color: var(--danger-red);">
+        <h3 style="color: var(--danger-red);">⚠️ Análise da Condição de Corrida</h3>
+        <p style="font-size: 0.93rem; color: var(--text); margin: 0 0 10px 0;">
+          Uma <strong>condição de corrida</strong> acontece quando 
+vários processos acessam e manipulam dados compartilhados sem 
+coordenação, e o valor final dos dados depende da velocidade e ordem com
+ que as instruções são escalonadas.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; font-size: 0.88rem;">
+          <div style="background: var(--bg); padding: 10px; border-radius: 6px; border-left: 3px solid var(--danger-red);">
+            <strong>Leitura durante Escrita:</strong> O leitor obtém dados pela metade (inconsistentes).
+          </div>
+          <div style="background: var(--bg); padding: 10px; border-radius: 6px; border-left: 3px solid var(--danger-red);">
+            <strong>Escrita durante Leitura:</strong> O escritor sobrescreve valores enquanto outro processo ainda os analisava.
+          </div>
+          <div style="background: var(--bg); padding: 10px; border-radius: 6px; border-left: 3px solid var(--danger-red);">
+            <strong>Escrita Concorrente:</strong> Dois escritores alteram o mesmo registro simultaneamente, gerando corrupção de memória.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PHASE 4: QUIZ CONSOLIDAR -->
+    <div id="quiz-suite" style="display: block;">
+      <div class="quiz-container">
+        <!-- Quiz Progress Bar & Score Tracker -->
+        <div class="stage-card" style="margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3 style="margin: 0; font-size: 1.15rem;">🎯 Quiz de Fixação de Conceitos</h3>
+              <span style="font-size: 0.86rem; color: var(--text-muted);">11 perguntas diretas baseadas nos padrões de Sistemas Operacionais</span>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--reader-light);">
+              Placar: <span id="quiz-score-val">0</span> / 11 acertos
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions Container (Populated by JS) -->
+        <div id="quiz-questions-list"><div class="quiz-card" id="quiz-card-1"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 1 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">O que caracteriza o acesso dos leitores?</h3><div class="quiz-options-list"><button class="quiz-opt-btn opt-wrong" data-qid="1" data-letter="A" data-correct="false" disabled="disabled"><span class="quiz-opt-letter">A</span><span>Somente um único leitor acessa por vez.</span></button><button class="quiz-opt-btn" data-qid="1" data-letter="B" data-correct="false" disabled="disabled"><span class="quiz-opt-letter">B</span><span>Os leitores só leem após os escritores.</span></button><button class="quiz-opt-btn opt-correct" data-qid="1" data-letter="C" data-correct="true" disabled="disabled"><span class="quiz-opt-letter">C</span><span>Vários leitores leem ao mesmo tempo.</span></button><button class="quiz-opt-btn" data-qid="1" data-letter="D" data-correct="false" disabled="disabled"><span class="quiz-opt-letter">D</span><span>Nenhum leitor pode acessar o recurso.</span></button></div><div class="quiz-feedback-box show-wrong" id="quiz-feedback-1">❌ <strong>Resposta Incorreta.</strong> A alternativa correta é: <em>"Vários leitores leem ao mesmo tempo."</em>.<br>💡
+ Como a operação de leitura não altera os dados compartilhados, 
+múltiplos leitores podem acessar a memória em paralelo sem causar 
+inconsistência.</div></div><div class="quiz-card" id="quiz-card-2"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 2 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">Quando um escritor pode escrever?</h3><div class="quiz-options-list"><button class="quiz-opt-btn opt-correct" data-qid="2" data-letter="A" data-correct="true" disabled="disabled"><span class="quiz-opt-letter">A</span><span>Quando nenhum outro processo acessa.</span></button><button class="quiz-opt-btn opt-wrong" data-qid="2" data-letter="B" data-correct="false" disabled="disabled"><span class="quiz-opt-letter">B</span><span>Quando o recurso está corrompido.</span></button><button class="quiz-opt-btn" data-qid="2" data-letter="C" data-correct="false" disabled="disabled"><span class="quiz-opt-letter">C</span><span>Quando há leitores ativos no recurso.</span></button><button class="quiz-opt-btn" data-qid="2" data-letter="D" data-correct="false" disabled="disabled"><span class="quiz-opt-letter">D</span><span>Quando a fila de espera está vazia.</span></button></div><div class="quiz-feedback-box show-wrong" id="quiz-feedback-2">❌ <strong>Resposta Incorreta.</strong> A alternativa correta é: <em>"Quando nenhum outro processo acessa."</em>.<br>💡
+ A escrita exige exclusão mútua total: nenhum leitor pode estar lendo e 
+nenhum outro escritor pode estar escrevendo simultaneamente.</div></div><div class="quiz-card" id="quiz-card-3"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 3 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">Qual semáforo garante a exclusão mútua da escrita?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="3" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>O contador de leitores.</span></button><button class="quiz-opt-btn" data-qid="3" data-letter="B" data-correct="false"><span class="quiz-opt-letter">B</span><span>O semáforo mutex.</span></button><button class="quiz-opt-btn" data-qid="3" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>A fila de espera.</span></button><button class="quiz-opt-btn" data-qid="3" data-letter="D" data-correct="true"><span class="quiz-opt-letter">D</span><span>O semáforo wrt.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-3"></div></div><div class="quiz-card" id="quiz-card-4"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 4 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">Qual é o papel do semáforo mutex?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="4" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>Escalonar os processos.</span></button><button class="quiz-opt-btn" data-qid="4" data-letter="B" data-correct="true"><span class="quiz-opt-letter">B</span><span>Proteger o contador de leitores.</span></button><button class="quiz-opt-btn" data-qid="4" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>Bloquear a escrita do recurso.</span></button><button class="quiz-opt-btn" data-qid="4" data-letter="D" data-correct="false"><span class="quiz-opt-letter">D</span><span>Liberar a leitura dos dados.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-4"></div></div><div class="quiz-card" id="quiz-card-5"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 5 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">O que faz o primeiro leitor ao chegar?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="5" data-letter="A" data-correct="true"><span class="quiz-opt-letter">A</span><span>Bloqueia a escrita com wait no wrt.</span></button><button class="quiz-opt-btn" data-qid="5" data-letter="B" data-correct="false"><span class="quiz-opt-letter">B</span><span>Libera a escrita com signal no wrt.</span></button><button class="quiz-opt-btn" data-qid="5" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>Incrementa o contador de escritores.</span></button><button class="quiz-opt-btn" data-qid="5" data-letter="D" data-correct="false"><span class="quiz-opt-letter">D</span><span>Espera o último leitor sair.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-5"></div></div><div class="quiz-card" id="quiz-card-6"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 6 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">O que faz o último leitor ao sair?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="6" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>Incrementa o contador de leitores.</span></button><button class="quiz-opt-btn" data-qid="6" data-letter="B" data-correct="false"><span class="quiz-opt-letter">B</span><span>Decrementa o contador de escritores.</span></button><button class="quiz-opt-btn" data-qid="6" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>Bloqueia a escrita com wait no wrt.</span></button><button class="quiz-opt-btn" data-qid="6" data-letter="D" data-correct="true"><span class="quiz-opt-letter">D</span><span>Libera a escrita com signal no wrt.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-6"></div></div><div class="quiz-card" id="quiz-card-7"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 7 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">O que é inanição (starvation)?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="7" data-letter="A" data-correct="true"><span class="quiz-opt-letter">A</span><span>Um processo espera indefinidamente o recurso.</span></button><button class="quiz-opt-btn" data-qid="7" data-letter="B" data-correct="false"><span class="quiz-opt-letter">B</span><span>Um processo termina rápido demais na fila.</span></button><button class="quiz-opt-btn" data-qid="7" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>Um recurso fica sempre ocupado.</span></button><button class="quiz-opt-btn" data-qid="7" data-letter="D" data-correct="false"><span class="quiz-opt-letter">D</span><span>Um erro sem consequências.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-7"></div></div><div class="quiz-card" id="quiz-card-8"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 8 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">Na prioridade de leitores, quem sofre inanição?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="8" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>O recurso compartilhado.</span></button><button class="quiz-opt-btn" data-qid="8" data-letter="B" data-correct="true"><span class="quiz-opt-letter">B</span><span>Os escritores.</span></button><button class="quiz-opt-btn" data-qid="8" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>Os leitores.</span></button><button class="quiz-opt-btn" data-qid="8" data-letter="D" data-correct="false"><span class="quiz-opt-letter">D</span><span>O sistema operacional.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-8"></div></div><div class="quiz-card" id="quiz-card-9"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 9 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">O que acontece sem sincronização?</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="9" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>A escrita fica bloqueada.</span></button><button class="quiz-opt-btn" data-qid="9" data-letter="B" data-correct="true"><span class="quiz-opt-letter">B</span><span>Leitores e escritores acessam ao mesmo tempo.</span></button><button class="quiz-opt-btn" data-qid="9" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>A leitura fica bloqueada.</span></button><button class="quiz-opt-btn" data-qid="9" data-letter="D" data-correct="false"><span class="quiz-opt-letter">D</span><span>Os processos esperam em fila ordenada.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-9"></div></div><div class="quiz-card" id="quiz-card-10"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 10 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">Um banco de dados com leitores e um escritor é exemplo de...</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="10" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>Comunicação por filas de mensagens.</span></button><button class="quiz-opt-btn" data-qid="10" data-letter="B" data-correct="false"><span class="quiz-opt-letter">B</span><span>Escalonamento por prioridade.</span></button><button class="quiz-opt-btn" data-qid="10" data-letter="C" data-correct="true"><span class="quiz-opt-letter">C</span><span>Acesso compartilhado e exclusivo ao recurso.</span></button><button class="quiz-opt-btn" data-qid="10" data-letter="D" data-correct="false"><span class="quiz-opt-letter">D</span><span>Memória virtual paginada.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-10"></div></div><div class="quiz-card" id="quiz-card-11"><div class="quiz-header-bar"><span class="quiz-q-num">Questão 11 de 11</span><span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span></div><h3 class="quiz-q-title">A espera circular é uma das...</h3><div class="quiz-options-list"><button class="quiz-opt-btn" data-qid="11" data-letter="A" data-correct="false"><span class="quiz-opt-letter">A</span><span>Propriedades da seção crítica.</span></button><button class="quiz-opt-btn" data-qid="11" data-letter="B" data-correct="false"><span class="quiz-opt-letter">B</span><span>Condições de Peterson para exclusão.</span></button><button class="quiz-opt-btn" data-qid="11" data-letter="C" data-correct="false"><span class="quiz-opt-letter">C</span><span>Etapas do escalonamento.</span></button><button class="quiz-opt-btn" data-qid="11" data-letter="D" data-correct="true"><span class="quiz-opt-letter">D</span><span>Condições de Coffman para deadlock.</span></button></div><div class="quiz-feedback-box" id="quiz-feedback-11"></div></div></div>
+
+        <!-- Quiz Completion Card (hidden until all answered) -->
+        <div id="quiz-final-card" class="quiz-score-card" style="display: none;">
+          <h2 style="margin: 0 0 10px 0; font-size: 1.6rem; color: var(--text);" id="quiz-final-title">Parabéns! Quiz Concluído!</h2>
+          <p style="font-size: 1.1rem; color: var(--text-muted); margin: 0 0 20px 0;" id="quiz-final-msg">
+            Você acertou <strong id="quiz-final-score">0</strong> de 11 questões.
+          </p>
+          <button class="btn-action btn-start" id="btn-quiz-retry" style="font-size: 1.1rem; padding: 12px 26px; margin: 0 auto;">
+            ↺ Refazer Quiz (Embaralhar Novamente)
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Summary Modal (Phase 3) -->
+  <div class="modal-backdrop" id="modal-summary">
+    <div class="modal-card">
+      <h3 style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: var(--danger-red);">⚠️</span> Relatório de Condições de Corrida
+      </h3>
+      <p style="font-size: 0.95rem; color: var(--text-muted); margin: 0 0 16px 0;">
+        Resumo didático da execução sem mecanismos de sincronização:
+      </p>
+
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);">
+          <span>Condições de corrida ocorridas:</span>
+          <strong id="modal-races-count" style="color: var(--danger-red); font-size: 1.1rem;">0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);">
+          <span>Registros corrompidos:</span>
+          <strong id="modal-corrupt-count" style="color: var(--writer-orange); font-size: 1.1rem;">0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);">
+          <span>Total de Leituras Realizadas:</span>
+          <strong id="modal-reads-count" style="color: var(--reader-light);">0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+          <span>Total de Escritas Realizadas:</span>
+          <strong id="modal-writes-count" style="color: var(--writer-orange);">0</strong>
+        </div>
+      </div>
+
+      <div style="font-size: 0.9rem; color: var(--text); background: rgba(224, 82, 77, 0.1); border-left: 3px solid var(--danger-red); padding: 10px 14px; border-radius: 6px; margin-bottom: 18px;">
+        <strong>Conclusão Técnica:</strong> Sem o uso de semáforos ou monitores, a integridade da memória é violada. O semáforo <code>wrt</code> é essencial para garantir a exclusão mútua dos escritores e a consistência das leituras.
+      </div>
+
+      <div style="text-align: right;">
+        <button class="btn-action btn-reset" id="btn-modal-close" style="padding: 8px 20px;">Fechar Resumo</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="shell-footer" style="margin-top: 40px; padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border);">
+    Sistemas Operacionais · Coordenação de Tarefas e Sincronização de Processos · Material Educacional
+  </footer>
+
+  <!-- Single self-contained pure JS script -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      "use strict";
+
+      /* ==========================================================================
+         1. AUDIO SYSTEM (Web Audio API Synthesizer - 100% Offline, no external files)
+         ========================================================================== */
+      let audioCtx = null;
+      let soundEnabled = true;
+
+      const savedSound = localStorage.getItem("le-sound");
+      if (savedSound !== null) {
+        soundEnabled = savedSound === "true";
+      }
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+          }
+        }
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      function updateSoundUI() {
+        const iconEl = document.getElementById("sound-icon");
+        const lblEl = document.getElementById("sound-label");
+        if (iconEl && lblEl) {
+          iconEl.textContent = soundEnabled ? "🔊" : "🔇";
+          lblEl.textContent = soundEnabled ? "Som Ligado" : "Mudo";
+        }
+      }
+      updateSoundUI();
+
+      const btnSoundToggle = document.getElementById("btn-sound-toggle");
+      if (btnSoundToggle) {
+        btnSoundToggle.addEventListener("click", function() {
+          soundEnabled = !soundEnabled;
+          localStorage.setItem("le-sound", soundEnabled ? "true" : "false");
+          updateSoundUI();
+          if (soundEnabled) {
+            playTone("click");
+          }
+        });
+      }
+
+      function playTone(type) {
+        if (!soundEnabled) return;
+        try {
+          const ctx = getAudioContext();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          if (type === "read") {
+            // Soft chime
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(540, now);
+            osc.frequency.exponentialRampToValueAtTime(720, now + 0.12);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.12);
+          } else if (type === "write") {
+            // Stronger tone
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.setValueAtTime(440, now + 0.08);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.16);
+          } else if (type === "error") {
+            // Race condition buzz
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.setValueAtTime(130, now + 0.1);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.28);
+          } else if (type === "success") {
+            // Quiz correct
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.2);
+          } else {
+            // Click blip
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(800, now);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.05);
+          }
+        } catch (e) {
+          // Ignore audio failures if browser blocks audio
         }
       }
 
-      (function initTheme() {
-        const STORAGE_KEY = 'so-theme';
-        const rootHtml = document.documentElement;
-        const toggle = document.getElementById('theme-toggle');
-        const icon = document.getElementById('theme-icon');
-        const label = document.getElementById('theme-label');
+      /* ==========================================================================
+         2. THEME SYSTEM (Dark / Light with smooth transition)
+         ========================================================================== */
+      const btnThemeToggle = document.getElementById("btn-theme-toggle");
+      const htmlEl = document.documentElement;
 
-        function getPreferredTheme() {
-          const savedTheme = localStorage.getItem(STORAGE_KEY);
-          if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
-          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-          return 'light';
+      function applyTheme(theme) {
+        htmlEl.setAttribute("data-theme", theme);
+        if (theme === "dark") {
+          htmlEl.classList.add("dark");
+        } else {
+          htmlEl.classList.remove("dark");
+        }
+        localStorage.setItem("le-theme", theme);
+        const iconEl = document.getElementById("theme-icon");
+        const lblEl = document.getElementById("theme-label");
+        if (iconEl && lblEl) {
+          iconEl.textContent = theme === "dark" ? "☀️" : "🌙";
+          lblEl.textContent = theme === "dark" ? "Claro" : "Escuro";
+        }
+      }
+
+      let currentTheme = localStorage.getItem("le-theme");
+      if (!currentTheme) {
+        currentTheme = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+      }
+      applyTheme(currentTheme);
+
+      if (btnThemeToggle) {
+        btnThemeToggle.addEventListener("click", function() {
+          const next = htmlEl.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          applyTheme(next);
+          playTone("click");
+        });
+      }
+
+      /* ==========================================================================
+         3. NAVIGATION & TABS (1 Explorar, 2 Coordenar, 3 Detectar, 4 Quiz)
+         ========================================================================== */
+      let currentTab = 1;
+      const visitedTabs = { 1: true, 2: false, 3: false, 4: false };
+
+      const tabButtons = document.querySelectorAll(".tab-btn");
+      tabButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          const target = parseInt(btn.getAttribute("data-tab").replace("tab-", ""), 10);
+          switchTab(target);
+          playTone("click");
+        });
+      });
+
+      function switchTab(num) {
+        currentTab = num;
+        visitedTabs[num] = true;
+
+        tabButtons.forEach(function(b) {
+          const bNum = parseInt(b.getAttribute("data-tab").replace("tab-", ""), 10);
+          b.classList.toggle("active", bNum === num);
+          const chk = document.getElementById("check-" + bNum);
+          if (chk && visitedTabs[bNum] && bNum !== num) {
+            chk.style.display = "inline";
+          }
+        });
+
+        // Toggle Banners
+        for (let i = 1; i <= 4; i++) {
+          const banner = document.getElementById("phase-banner-" + i);
+          if (banner) banner.style.display = (i === num) ? "block" : "none";
         }
 
-        function applyTheme(theme) {
-          if (theme === 'dark') {
-            rootHtml.classList.add('dark');
-            rootHtml.setAttribute('data-theme', 'dark');
-            if (icon) icon.textContent = '☀️';
-            if (label) label.textContent = 'Claro';
-            if (toggle) {
-              toggle.setAttribute('title', 'Mudar para o tema claro');
-              toggle.setAttribute('aria-label', 'Ativar tema claro');
-            }
-          } else {
-            rootHtml.classList.remove('dark');
-            rootHtml.setAttribute('data-theme', 'light');
-            if (icon) icon.textContent = '🌙';
-            if (label) label.textContent = 'Escuro';
-            if (toggle) {
-              toggle.setAttribute('title', 'Mudar para o tema escuro');
-              toggle.setAttribute('aria-label', 'Ativar tema escuro');
+        // Toggle Suites
+        const simSuite = document.getElementById("simulation-suite");
+        const quizSuite = document.getElementById("quiz-suite");
+
+        if (num === 4) {
+          simSuite.style.display = "none";
+          quizSuite.style.display = "block";
+          stopSimulation();
+        } else {
+          simSuite.style.display = "block";
+          quizSuite.style.display = "none";
+
+          // Subpanels inside simulation
+          document.getElementById("subpanel-phase-1").style.display = (num === 1) ? "block" : "none";
+          document.getElementById("subpanel-phase-2").style.display = (num === 2) ? "block" : "none";
+          document.getElementById("subpanel-phase-3").style.display = (num === 3) ? "block" : "none";
+
+          // Controls adaptation
+          const policyWrap = document.getElementById("policy-control-wrap");
+          const freezeWrap = document.getElementById("freeze-control-wrap");
+          const btnSummary = document.getElementById("btn-show-summary");
+          const kpiRaces = document.getElementById("kpi-card-races");
+          const kpiCorrupt = document.getElementById("kpi-card-corrupt");
+
+          if (num === 1) {
+            policyWrap.style.display = "flex";
+            freezeWrap.style.display = "none";
+            btnSummary.style.display = "none";
+            kpiRaces.style.display = "none";
+            kpiCorrupt.style.display = "none";
+          } else if (num === 2) {
+            policyWrap.style.display = "flex";
+            freezeWrap.style.display = "none";
+            btnSummary.style.display = "none";
+            kpiRaces.style.display = "none";
+            kpiCorrupt.style.display = "none";
+          } else if (num === 3) {
+            policyWrap.style.display = "none";
+            freezeWrap.style.display = "flex";
+            btnSummary.style.display = "inline-flex";
+            kpiRaces.style.display = "block";
+            kpiCorrupt.style.display = "block";
+          }
+
+          resetSimulation();
+        }
+      }
+
+      /* ==========================================================================
+         4. SIMULATION ENGINE
+         ========================================================================== */
+      let numReaders = 3;
+      let numWriters = 2;
+      let simSpeed = 1000;
+      let freezeDuration = 3000;
+      let simPolicy = "readers"; // "readers", "writers", "fifo"
+      let isSimRunning = false;
+      let isSimPaused = false;
+      let isFrozen = false;
+      let simIntervalId = null;
+
+      // Stats
+      let statReadsDone = 0;
+      let statWritesDone = 0;
+      let statRacesDetected = 0;
+      let statCorruptions = 0;
+
+      // Semaphores & OS coordination state
+      let semMutex = 1; // 1 = livre, 0 = ocupado
+      let semWrt = 1;   // 1 = livre, 0 = ocupado
+      let readCount = 0;
+      let activeWriterId = null; // null or writer number
+
+      // Process states
+      // Reader: { id, state: 'idle'|'waiting'|'reading', waitCycles: 0 }
+      // Writer: { id, state: 'idle'|'waiting'|'writing', waitCycles: 0 }
+      let readersList = [];
+      let writersList = [];
+      let fifoQueue = []; // For FIFO policy: array of { type: 'R'|'W', id: number }
+      let traceLog = [];
+
+      function initProcesses() {
+        readersList = [];
+        for (let i = 1; i <= numReaders; i++) {
+          readersList.push({ id: i, state: "idle", waitCycles: 0 });
+        }
+        writersList = [];
+        for (let i = 1; i <= numWriters; i++) {
+          writersList.push({ id: i, state: "idle", waitCycles: 0 });
+        }
+        fifoQueue = [];
+      }
+
+      function renderProcessCards() {
+        // Render Readers
+        const rContainer = document.getElementById("readers-container");
+        rContainer.innerHTML = "";
+        readersList.forEach(function(r) {
+          const card = document.createElement("div");
+          card.className = "process-card";
+          card.id = "reader-card-" + r.id;
+
+          let badgeClass = "status-idle";
+          let badgeText = "Ocioso";
+          let blockReason = "";
+
+          if (r.state === "reading") {
+            badgeClass = "status-active-read";
+            badgeText = "Lendo 📖";
+          } else if (r.state === "waiting") {
+            badgeClass = "status-waiting";
+            badgeText = "Aguardando";
+            blockReason = "ESPERANDO: escritor ativo";
+          }
+
+          let starvationBadge = "";
+          if (r.waitCycles >= 8 && currentTab === 1 && simPolicy === "writers") {
+            starvationBadge = '<div class="process-badge-block starvation-warning">⚠️ INANIÇÃO? (Espera: ' + r.waitCycles + ' ciclos)</div>';
+          }
+
+          card.innerHTML =
+            '<div class="process-header">' +
+              '<div class="process-id" style="color: var(--reader-light);">' +
+                '<span>👁️</span> Leitor L' + r.id +
+              '</div>' +
+              '<span class="process-status ' + badgeClass + '">' + badgeText + '</span>' +
+            '</div>' +
+            (blockReason ? '<div class="process-badge-block">' + blockReason + '</div>' : '') +
+            starvationBadge;
+
+          rContainer.appendChild(card);
+        });
+
+        // Render Writers
+        const wContainer = document.getElementById("writers-container");
+        wContainer.innerHTML = "";
+        writersList.forEach(function(w) {
+          const card = document.createElement("div");
+          card.className = "process-card";
+          card.id = "writer-card-" + w.id;
+
+          let badgeClass = "status-idle";
+          let badgeText = "Ocioso";
+          let blockReason = "";
+
+          if (w.state === "writing") {
+            badgeClass = "status-active-write";
+            badgeText = "Escrevendo ✍️";
+          } else if (w.state === "waiting") {
+            badgeClass = "status-waiting";
+            badgeText = "Aguardando";
+            if (activeWriterId !== null && activeWriterId !== w.id) {
+              blockReason = "ESPERANDO: outro escritor";
+            } else if (readCount > 0) {
+              blockReason = "ESPERANDO: " + readCount + " leitores ativos";
+            } else {
+              blockReason = "ESPERANDO: recurso";
             }
           }
-          localStorage.setItem(STORAGE_KEY, theme);
+
+          let starvationBadge = "";
+          if (w.waitCycles >= 7 && currentTab === 1 && simPolicy === "readers") {
+            starvationBadge = '<div class="process-badge-block starvation-warning">⚠️ INANIÇÃO? (Espera: ' + w.waitCycles + ' ciclos)</div>';
+          }
+
+          card.innerHTML =
+            '<div class="process-header">' +
+              '<div class="process-id" style="color: var(--writer-orange);">' +
+                '<span>✍️</span> Escritor E' + w.id +
+              '</div>' +
+              '<span class="process-status ' + badgeClass + '">' + badgeText + '</span>' +
+            '</div>' +
+            (blockReason ? '<div class="process-badge-block">' + blockReason + '</div>' : '') +
+            starvationBadge;
+
+          wContainer.appendChild(card);
+        });
+      }
+
+      function updateKPIs() {
+        const activeReadersCount = readersList.filter(function(r) { return r.state === "reading"; }).length;
+        const waitingReadersCount = readersList.filter(function(r) { return r.state === "waiting"; }).length;
+        const waitingWritersCount = writersList.filter(function(w) { return w.state === "waiting"; }).length;
+
+        document.getElementById("stat-reads-done").textContent = statReadsDone;
+        document.getElementById("stat-writes-done").textContent = statWritesDone;
+        document.getElementById("stat-readers-active").textContent = activeReadersCount;
+        document.getElementById("stat-writer-active").textContent = (activeWriterId !== null) ? ("SIM (E" + activeWriterId + ")") : "NÃO";
+        document.getElementById("stat-readers-waiting").textContent = waitingReadersCount;
+        document.getElementById("stat-writers-waiting").textContent = waitingWritersCount;
+
+        const statRaceEl = document.getElementById("stat-race-count");
+        if (statRaceEl) statRaceEl.textContent = statRacesDetected;
+        const statCorruptEl = document.getElementById("stat-corrupt-count");
+        if (statCorruptEl) statCorruptEl.textContent = statCorruptions;
+
+        // Semaphores UI (Phase 2)
+        const semMutexPill = document.getElementById("sem-mutex-pill");
+        if (semMutexPill) {
+          semMutexPill.className = "semaphore-pill " + (semMutex === 1 ? "pill-free" : "pill-locked");
+          semMutexPill.textContent = (semMutex === 1) ? "1 (LIVRE)" : "0 (OCUPADO)";
+        }
+        const semWrtPill = document.getElementById("sem-wrt-pill");
+        if (semWrtPill) {
+          semWrtPill.className = "semaphore-pill " + (semWrt === 1 ? "pill-free" : "pill-locked");
+          semWrtPill.textContent = (semWrt === 1) ? "1 (LIVRE)" : "0 (BLOQUEADO)";
+        }
+        const readcountVal = document.getElementById("sem-readcount-val");
+        if (readcountVal) {
+          readcountVal.textContent = readCount;
         }
 
-        applyTheme(getPreferredTheme());
+        // Central DB visual state
+        const dbBox = document.getElementById("db-resource-box");
+        const dbBadge = document.getElementById("db-state-badge");
+        const beamInd = document.getElementById("beam-indicator");
+        const beamTxt = document.getElementById("beam-text");
 
-        if (toggle) {
-          toggle.addEventListener('click', function () {
-            const currentTheme = rootHtml.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        dbBox.classList.remove("state-reading", "state-writing", "state-corrupted");
+
+        if (currentTab === 3 && isFrozen) {
+          dbBox.classList.add("state-corrupted");
+          dbBadge.style.background = "rgba(224, 82, 77, 0.25)";
+          dbBadge.style.color = "var(--danger-red)";
+          dbBadge.textContent = "⚠️ DADOS CORROMPIDOS — CONDIÇÃO DE CORRIDA!";
+          beamInd.className = "beam-pip red";
+          beamTxt.textContent = "Colisão de barramento: Leitores e Escritores concorrentes!";
+        } else if (activeWriterId !== null) {
+          dbBox.classList.add("state-writing");
+          dbBadge.style.background = "rgba(239, 105, 45, 0.25)";
+          dbBadge.style.color = "var(--writer-orange)";
+          dbBadge.textContent = "🔒 ESCRITA EXCLUSIVA (Escritor E" + activeWriterId + ")";
+          beamInd.className = "beam-pip orange";
+          beamTxt.textContent = "Conexão exclusiva de gravação ativa com Escritor E" + activeWriterId;
+        } else if (activeReadersCount > 0) {
+          dbBox.classList.add("state-reading");
+          dbBadge.style.background = "rgba(94, 139, 116, 0.25)";
+          dbBadge.style.color = "var(--reader-light)";
+          dbBadge.textContent = "📖 LEITURA CONCORRENTE (" + activeReadersCount + " LEITOR" + (activeReadersCount > 1 ? "ES" : "") + ")";
+          beamInd.className = "beam-pip green";
+          beamTxt.textContent = activeReadersCount + " fluxo(s) de leitura transmitindo simultaneamente";
+        } else {
+          dbBadge.style.background = "var(--surface-elevated)";
+          dbBadge.style.color = "var(--text-muted)";
+          dbBadge.textContent = "MODO OCIOSO (Nenhum processo no recurso)";
+          beamInd.className = "beam-pip";
+          beamTxt.textContent = "Nenhuma conexão de processo ativa";
+        }
+      }
+
+      function appendTrace(text, type) {
+        traceLog.push({ text: text, type: type });
+        if (traceLog.length > 4) {
+          traceLog.shift();
+        }
+        const box = document.getElementById("trace-log-box");
+        if (!box) return;
+        box.innerHTML = "";
+        traceLog.forEach(function(item) {
+          const div = document.createElement("div");
+          div.className = "trace-line " + (item.type === "reader" ? "reader-log" : (item.type === "writer" ? "writer-log" : ""));
+          div.textContent = item.text;
+          box.appendChild(div);
+        });
+      }
+
+      /* --------------------------------------------------------------------------
+         Simulation Step (Fases 1 e 2: Com Sincronização)
+         -------------------------------------------------------------------------- */
+      function stepSynchronized() {
+        // Increment waiting cycles for starvation analysis
+        readersList.forEach(function(r) {
+          if (r.state === "waiting") r.waitCycles++;
+        });
+        writersList.forEach(function(w) {
+          if (w.state === "waiting") w.waitCycles++;
+        });
+
+        // 1. Release active processes randomly (50% chance each cycle)
+        // Check reading readers
+        const activeReaders = readersList.filter(function(r) { return r.state === "reading"; });
+        if (activeReaders.length > 0 && Math.random() > 0.4) {
+          const readerToFinish = activeReaders[Math.floor(Math.random() * activeReaders.length)];
+          readerToFinish.state = "idle";
+          readerToFinish.waitCycles = 0;
+          readCount--;
+          statReadsDone++;
+          playTone("read");
+
+          if (readCount === 0) {
+            semWrt = 1; // Last reader releases wrt
+            appendTrace("L" + readerToFinish.id + ": readcount-- (0) → último leitor: signal(wrt) → libera escrita", "reader");
+          } else {
+            appendTrace("L" + readerToFinish.id + ": readcount-- (" + readCount + ") → concluiu leitura", "reader");
+          }
+        }
+
+        // Check active writer
+        if (activeWriterId !== null && Math.random() > 0.45) {
+          const writer = writersList.find(function(w) { return w.id === activeWriterId; });
+          if (writer) {
+            writer.state = "idle";
+            writer.waitCycles = 0;
+          }
+          const finishedId = activeWriterId;
+          activeWriterId = null;
+          semWrt = 1; // Writer releases wrt
+          statWritesDone++;
+          playTone("write");
+
+          // Alter visual record data slightly to show real write
+          const sampleId = (finishedId % 4) + 1;
+          const recEl = document.getElementById("record-data-" + sampleId);
+          if (recEl) {
+            const grade = (7.0 + Math.random() * 2.8).toFixed(1);
+            recEl.textContent = "Nota: " + grade + " | ATUALIZADO POR E" + finishedId;
+          }
+
+          appendTrace("E" + finishedId + ": escreveu no banco → signal(wrt) → recurso liberado", "writer");
+        }
+
+        // 2. Randomly queue idle processes into waiting state
+        readersList.forEach(function(r) {
+          if (r.state === "idle" && Math.random() > 0.6) {
+            r.state = "waiting";
+            r.waitCycles = 0;
+            if (simPolicy === "fifo") {
+              fifoQueue.push({ type: "R", id: r.id });
+            }
+          }
+        });
+        writersList.forEach(function(w) {
+          if (w.state === "idle" && Math.random() > 0.7) {
+            w.state = "waiting";
+            w.waitCycles = 0;
+            if (simPolicy === "fifo") {
+              fifoQueue.push({ type: "W", id: w.id });
+            }
+          }
+        });
+
+        // 3. Grant access based on policy
+        if (simPolicy === "readers") {
+          // Classic Reader Priority:
+          // Waiting readers can enter if no writer is actively writing
+          if (activeWriterId === null) {
+            const waitingReaders = readersList.filter(function(r) { return r.state === "waiting"; });
+            waitingReaders.forEach(function(r) {
+              r.state = "reading";
+              r.waitCycles = 0;
+              readCount++;
+              if (readCount === 1) {
+                semWrt = 0; // 1st reader acquires wrt
+                appendTrace("L" + r.id + ": 1º leitor → wait(mutex) → readcount=1 → wait(wrt) → signal(mutex)", "reader");
+              } else {
+                appendTrace("L" + r.id + ": wait(mutex) → readcount=" + readCount + " → signal(mutex) → lê concorrente", "reader");
+              }
+            });
+          }
+
+          // Waiting writer can enter ONLY if no active writer AND no readers (readCount === 0)
+          if (activeWriterId === null && readCount === 0) {
+            const waitingWriters = writersList.filter(function(w) { return w.state === "waiting"; });
+            if (waitingWriters.length > 0) {
+              const writer = waitingWriters[0];
+              writer.state = "writing";
+              writer.waitCycles = 0;
+              activeWriterId = writer.id;
+              semWrt = 0;
+              appendTrace("E" + writer.id + ": wait(wrt) com sucesso → inicia escrita exclusiva", "writer");
+            }
+          }
+        } else if (simPolicy === "writers") {
+          // Writer Priority:
+          // If any writer is waiting, block new readers from entering!
+          const waitingWriters = writersList.filter(function(w) { return w.state === "waiting"; });
+
+          if (activeWriterId === null && readCount === 0 && waitingWriters.length > 0) {
+            const writer = waitingWriters[0];
+            writer.state = "writing";
+            writer.waitCycles = 0;
+            activeWriterId = writer.id;
+            semWrt = 0;
+            appendTrace("E" + writer.id + ": prioridade aos escritores → wait(wrt) → escreve", "writer");
+          } else if (activeWriterId === null && waitingWriters.length === 0) {
+            // Readers can only enter if NO writer is waiting
+            const waitingReaders = readersList.filter(function(r) { return r.state === "waiting"; });
+            waitingReaders.forEach(function(r) {
+              r.state = "reading";
+              r.waitCycles = 0;
+              readCount++;
+              if (readCount === 1) {
+                semWrt = 0;
+                appendTrace("L" + r.id + ": 1º leitor → wait(wrt) → lê com exclusão de escrita", "reader");
+              } else {
+                appendTrace("L" + r.id + ": readcount=" + readCount + " → lê concorrente", "reader");
+              }
+            });
+          }
+        } else if (simPolicy === "fifo") {
+          // Fair FIFO queue
+          if (fifoQueue.length > 0) {
+            const nextInQueue = fifoQueue[0];
+            if (nextInQueue.type === "R") {
+              // Can enter if no active writer
+              if (activeWriterId === null) {
+                fifoQueue.shift();
+                const r = readersList.find(function(item) { return item.id === nextInQueue.id; });
+                if (r && r.state === "waiting") {
+                  r.state = "reading";
+                  r.waitCycles = 0;
+                  readCount++;
+                  if (readCount === 1) semWrt = 0;
+                  appendTrace("FIFO: L" + r.id + " atendido da fila justa (sem inanição)", "reader");
+                }
+              }
+            } else if (nextInQueue.type === "W") {
+              // Can enter only if no active writer AND no readers
+              if (activeWriterId === null && readCount === 0) {
+                fifoQueue.shift();
+                const w = writersList.find(function(item) { return item.id === nextInQueue.id; });
+                if (w && w.state === "waiting") {
+                  w.state = "writing";
+                  w.waitCycles = 0;
+                  activeWriterId = w.id;
+                  semWrt = 0;
+                  appendTrace("FIFO: E" + w.id + " atendido da fila justa (exclusivo)", "writer");
+                }
+              }
+            }
+          }
+        }
+
+        renderProcessCards();
+        updateKPIs();
+      }
+
+      /* --------------------------------------------------------------------------
+         Simulation Step (Fase 3: Sincronização DESATIVADA - Condição de Corrida)
+         -------------------------------------------------------------------------- */
+      function stepUnsynchronized() {
+        if (isFrozen) return;
+
+        // Release some reading/writing processes randomly
+        readersList.forEach(function(r) {
+          if (r.state === "reading" && Math.random() > 0.45) {
+            r.state = "idle";
+            statReadsDone++;
+          }
+        });
+        writersList.forEach(function(w) {
+          if (w.state === "writing" && Math.random() > 0.45) {
+            w.state = "idle";
+            statWritesDone++;
+          }
+        });
+
+        // WITHOUT synchronization: processes randomly transition directly to active!
+        readersList.forEach(function(r) {
+          if (r.state === "idle" && Math.random() > 0.55) {
+            r.state = "reading";
+          }
+        });
+        writersList.forEach(function(w) {
+          if (w.state === "idle" && Math.random() > 0.6) {
+            w.state = "writing";
+          }
+        });
+
+        const activeReadersCount = readersList.filter(function(r) { return r.state === "reading"; }).length;
+        const activeWriters = writersList.filter(function(w) { return w.state === "writing"; });
+        const activeWritersCount = activeWriters.length;
+
+        activeWriterId = activeWritersCount > 0 ? activeWriters[0].id : null;
+        readCount = activeReadersCount;
+
+        // DETECT RACE CONDITIONS
+        let raceTitle = "";
+        let raceDesc = "";
+
+        if (activeWritersCount >= 2) {
+          raceTitle = "ESCRITA CONCORRENTE — CONDIÇÃO DE CORRIDA";
+          raceDesc = "Dois escritores (E" + activeWriters[0].id + " e E" + activeWriters[1].id + ") tentaram escrever na memória ao mesmo tempo sem exclusão mútua!";
+        } else if (activeWritersCount >= 1 && activeReadersCount >= 1) {
+          if (Math.random() > 0.5) {
+            raceTitle = "LEITURA DURANTE ESCRITA — CONDIÇÃO DE CORRIDA";
+            raceDesc = "Um leitor leu o registro enquanto o escritor E" + activeWriters[0].id + " ainda o modificava. Dados lidos pela metade!";
+          } else {
+            raceTitle = "ESCRITA DURANTE LEITURA — CONDIÇÃO DE CORRIDA";
+            raceDesc = "O escritor E" + activeWriters[0].id + " sobrescreveu dados enquanto " + activeReadersCount + " leitor(es) estavam no recurso.";
+          }
+        }
+
+        if (raceTitle !== "") {
+          statRacesDetected++;
+          statCorruptions += Math.floor(Math.random() * 2) + 1;
+          triggerRaceCondition(raceTitle, raceDesc);
+        } else {
+          renderProcessCards();
+          updateKPIs();
+        }
+      }
+
+      function triggerRaceCondition(title, desc) {
+        isFrozen = true;
+        playTone("error");
+
+        const alertBanner = document.getElementById("race-alert");
+        const alertTitle = document.getElementById("race-alert-title");
+        const alertDesc = document.getElementById("race-alert-desc");
+
+        alertTitle.textContent = title;
+        alertDesc.textContent = desc;
+        alertBanner.classList.add("active");
+
+        // Corrupt visual records in DB
+        const r1 = document.getElementById("record-data-2");
+        const r2 = document.getElementById("record-data-3");
+        if (r1) {
+          r1.innerHTML = '<span style="color:var(--danger-red); font-weight:800;">§§ CORROMPIDO §§ #ERR_0x9F</span>';
+          document.getElementById("record-row-2").classList.add("corrupted");
+        }
+        if (r2) {
+          r2.innerHTML = '<span style="color:var(--danger-red); font-weight:800;">§§ REGISTRO INCONSISTENTE §§</span>';
+          document.getElementById("record-row-3").classList.add("corrupted");
+        }
+
+        renderProcessCards();
+        updateKPIs();
+
+        // Pause simulation during freeze duration so student can observe
+        setTimeout(function() {
+          if (!isSimRunning) return;
+          isFrozen = false;
+          alertBanner.classList.remove("active");
+
+          // Restore text back to stable mock
+          if (r1) {
+            r1.textContent = "Nota: 8.0 | RESTAURADO";
+            document.getElementById("record-row-2").classList.remove("corrupted");
+          }
+          if (r2) {
+            r2.textContent = "Nota: 7.2 | RESTAURADO";
+            document.getElementById("record-row-3").classList.remove("corrupted");
+          }
+
+          // Reset all processes to idle to recover
+          readersList.forEach(function(r) { r.state = "idle"; });
+          writersList.forEach(function(w) { w.state = "idle"; });
+          activeWriterId = null;
+          readCount = 0;
+
+          renderProcessCards();
+          updateKPIs();
+        }, freezeDuration);
+      }
+
+      /* --------------------------------------------------------------------------
+         Simulation Controls Lifecycle
+         -------------------------------------------------------------------------- */
+      function startSimulation() {
+        if (isSimRunning) return;
+        isSimRunning = true;
+        isSimPaused = false;
+
+        document.getElementById("btn-sim-start").disabled = true;
+        document.getElementById("btn-sim-pause").disabled = false;
+        document.getElementById("btn-sim-pause").textContent = "⏸ Pausar";
+
+        const tickFn = (currentTab === 3) ? stepUnsynchronized : stepSynchronized;
+        simIntervalId = setInterval(tickFn, simSpeed);
+        playTone("click");
+      }
+
+      function pauseSimulation() {
+        if (!isSimRunning) return;
+        if (isSimPaused) {
+          // Resume
+          isSimPaused = false;
+          document.getElementById("btn-sim-pause").textContent = "⏸ Pausar";
+          const tickFn = (currentTab === 3) ? stepUnsynchronized : stepSynchronized;
+          simIntervalId = setInterval(tickFn, simSpeed);
+        } else {
+          // Pause
+          isSimPaused = true;
+          document.getElementById("btn-sim-pause").textContent = "▶ Continuar";
+          clearInterval(simIntervalId);
+        }
+        playTone("click");
+      }
+
+      function stopSimulation() {
+        isSimRunning = false;
+        isSimPaused = false;
+        clearInterval(simIntervalId);
+        simIntervalId = null;
+
+        document.getElementById("btn-sim-start").disabled = false;
+        const pauseBtn = document.getElementById("btn-sim-pause");
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = "⏸ Pausar";
+      }
+
+      function resetSimulation() {
+        stopSimulation();
+        statReadsDone = 0;
+        statWritesDone = 0;
+        statRacesDetected = 0;
+        statCorruptions = 0;
+        semMutex = 1;
+        semWrt = 1;
+        readCount = 0;
+        activeWriterId = null;
+        isFrozen = false;
+        traceLog = ["[Sistema pronto] Semáforos inicializados: mutex = 1, wrt = 1, readcount = 0."];
+
+        const alertBanner = document.getElementById("race-alert");
+        if (alertBanner) alertBanner.classList.remove("active");
+
+        // Restore mock database lines
+        document.getElementById("record-data-1").textContent = "Nota: 9.4 | APROVADA";
+        document.getElementById("record-data-2").textContent = "Nota: 8.0 | APROVADO";
+        document.getElementById("record-data-3").textContent = "Nota: 7.2 | APROVADO";
+        document.getElementById("record-data-4").textContent = "Nota: 5.5 | EXAME";
+        document.getElementById("record-row-2").classList.remove("corrupted");
+        document.getElementById("record-row-3").classList.remove("corrupted");
+
+        initProcesses();
+        renderProcessCards();
+        updateKPIs();
+        appendTrace("Simulação reiniciada.", "normal");
+      }
+
+      // Event listeners for Controls
+      document.getElementById("btn-sim-start").addEventListener("click", startSimulation);
+      document.getElementById("btn-sim-pause").addEventListener("click", pauseSimulation);
+      document.getElementById("btn-sim-reset").addEventListener("click", resetSimulation);
+
+      // Reader Stepper
+      document.getElementById("btn-sub-readers").addEventListener("click", function() {
+        if (numReaders > 1) {
+          numReaders--;
+          document.getElementById("val-readers").textContent = numReaders;
+          resetSimulation();
+          playTone("click");
+        }
+      });
+      document.getElementById("btn-add-readers").addEventListener("click", function() {
+        if (numReaders < 5) {
+          numReaders++;
+          document.getElementById("val-readers").textContent = numReaders;
+          resetSimulation();
+          playTone("click");
+        }
+      });
+
+      // Writer Stepper
+      document.getElementById("btn-sub-writers").addEventListener("click", function() {
+        if (numWriters > 1) {
+          numWriters--;
+          document.getElementById("val-writers").textContent = numWriters;
+          resetSimulation();
+          playTone("click");
+        }
+      });
+      document.getElementById("btn-add-writers").addEventListener("click", function() {
+        if (numWriters < 5) {
+          numWriters++;
+          document.getElementById("val-writers").textContent = numWriters;
+          resetSimulation();
+          playTone("click");
+        }
+      });
+
+      // Speed selector
+      document.getElementById("select-speed").addEventListener("change", function(e) {
+        simSpeed = parseInt(e.target.value, 10);
+        if (isSimRunning && !isSimPaused) {
+          clearInterval(simIntervalId);
+          const tickFn = (currentTab === 3) ? stepUnsynchronized : stepSynchronized;
+          simIntervalId = setInterval(tickFn, simSpeed);
+        }
+      });
+
+      // Policy selector (Phase 1 & 2)
+      document.getElementById("select-policy").addEventListener("change", function(e) {
+        simPolicy = e.target.value;
+        resetSimulation();
+        playTone("click");
+      });
+
+      // Freeze duration (Phase 3)
+      document.getElementById("select-freeze").addEventListener("change", function(e) {
+        freezeDuration = parseInt(e.target.value, 10);
+      });
+
+      // Modal Summary (Phase 3)
+      const btnShowSummary = document.getElementById("btn-show-summary");
+      const modalSummary = document.getElementById("modal-summary");
+      const btnModalClose = document.getElementById("btn-modal-close");
+
+      btnShowSummary.addEventListener("click", function() {
+        document.getElementById("modal-races-count").textContent = statRacesDetected;
+        document.getElementById("modal-corrupt-count").textContent = statCorruptions;
+        document.getElementById("modal-reads-count").textContent = statReadsDone;
+        document.getElementById("modal-writes-count").textContent = statWritesDone;
+        modalSummary.classList.add("open");
+        playTone("click");
+      });
+
+      btnModalClose.addEventListener("click", function() {
+        modalSummary.classList.remove("open");
+        playTone("click");
+      });
+
+      modalSummary.addEventListener("click", function(e) {
+        if (e.target === modalSummary) {
+          modalSummary.classList.remove("open");
+        }
+      });
+
+      /* ==========================================================================
+         5. PHASE 4: QUIZ IMPLEMENTATION
+         Strict compliance with provided verbatim texts, sequential distribution,
+         and Fisher-Yates shuffle.
+         ========================================================================== */
+      const RAW_QUIZ_DATA = [
+        {
+          id: 1,
+          question: "O que caracteriza o acesso dos leitores?",
+          correct: "Vários leitores leem ao mesmo tempo.",
+          wrongs: [
+            "Somente um único leitor acessa por vez.",
+            "Os leitores só leem após os escritores.",
+            "Nenhum leitor pode acessar o recurso."
+          ],
+          explanation: "Como a operação de leitura não altera os dados compartilhados, múltiplos leitores podem acessar a memória em paralelo sem causar inconsistência."
+        },
+        {
+          id: 2,
+          question: "Quando um escritor pode escrever?",
+          correct: "Quando nenhum outro processo acessa.",
+          wrongs: [
+            "Quando há leitores ativos no recurso.",
+            "Quando a fila de espera está vazia.",
+            "Quando o recurso está corrompido."
+          ],
+          explanation: "A escrita exige exclusão mútua total: nenhum leitor pode estar lendo e nenhum outro escritor pode estar escrevendo simultaneamente."
+        },
+        {
+          id: 3,
+          question: "Qual semáforo garante a exclusão mútua da escrita?",
+          correct: "O semáforo wrt.",
+          wrongs: [
+            "O semáforo mutex.",
+            "O contador de leitores.",
+            "A fila de espera."
+          ],
+          explanation: "O semáforo wrt (de 'writers') é o semáforo binário compartilhado que protege o acesso exclusivo à base de dados."
+        },
+        {
+          id: 4,
+          question: "Qual é o papel do semáforo mutex?",
+          correct: "Proteger o contador de leitores.",
+          wrongs: [
+            "Bloquear a escrita do recurso.",
+            "Liberar a leitura dos dados.",
+            "Escalonar os processos."
+          ],
+          explanation: "O semáforo mutex garante que a variável compartilhada readcount seja incrementada e decrementada de forma atômica por apenas um leitor por vez."
+        },
+        {
+          id: 5,
+          question: "O que faz o primeiro leitor ao chegar?",
+          correct: "Bloqueia a escrita com wait no wrt.",
+          wrongs: [
+            "Libera a escrita com signal no wrt.",
+            "Incrementa o contador de escritores.",
+            "Espera o último leitor sair."
+          ],
+          explanation: "O primeiro leitor (quando readcount passa de 0 para 1) executa wait(wrt), reservando o recurso para o grupo de leitores e impedindo escritores."
+        },
+        {
+          id: 6,
+          question: "O que faz o último leitor ao sair?",
+          correct: "Libera a escrita com signal no wrt.",
+          wrongs: [
+            "Bloqueia a escrita com wait no wrt.",
+            "Decrementa o contador de escritores.",
+            "Incrementa o contador de leitores."
+          ],
+          explanation: "O último leitor (quando readcount volta a 0) executa signal(wrt), liberando o recurso para que um escritor possa escrever."
+        },
+        {
+          id: 7,
+          question: "O que é inanição (starvation)?",
+          correct: "Um processo espera indefinidamente o recurso.",
+          wrongs: [
+            "Um processo termina rápido demais na fila.",
+            "Um recurso fica sempre ocupado.",
+            "Um erro sem consequências."
+          ],
+          explanation: "A inanição ocorre quando um processo pronto para executar nunca obtém acesso ao recurso necessário porque outros processos continuam passando na sua frente."
+        },
+        {
+          id: 8,
+          question: "Na prioridade de leitores, quem sofre inanição?",
+          correct: "Os escritores.",
+          wrongs: [
+            "Os leitores.",
+            "O sistema operacional.",
+            "O recurso compartilhado."
+          ],
+          explanation: "Se novos leitores continuarem chegando antes dos anteriores terminarem, o semáforo wrt nunca será liberado e os escritores sofrerão inanição."
+        },
+        {
+          id: 9,
+          question: "O que acontece sem sincronização?",
+          correct: "Leitores e escritores acessam ao mesmo tempo.",
+          wrongs: [
+            "Os processos esperam em fila ordenada.",
+            "A escrita fica bloqueada.",
+            "A leitura fica bloqueada."
+          ],
+          explanation: "Sem semáforos ou monitores, leitores e escritores entram concorrentemente no recurso compartilhado, originando condições de corrida e corrupção."
+        },
+        {
+          id: 10,
+          question: "Um banco de dados com leitores e um escritor é exemplo de...",
+          correct: "Acesso compartilhado e exclusivo ao recurso.",
+          wrongs: [
+            "Escalonamento por prioridade.",
+            "Memória virtual paginada.",
+            "Comunicação por filas de mensagens."
+          ],
+          explanation: "É o clássico dilema onde a operação de consulta é compartilhada entre múltiplos processos, enquanto a operação de atualização é estritamente exclusiva."
+        },
+        {
+          id: 11,
+          question: "A espera circular é uma das...",
+          correct: "Condições de Coffman para deadlock.",
+          wrongs: [
+            "Condições de Peterson para exclusão.",
+            "Propriedades da seção crítica.",
+            "Etapas do escalonamento."
+          ],
+          explanation: "As 4 condições de Coffman para impasse (deadlock) são: exclusão mútua, posse e espera, não preempção e espera circular."
+        }
+      ];
+
+      // Fisher-Yates array shuffle helper
+      function fisherYates(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const temp = copy[i];
+          copy[i] = copy[j];
+          copy[j] = temp;
+        }
+        return copy;
+      }
+
+      // Generate a sequence of correct option indices (0=A, 1=B, 2=C, 3=D)
+      // Satisfying:
+      // 1. Never 3 or more consecutive identical letters (max 2 consecutive).
+      // 2. Balanced distribution: each letter used ~2 or 3 times (e.g. [3,3,3,2]).
+      function generateBalancedLetterSequence() {
+        const total = 11;
+        // Distribution of letters: 3 of three letters, 2 of one letter
+        let baseCounts = [3, 3, 3, 2];
+        baseCounts = fisherYates(baseCounts); // Randomize which letter gets 2
+
+        let maxAttempts = 1000;
+        while (maxAttempts-- > 0) {
+          const pool = [];
+          for (let letterIdx = 0; letterIdx < 4; letterIdx++) {
+            for (let c = 0; c < baseCounts[letterIdx]; c++) {
+              pool.push(letterIdx);
+            }
+          }
+          const candidate = fisherYates(pool);
+
+          // Check no 3 consecutive
+          let valid = true;
+          for (let i = 0; i < candidate.length - 2; i++) {
+            if (candidate[i] === candidate[i + 1] && candidate[i] === candidate[i + 2]) {
+              valid = false;
+              break;
+            }
+          }
+          if (valid) return candidate;
+        }
+
+        // Safe deterministic fallback satisfying max 2 consecutive
+        return [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2];
+      }
+
+      let quizQuestionsState = [];
+      let quizScore = 0;
+      let quizAnsweredCount = 0;
+
+      function setupQuiz() {
+        quizScore = 0;
+        quizAnsweredCount = 0;
+        document.getElementById("quiz-score-val").textContent = "0";
+        document.getElementById("quiz-final-card").style.display = "none";
+
+        const letterSequence = generateBalancedLetterSequence();
+        const letters = ["A", "B", "C", "D"];
+
+        quizQuestionsState = RAW_QUIZ_DATA.map(function(qObj, qIdx) {
+          const correctIdx = letterSequence[qIdx];
+          const shuffledWrongs = fisherYates(qObj.wrongs);
+
+          // Place correct answer at correctIdx and fill others with wrongs
+          const options = new Array(4);
+          options[correctIdx] = {
+            letter: letters[correctIdx],
+            text: qObj.correct,
+            isCorrect: true
+          };
+
+          let wrongCursor = 0;
+          for (let i = 0; i < 4; i++) {
+            if (i !== correctIdx) {
+              options[i] = {
+                letter: letters[i],
+                text: shuffledWrongs[wrongCursor++],
+                isCorrect: false
+              };
+            }
+          }
+
+          return {
+            id: qObj.id,
+            questionText: qObj.question,
+            correctText: qObj.correct,
+            explanation: qObj.explanation,
+            options: options,
+            answered: false,
+            selectedLetter: null
+          };
+        });
+
+        renderQuizDOM();
+      }
+
+      function renderQuizDOM() {
+        const container = document.getElementById("quiz-questions-list");
+        container.innerHTML = "";
+
+        quizQuestionsState.forEach(function(item, index) {
+          const card = document.createElement("div");
+          card.className = "quiz-card";
+          card.id = "quiz-card-" + item.id;
+
+          const headerBar = document.createElement("div");
+          headerBar.className = "quiz-header-bar";
+          headerBar.innerHTML =
+            '<span class="quiz-q-num">Questão ' + (index + 1) + ' de 11</span>' +
+            '<span style="font-size:0.85rem; color:var(--text-muted);">Múltipla Escolha</span>';
+          card.appendChild(headerBar);
+
+          const title = document.createElement("h3");
+          title.className = "quiz-q-title";
+          title.textContent = item.questionText;
+          card.appendChild(title);
+
+          const optList = document.createElement("div");
+          optList.className = "quiz-options-list";
+
+          item.options.forEach(function(opt) {
+            const btn = document.createElement("button");
+            btn.className = "quiz-opt-btn";
+            btn.setAttribute("data-qid", item.id);
+            btn.setAttribute("data-letter", opt.letter);
+            btn.setAttribute("data-correct", opt.isCorrect ? "true" : "false");
+
+            btn.innerHTML =
+              '<span class="quiz-opt-letter">' + opt.letter + '</span>' +
+              '<span>' + opt.text + '</span>';
+
+            btn.addEventListener("click", function() {
+              handleQuizAnswer(item.id, opt.letter, btn);
+            });
+
+            optList.appendChild(btn);
           });
+          card.appendChild(optList);
+
+          const feedbackBox = document.createElement("div");
+          feedbackBox.className = "quiz-feedback-box";
+          feedbackBox.id = "quiz-feedback-" + item.id;
+          card.appendChild(feedbackBox);
+
+          container.appendChild(card);
+        });
+      }
+
+      function handleQuizAnswer(questionId, letter, clickedBtn) {
+        const qItem = quizQuestionsState.find(function(q) { return q.id === questionId; });
+        if (!qItem || qItem.answered) return;
+
+        qItem.answered = true;
+        qItem.selectedLetter = letter;
+        quizAnsweredCount++;
+
+        const card = document.getElementById("quiz-card-" + questionId);
+        const buttons = card.querySelectorAll(".quiz-opt-btn");
+        const feedback = document.getElementById("quiz-feedback-" + questionId);
+
+        // Disable all option buttons for this question
+        buttons.forEach(function(b) {
+          b.disabled = true;
+          const isCorrect = b.getAttribute("data-correct") === "true";
+          if (isCorrect) {
+            b.classList.add("opt-correct");
+          }
+        });
+
+        const isUserCorrect = clickedBtn.getAttribute("data-correct") === "true";
+
+        if (isUserCorrect) {
+          quizScore++;
+          playTone("success");
+          feedback.className = "quiz-feedback-box show-correct";
+          feedback.innerHTML =
+            '✅ <strong>Resposta Correta!</strong><br>' + qItem.explanation;
+        } else {
+          clickedBtn.classList.add("opt-wrong");
+          playTone("error");
+          feedback.className = "quiz-feedback-box show-wrong";
+          feedback.innerHTML =
+            '❌ <strong>Resposta Incorreta.</strong> A alternativa correta é: <em>"' + qItem.correctText + '"</em>.<br>' +
+            '💡 ' + qItem.explanation;
         }
-      })();
-    </script>
-  </body>
-</html>
+
+        document.getElementById("quiz-score-val").textContent = quizScore;
+
+        // Check if quiz is complete
+        if (quizAnsweredCount === quizQuestionsState.length) {
+          setTimeout(showQuizResults, 400);
+        }
+      }
+
+      function showQuizResults() {
+        const finalCard = document.getElementById("quiz-final-card");
+        const finalTitle = document.getElementById("quiz-final-title");
+        const finalMsg = document.getElementById("quiz-final-msg");
+        const finalScore = document.getElementById("quiz-final-score");
+
+        finalScore.textContent = quizScore;
+
+        if (quizScore >= 10) {
+          finalTitle.textContent = "🏆 Excelente Domínio Teórico!";
+          finalMsg.textContent = "Você acertou " + quizScore + " de 11 questões! Dominou com perfeição os semáforos mutex, wrt e as regras de exclusão mútua.";
+        } else if (quizScore >= 7) {
+          finalTitle.textContent = "👏 Muito Bom Trabalho!";
+          finalMsg.textContent = "Você acertou " + quizScore + " de 11 questões. Você entendeu a maior parte dos conceitos de sincronização e inanição.";
+        } else {
+          finalTitle.textContent = "📚 Continue Praticando!";
+          finalMsg.textContent = "Você acertou " + quizScore + " de 11 questões. Dica: use o painel 'Teoria em Resumo' no topo da página e refaça o quiz!";
+        }
+
+        finalCard.style.display = "block";
+        finalCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      document.getElementById("btn-quiz-retry").addEventListener("click", function() {
+        setupQuiz();
+        playTone("click");
+        const firstCard = document.getElementById("quiz-card-1");
+        if (firstCard) firstCard.scrollIntoView({ behavior: "smooth" });
+      });
+
+      // Initialize everything on page load
+      initProcesses();
+      renderProcessCards();
+      updateKPIs();
+      setupQuiz();
+    });
+  </script>
+<script>
+/* Skip artifact shell — fixed helpers served beside every artifact. */
+(function () {
+  "use strict";
+
+  var fmt = {
+    num: function (v, opts) { return new Intl.NumberFormat("pt-BR", opts || {}).format(v); },
+    brl: function (v) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v); },
+    pct: function (v) { return new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 }).format(v); }
+  };
+
+  // axisFmt keeps axis tick labels short (compact notation) so long values
+  // (e.g. full BRL amounts) never clip against the plot edge.
+  function axisFmt(v) {
+    return fmt.num(v, { notation: "compact", maximumFractionDigits: 1 });
+  }
+
+  // format accepts a function OR one of the fmt names ("num" | "brl" | "pct").
+  function coerceFormat(spec) {
+    if (typeof spec === "function") return spec;
+    if (typeof spec === "string" && fmt[spec]) return fmt[spec];
+    return function (v) { return fmt.num(v); };
+  }
+
+  function accent() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2563eb";
+  }
+  function mutedColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#5b6472";
+  }
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function frame(el, w, h) {
+    var svg = svgEl("svg", { viewBox: "0 0 " + w + " " + h, role: "img" });
+    el.innerHTML = "";
+    el.appendChild(svg);
+    return svg;
+  }
+
+  // maxOf guards the axis scale: empty values would give -Infinity (truthy,
+  // so "|| 1" can't catch it) and a non-positive max would flip the chart.
+  function maxOf(values) {
+    var m = values.length ? Math.max.apply(null, values) : 0;
+    return m > 0 ? m : 1;
+  }
+
+  // bar(el, {labels:[], values:[], color?, format?}) — vertical bar chart.
+  function bar(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 12, plotH = H - padT - padB;
+    var step = plotW / n, bw = Math.min(step * 0.62, 64);
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 12, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    cfg.values.forEach(function (v, i) {
+      var bh = Math.max(0, (v / max) * plotH);
+      var x = padL + i * step + (step - bw) / 2;
+      var y = padT + plotH - bh;
+      var r = svgEl("rect", { x: x, y: y, width: bw, height: bh, rx: 4, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(v);
+      r.appendChild(t);
+      svg.appendChild(r);
+      var tx = svgEl("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // line(el, {labels:[], values:[], color?, format?}) — single-series line.
+  function line(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 16, plotH = H - padT - padB;
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 16, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    var pts = cfg.values.map(function (v, i) {
+      var x = padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+      var y = padT + plotH - (v / max) * plotH;
+      return [x, y];
+    });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round" }));
+    pts.forEach(function (p, i) {
+      var c = svgEl("circle", { cx: p[0], cy: p[1], r: 3.5, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(cfg.values[i]);
+      c.appendChild(t);
+      svg.appendChild(c);
+      var tx = svgEl("text", { x: p[0], y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // donut(el, {labels:[], values:[], colors?}) — donut with center total.
+  function donut(el, cfg) {
+    var W = 320, H = 280, cx = W / 2, cy = H / 2, R = 92, r = 58;
+    var svg = frame(el, W, H);
+    var total = cfg.values.reduce(function (a, b) { return a + b; }, 0) || 1;
+    var palette = cfg.colors || [accent(), "#1baf7a", "#eda100", "#e34948", "#4a3aa7", "#e87ba4"];
+    var a0 = -Math.PI / 2;
+    cfg.values.forEach(function (v, i) {
+      var a1 = a0 + (v / total) * Math.PI * 2;
+      var large = a1 - a0 > Math.PI ? 1 : 0;
+      var p = ["M", cx + R * Math.cos(a0), cy + R * Math.sin(a0),
+        "A", R, R, 0, large, 1, cx + R * Math.cos(a1), cy + R * Math.sin(a1),
+        "L", cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+        "A", r, r, 0, large, 0, cx + r * Math.cos(a0), cy + r * Math.sin(a0), "Z"].join(" ");
+      var path = svgEl("path", { d: p, fill: palette[i % palette.length] });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + fmt.num(v) + " (" + fmt.pct(v / total) + ")";
+      path.appendChild(t);
+      svg.appendChild(path);
+      a0 = a1;
+    });
+    var center = svgEl("text", { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 20, "font-weight": 650, fill: "currentColor" });
+    center.textContent = fmt.num(total);
+    svg.appendChild(center);
+  }
+
+  window.skipShell = { fmt: fmt };
+  window.skipChart = { bar: bar, line: line, donut: donut };
+})();
+
+</script>
+
+
+</body></html>
