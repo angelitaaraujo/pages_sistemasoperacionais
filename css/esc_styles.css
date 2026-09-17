@@ -1,0 +1,701 @@
+    /* ==========================================================================
+       ESTILOS GERAIS & TEMA FUTURISTA (Verde #364C41, Laranja #EF692D, Neutro #A3A3A3)
+       ========================================================================== */
+    :root {
+      --accent: #364C41;
+      --accent-orange: #EF692D;
+      --accent-orange-glow: rgba(239, 105, 45, 0.35);
+      --accent-green-glow: rgba(54, 76, 65, 0.45);
+      --neutral-gray: #A3A3A3;
+      --p-cyan: #00d2d3;
+      --p-amber: #ff9f43;
+      --p-purple: #5f27cd;
+      --p-emerald: #10ac84;
+      --p-rose: #ee5253;
+      --p-blue: #2e86de;
+    }
+
+    [data-theme="dark"] {
+      --bg-canvas: #0e1311;
+      --surface-card: #161e1a;
+      --surface-elevated: #1e2823;
+      --surface-border: #283730;
+      --text-main: #f0f4f2;
+      --text-sub: #b2c0b9;
+      --queue-bg: #121815;
+    }
+
+    [data-theme="light"] {
+      --bg-canvas: #f3f6f4;
+      --surface-card: #ffffff;
+      --surface-elevated: #e6ece8;
+      --surface-border: #cad5ce;
+      --text-main: #1d2521;
+      --text-sub: #53625a;
+      --queue-bg: #eaf0ec;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding-bottom: 3rem;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      overflow-x: hidden;
+    }
+
+    .futuristic-header {
+      background: linear-gradient(135deg, #1b2621 0%, #293830 100%);
+      border-bottom: 2px solid var(--accent-orange);
+      padding: 0.85rem 1.25rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+    [data-theme="light"] .futuristic-header {
+      background: linear-gradient(135deg, #2b3b33 0%, #364c41 100%);
+    }
+
+    .top-bar-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      background: var(--accent-orange);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    .top-stats-strip {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 0.25rem 0.65rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      color: #fff;
+    }
+
+    .streak-bar-wrap {
+      width: 60px;
+      height: 8px;
+      background: #2a3530;
+      border-radius: 4px;
+      overflow: hidden;
+      display: inline-block;
+    }
+    .streak-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff9f43, #ef692d);
+      transition: width 0.3s ease;
+    }
+
+    /* Botoes de Ação Rápida */
+    .btn-icon {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: #fff;
+    }
+
+    .btn-futuristic {
+      background: var(--accent-orange);
+      color: #fff;
+      border: none;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      font-size: 0.85rem;
+    }
+    .btn-futuristic:hover {
+      box-shadow: 0 0 10px var(--accent-orange-glow);
+      transform: translateY(-1px);
+    }
+    .btn-futuristic:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary-futuristic {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .btn-secondary-futuristic:hover {
+      border-color: var(--accent-orange);
+    }
+
+    /* Container Principal */
+    .app-main {
+      max-width: 1360px;
+      margin: 1.25rem auto;
+      padding: 0 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* Card Panels */
+    .glass-card {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* ==========================================================================
+       MODULO 1: TEORIA COLAPSAVEL
+       ========================================================================== */
+    .theory-details {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .theory-summary {
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface-elevated);
+      user-select: none;
+    }
+    .theory-summary:hover {
+      color: var(--accent-orange);
+    }
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.85rem;
+      padding: 1rem;
+    }
+    .theory-card {
+      background: var(--surface-elevated);
+      border-left: 3px solid var(--accent-orange);
+      padding: 0.65rem 0.85rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .theory-card strong {
+      display: block;
+      color: var(--accent-orange);
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    /* ==========================================================================
+       MODULO 2: SIMULADOR - PAINÉIS DE CONTROLE E VISUALIZADOR
+       ========================================================================== */
+    .sim-controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .control-label {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input[type="number"], input[type="text"] {
+      background: var(--surface-elevated);
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    select:focus, input:focus {
+      border-color: var(--accent-orange);
+    }
+
+    /* Arena de Execução: Colunas Visuais */
+    .scheduler-arena {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.2fr 1fr;
+      gap: 1rem;
+      min-height: 240px;
+      margin-top: 0.5rem;
+    }
+    @media (max-width: 900px) {
+      .scheduler-arena {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .arena-column {
+      background: var(--queue-bg);
+      border: 1px dashed var(--surface-border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--surface-border);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-sub);
+    }
+    .column-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 250px;
+      padding-right: 2px;
+    }
+
+    /* Cartão do Processo */
+    .pcb-chip {
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+      border-left: 5px solid var(--p-cyan);
+      border-radius: 6px;
+      padding: 0.5rem 0.65rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      position: relative;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.2s;
+      animation: fadeIn 0.25s ease-out;
+      user-select: none;
+    }
+    .pcb-chip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+    }
+    .pcb-chip-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pcb-id {
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+    .pcb-tag {
+      font-size: 0.7rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--surface-elevated);
+      color: var(--text-sub);
+      font-weight: bold;
+    }
+    .pcb-prog-bg {
+      height: 6px;
+      width: 100%;
+      background: rgba(0,0,0,0.25);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .pcb-prog-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--p-cyan);
+      transition: width 0.2s linear;
+    }
+    .pcb-details-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-sub);
+    }
+
+    /* Cartão na CPU (destacado) */
+    .cpu-active-slot {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      background: var(--surface-elevated);
+      border-radius: 8px;
+      border: 2px solid var(--accent-orange);
+      box-shadow: inset 0 0 15px var(--accent-orange-glow);
+      text-align: center;
+      min-height: 140px;
+    }
+    .cpu-idle-text {
+      color: var(--text-sub);
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+    .cpu-pulse-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2ed573;
+      margin-right: 6px;
+      animation: pulseGreen 1.2s infinite;
+    }
+    @keyframes pulseGreen {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px #2ed573; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    /* Alerta Inanição */
+    .starving-chip {
+      animation: starvePulse 1s infinite alternate;
+      border-color: #ff4757 !important;
+    }
+    @keyframes starvePulse {
+      0% { box-shadow: 0 0 4px rgba(255, 71, 87, 0.4); }
+      100% { box-shadow: 0 0 16px rgba(255, 71, 87, 0.95); transform: scale(1.02); }
+    }
+
+    /* Gráfico de Gantt */
+    .gantt-container {
+      background: var(--queue-bg);
+      border: 1px solid var(--surface-border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      overflow-x: auto;
+      white-space: nowrap;
+      min-height: 72px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .gantt-strip {
+      display: flex;
+      height: 32px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.2);
+      min-width: 100%;
+    }
+    .gantt-block {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+      height: 100%;
+      border-right: 1px solid rgba(0,0,0,0.15);
+      position: relative;
+      transition: width 0.1s;
+    }
+    .gantt-ticks {
+      display: flex;
+      font-size: 0.68rem;
+      color: var(--text-sub);
+      gap: 0;
+    }
+    .gantt-tick-item {
+      display: inline-block;
+      text-align: right;
+      padding-right: 2px;
+      box-sizing: border-box;
+    }
+
+    /* Registro de Eventos (Log) */
+    .log-box {
+      background: var(--surface-elevated);
+      border: 1px solid var(--surface-border);
+      border-radius: 6px;
+      height: 130px;
+      overflow-y: auto;
+      padding: 0.5rem 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+    }
+    .log-entry {
+      margin-bottom: 2px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .log-time {
+      color: var(--text-sub);
+      margin-right: 6px;
+    }
+    .log-warn {
+      color: #ffa502;
+      font-weight: 700;
+    }
+    .log-alert {
+      color: #ff4757;
+      font-weight: 700;
+    }
+    .log-success {
+      color: #2ed573;
+    }
+
+    /* Painel de Métricas */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.65rem;
+    }
+    .metric-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--surface-border);
+      border-radius: 6px;
+      padding: 0.5rem 0.65rem;
+      text-align: center;
+    }
+    .metric-num {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent-orange);
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+    .metric-lbl {
+      font-size: 0.7rem;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* ==========================================================================
+       MODULO 3: GAMIFICAÇÃO & MISSÕES
+       ========================================================================== */
+    .gamification-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--surface-border);
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .badges-row {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .badge-item {
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--surface-border);
+      opacity: 0.35;
+      transition: all 0.3s;
+      filter: grayscale(1);
+    }
+    .badge-item.unlocked {
+      opacity: 1;
+      filter: grayscale(0);
+      border-color: var(--accent-orange);
+      background: rgba(239, 105, 45, 0.15);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 8px var(--accent-orange-glow);
+    }
+
+    .missions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .mission-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.55rem 0.8rem;
+      background: var(--surface-elevated);
+      border-radius: 6px;
+      border-left: 4px solid var(--neutral-gray);
+      font-size: 0.85rem;
+    }
+    .mission-row.done {
+      border-left-color: #2ed573;
+      background: rgba(46, 213, 115, 0.08);
+    }
+    .mission-pts {
+      font-weight: 700;
+      color: var(--accent-orange);
+      font-size: 0.8rem;
+    }
+
+    /* ==========================================================================
+       MODAIS (PCB, RELATÓRIO, DEMO, QUIZ)
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 1rem;
+    }
+    .modal-box {
+      background: var(--surface-card);
+      border: 2px solid var(--surface-border);
+      border-radius: 10px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .modal-title {
+      margin-top: 0;
+      font-size: 1.25rem;
+      color: var(--accent-orange);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .close-modal-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    /* Modal Quiz */
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin: 1.25rem 0;
+    }
+    .quiz-btn {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--surface-border);
+      background: var(--surface-elevated);
+      color: var(--text-main);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quiz-btn:hover:not(:disabled) {
+      border-color: var(--accent-orange);
+      background: rgba(239, 105, 45, 0.1);
+    }
+    .quiz-btn.correct {
+      background: #2ed573 !important;
+      color: #0c331a !important;
+      font-weight: 700;
+      border-color: #2ed573 !important;
+    }
+    .quiz-btn.incorrect {
+      background: #ff4757 !important;
+      color: #fff !important;
+      border-color: #ff4757 !important;
+    }
+
+    .feedback-box {
+      background: var(--surface-elevated);
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      border-left: 4px solid var(--accent-orange);
+    }
+
+    /* Relatório Table */
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.85rem;
+    }
+    .report-table th, .report-table td {
+      border: 1px solid var(--surface-border);
+      padding: 0.45rem 0.6rem;
+      text-align: center;
+    }
+    .report-table th {
+      background: var(--surface-elevated);
+      color: var(--accent-orange);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @media (max-width: 860px) {
+      div[style*="grid-template-columns: 1.5fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+    }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atividades Didáticas</title>
+  <link rel="stylesheet" href="css/game2.css">
+</head>
+<body>
+  <header class="top-bar">
+    <a class="brand-link" href="index.html" aria-label="Voltar para Sistemas Operacionais">
+      <span class="brand-icon" aria-hidden="true">SO</span>
+      <span class="brand-copy">
+        <strong id="header-game-title">Atividades Didáticas</strong>
+        <small>Sistemas Operacionais</small>
+      </span>
+    </a>
+    <div class="controls-group" aria-label="Controles da página">
+      <button id="back-btn" class="control-btn" type="button" aria-label="Voltar para a página inicial">← Voltar</button>
+      <button id="theory-btn" class="control-btn" type="button" aria-label="Abrir teoria">📖 Teoria</button>
+      <button id="sound-btn" class="control-btn" type="button" aria-label="Alternar som">🔊 Som</button>
+      <button id="theme-btn" class="control-btn" type="button" aria-label="Alternar tema">🌙 Tema</button>
+      <button id="font-down-btn" class="control-btn font-control" type="button" aria-label="Diminuir fonte">A−</button>
+      <button id="font-reset-btn" class="control-btn font-control" type="button" aria-label="Restaurar fonte">A</button>
+      <button id="font-up-btn" class="control-btn font-control" type="button" aria-label="Aumentar fonte">A+</button>
+    </div>
+  </header>
+
+  <main id="app" class="app-main" aria-live="polite">
+    <section class="screen welcome-card" aria-labelledby="loading-title">
+      <span class="eyebrow">Atividades Didáticas</span>
+      <h1 id="loading-title">Carregando atividade...</h1>
+      <p>Aguarde um instante para carregar o jogo.</p>
+    </section>
+  </main>
+
+  <dialog id="theory-modal" class="theory-modal" aria-labelledby="theory-title">
+    <div class="theory-card">
+      <div class="theory-header">
+        <h2 id="theory-title">Teoria em resumo</h2>
+        <button id="close-theory-btn" class="icon-button" type="button" aria-label="Fechar teoria">×</button>
+      </div>
+      <div id="theory-content" class="theory-content"></div>
+      <button id="close-theory-bottom" class="btn-secondary" type="button">Entendido, voltar ao jogo</button>
+    </div>
+  </dialog>
+
+  <script src="js/motor2.js"></script>
+  <!-- Atividades: adicione um script para cada arquivo em atividades/. -->
+   <div><script src="atividades/conceitos-basicos.js"></script>
+  <script src="atividades/estrutura-so.js"></script>
+  <script src="atividades/arquitetura-so.js"></script></div>
+  <div></div>
+  <!-- <script src="atividades/conceito-tarefa.js"></script> -->
+</body>
+</html>

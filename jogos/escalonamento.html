@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escalonador — Gerência de Processos</title>
+  <link rel="stylesheet" href="../css/layer.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/esc_styles.css">
+</head>
+<body cz-shortcut-listen="true">
+
+  <!-- ==========================================================================
+       CABECALHO FUTURISTA E BARRA SUPERIOR
+       ========================================================================== -->
+  <header class="futuristic-header">
+    <div class="top-bar-flex">
+      <div class="brand-title">
+        <span>⚡ Escalonador</span>
+        <span class="brand-badge">SO Simulator</span>
+      </div>
+
+      <!-- Métricas Gamificadas Rápidas -->
+      <div class="top-stats-strip">
+        <div class="stat-pill" title="Vidas restantes. Recupere com 100% nas missões!">
+          <span id="heartsDisplay">❤️❤️❤️❤️❤️</span>
+        </div>
+        <div class="stat-pill" title="Pontuação Geral">
+          <span>🏆</span>
+          <span id="scoreDisplay">235 pts</span>
+        </div>
+        <div class="stat-pill" title="Nível de Perfil (XP)">
+          <span>🎖️</span>
+          <span id="profileLevelDisplay">Em Execução</span>
+        </div>
+        <div class="stat-pill" title="Streak de Observações Corretas">
+          <span>🔥 Streak</span>
+          <div class="streak-bar-wrap">
+            <div id="streakBar" class="streak-bar-fill"></div>
+          </div>
+          <span id="streakCount">0x</span>
+        </div>
+      </div>
+
+      <!-- Controles de Acessibilidade & Áudio -->
+      <div class="control-group">
+        <button id="btnSoundToggle" class="btn-icon" aria-label="Alternar Som" title="Ativar/Desativar Som">
+          <span id="soundIcon">🔊 Som Ativo</span>
+        </button>
+        <button id="btnThemeToggle" class="btn-icon" aria-label="Alternar Tema Claro/Escuro" title="Tema Claro / Escuro">
+          🌓 Tema
+        </button>
+        <button id="btnOpenQuiz" class="btn-futuristic" title="Abrir Quiz de Consolidação">
+          🧠 Fazer Quiz (11q)
+        </button>
+        <button id="btnOpenReport" class="btn-secondary-futuristic" title="Abrir Relatório Final">
+          📊 Relatório
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ==========================================================================
+         [MODULO 1 - TEORIA] PAINEL TEORIA EM RESUMO (COLAPSÁVEL)
+         ========================================================================== -->
+    <details class="theory-details" open="">
+      <summary class="theory-summary">
+        <span>📖 Teoria em Resumo (Conceitos Essenciais de SO)</span>
+        <span style="font-size:0.8rem; color:var(--text-sub);">▼</span>
+      </summary>
+      <div class="theory-grid">
+        <div class="theory-card">
+          <strong>Processo &amp; PCB</strong>
+          Programa em execução com contexto próprio. O <em>Process Control Block</em> armazena estado, registradores, prioridade e tempos.
+        </div>
+        <div class="theory-card">
+          <strong>Estados do Processo</strong>
+          <em>Novo</em> (criado), <em>Pronto</em> (apto e aguardando CPU), <em>Executando</em> (na CPU), <em>Bloqueado</em> (aguardando E/S), <em>Finalizado</em>.
+        </div>
+        <div class="theory-card">
+          <strong>Escalonador &amp; Troca de Contexto</strong>
+          Componente do SO que seleciona quem usa a CPU. A troca de 
+contexto salva o PCB do processo atual e carrega o do próximo.
+        </div>
+        <div class="theory-card">
+          <strong>Preempção &amp; Quantum</strong>
+          Capacidade de interromper um processo em execução para ceder a CPU a outro. No Round-Robin, o <em>quantum</em> é o tempo máximo contínuo.
+        </div>
+        <div class="theory-card">
+          <strong>Inanição (Starvation) &amp; Aging</strong>
+          Inanição ocorre quando um processo de baixa prioridade nunca executa. O <em>Aging</em> (envelhecimento) eleva a prioridade com a espera.
+        </div>
+        <div class="theory-card">
+          <strong>Métricas de Avaliação</strong>
+          <em>Espera:</em> tempo na fila de prontos. <em>Turnaround:</em> fim − chegada. <em>Throughput:</em> processos finalizados por unidade de tempo.
+        </div>
+      </div>
+    </details>
+
+    <!-- ==========================================================================
+         [MODULO 2 - SIMULADOR] PAINEL DE CONTROLES, CRIAÇÃO E DEMO
+         ========================================================================== -->
+    <section class="glass-card">
+      <div class="sim-controls-bar">
+        <!-- Algoritmo e Opções -->
+        <div class="control-group">
+          <label class="control-label" for="algoSelect">Algoritmo:</label>
+          <select id="algoSelect">
+            <option value="fcfs">FCFS (FIFO)</option>
+            <option value="sjf">SJF (Não-Preemptivo)</option>
+            <option value="srtf">SRTF (SJF Preemptivo)</option>
+            <option value="rr" selected="selected">Round-Robin (RR)</option>
+            <option value="prio-np">Prioridade (Não-Preemptivo)</option>
+            <option value="prio-p">Prioridade (Preemptivo)</option>
+            <option value="multilevel">Múltiplas Filas (Prioridades)</option>
+          </select>
+
+          <div id="rrQuantumGroup" class="control-group" style="margin-left: 0.25rem;">
+            <label class="control-label" for="quantumInput">Quantum:</label>
+            <input type="number" id="quantumInput" min="1" max="10" value="2" style="width: 55px;">
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; cursor: pointer; margin-left: 0.5rem;">
+            <input type="checkbox" id="agingCheck">
+            <span style="font-weight: 600;">Ativar Aging (Envelhecimento)</span>
+          </label>
+        </div>
+
+        <!-- Controles de Tempo -->
+        <div class="control-group">
+          <button id="btnPlayPause" class="btn-futuristic">⏸ Pausar</button>
+          <button id="btnStep" class="btn-secondary-futuristic" title="Executar exatamente 1 unidade de tempo">⏭ Passo (+1 u.t.)</button>
+          <button id="btnReset" class="btn-secondary-futuristic" title="Reiniciar toda a simulação">🔄 Reiniciar</button>
+
+          <label class="control-label" for="speedSelect" style="margin-left: 0.25rem;">Velocidade:</label>
+          <select id="speedSelect">
+            <option value="1200">Lenta (1.2s)</option>
+            <option value="700" selected="selected">Média (0.7s)</option>
+            <option value="250">Rápida (0.25s)</option>
+          </select>
+
+          <button id="btnDemoModal" class="btn-secondary-futuristic" style="border-color: var(--accent-orange); color: var(--accent-orange);">
+            ▶ Modo Demonstração
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Criação de Processos -->
+      <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--surface-border); display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+        <div>
+          <label class="control-label" style="display:block; margin-bottom: 2px;">CPU Burst (1-20 u.t.):</label>
+          <input type="number" id="newBurstInput" min="1" max="20" value="6" style="width: 70px;">
+        </div>
+        <div>
+          <label class="control-label" style="display:block; margin-bottom: 2px;">Prioridade (1-10):</label>
+          <input type="number" id="newPrioInput" min="1" max="10" value="5" style="width: 70px;" title="10 = Mais alta prioridade">
+        </div>
+        <div>
+          <label class="control-label" style="display:block; margin-bottom: 2px;">Comportamento:</label>
+          <select id="newTypeSelect">
+            <option value="cpu" selected="selected">CPU-bound (Uso contínuo)</option>
+            <option value="io">I/O-bound (Bloqueia p/ E/S)</option>
+          </select>
+        </div>
+        <div>
+          <label class="control-label" style="display:block; margin-bottom: 2px;">Chegada:</label>
+          <select id="newArrivalSelect">
+            <option value="0" selected="selected">Agora (t atual)</option>
+            <option value="3">Em +3 u.t.</option>
+            <option value="6">Em +6 u.t.</option>
+            <option value="10">Em +10 u.t.</option>
+          </select>
+        </div>
+        <button id="btnCreateProcess" class="btn-futuristic" style="height: 33px;">
+          ➕ Criar Processo
+        </button>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         [MODULO 2 - SIMULADOR] ARENA DE EXECUÇÃO CENTRAL
+         ========================================================================== -->
+    <section class="glass-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🖥️ Fluxo de Estados do Processador</span>
+          <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-sub);">(Clique em qualquer processo para inspecionar o PCB)</span>
+        </h3>
+        <span style="font-size: 0.85rem; font-weight: bold; background: var(--surface-elevated); padding: 3px 10px; border-radius: 4px; border: 1px solid var(--surface-border);">
+          Tempo Global (Clock): <strong id="clockDisplay" style="color:var(--accent-orange);">22 u.t.</strong>
+        </span>
+      </div>
+
+      <div class="scheduler-arena">
+        <!-- Fila de Prontos (Sempre ordenada pelo critério ativo) -->
+        <div class="arena-column">
+          <div class="column-header">
+            <span>📋 Prontos (Ordenada)</span>
+            <span id="readyCountBadge" class="pcb-tag">0</span>
+          </div>
+          <div id="readyQueueContainer" class="column-body"><span style="color:var(--text-sub); font-size:0.8rem; text-align:center; margin-top:2rem;">Fila vazia</span></div>
+        </div>
+
+        <!-- CPU: Processo em Execução -->
+        <div class="arena-column" style="background: rgba(54, 76, 65, 0.15); border-style: solid; border-color: var(--accent);">
+          <div class="column-header">
+            <span><span class="cpu-pulse-indicator"></span>CPU (Executando)</span>
+            <span id="cpuStatusTag" class="pcb-tag" style="color: var(--text-sub);">OCIOSA</span>
+          </div>
+          <div class="column-body" style="justify-content: center;">
+            <div id="cpuSlot" class="cpu-active-slot"><span class="cpu-idle-text">CPU Ociosa (Aguardando processos prontos)</span></div>
+            <div id="cpuQuantumNotice" style="font-size: 0.75rem; text-align: center; color: var(--text-sub); margin-top: 4px; display: none;">
+              Quantum restante: <strong id="quantumRemainDisplay" style="color:var(--accent-orange);">2 u.t.</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fila de Espera (Bloqueados por E/S) -->
+        <div class="arena-column">
+          <div class="column-header">
+            <span>⏳ Espera (E/S Bloqueado)</span>
+            <span id="waitCountBadge" class="pcb-tag">0</span>
+          </div>
+          <div id="waitQueueContainer" class="column-body"><span style="color:var(--text-sub); font-size:0.8rem; text-align:center; margin-top:2rem;">Nenhum bloqueado</span></div>
+        </div>
+
+        <!-- Finalizados -->
+        <div class="arena-column">
+          <div class="column-header">
+            <span>🏁 Finalizados</span>
+            <span id="finishedCountBadge" class="pcb-tag">3</span>
+          </div>
+          <div id="finishedQueueContainer" class="column-body"><div class="pcb-chip" style="border-left-color: rgb(95, 39, 205);">
+        <div class="pcb-chip-top">
+          <span class="pcb-id" style="color:#5f27cd">P3</span>
+          <span class="pcb-tag">Prio 2</span>
+          <span class="pcb-tag" style="background:rgba(46, 213, 115, 0.2)">
+            CPU
+          </span>
+        </div>
+        <div class="pcb-prog-bg">
+          <div class="pcb-prog-fill" style="width: 100%; background:#5f27cd"></div>
+        </div>
+        <div class="pcb-details-row">
+          <span>Burst: 0/5</span>
+          <span>Fim: Fim</span>
+        </div>
+      </div><div class="pcb-chip" style="border-left-color: rgb(0, 210, 211);">
+        <div class="pcb-chip-top">
+          <span class="pcb-id" style="color:#00d2d3">P1</span>
+          <span class="pcb-tag">Prio 4</span>
+          <span class="pcb-tag" style="background:rgba(46, 213, 115, 0.2)">
+            CPU
+          </span>
+        </div>
+        <div class="pcb-prog-bg">
+          <div class="pcb-prog-fill" style="width: 100%; background:#00d2d3"></div>
+        </div>
+        <div class="pcb-details-row">
+          <span>Burst: 0/6</span>
+          <span>Fim: Fim</span>
+        </div>
+      </div><div class="pcb-chip" style="border-left-color: rgb(255, 159, 67);">
+        <div class="pcb-chip-top">
+          <span class="pcb-id" style="color:#ff9f43">P2</span>
+          <span class="pcb-tag">Prio 8</span>
+          <span class="pcb-tag" style="background:rgba(239, 105, 45, 0.2)">
+            I/O
+          </span>
+        </div>
+        <div class="pcb-prog-bg">
+          <div class="pcb-prog-fill" style="width: 100%; background:#ff9f43"></div>
+        </div>
+        <div class="pcb-details-row">
+          <span>Burst: 0/3</span>
+          <span>Fim: Fim</span>
+        </div>
+      </div></div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Gantt em Tempo Real -->
+      <div style="margin-top: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <span style="font-size: 0.8rem; font-weight: bold; text-transform: uppercase; color: var(--text-sub);">
+            📊 Gráfico de Gantt da CPU
+          </span>
+          <span style="font-size: 0.75rem; color: var(--text-sub);">Histórico temporal de ocupação</span>
+        </div>
+        <div class="gantt-container">
+          <div id="ganttStrip" class="gantt-strip"><div class="gantt-block" style="width: 9.09091%; background-color: rgb(0, 210, 211);" title="P1: 2 u.t. (de t=0 a t=2)">P1</div><div class="gantt-block" style="width: 9.09091%; background-color: rgb(255, 159, 67);" title="P2: 2 u.t. (de t=2 a t=4)">P2</div><div class="gantt-block" style="width: 9.09091%; background-color: rgb(95, 39, 205);" title="P3: 2 u.t. (de t=4 a t=6)">P3</div><div class="gantt-block" style="width: 9.09091%; background-color: rgb(0, 210, 211);" title="P1: 2 u.t. (de t=6 a t=8)">P1</div><div class="gantt-block" style="width: 4.54545%; background-color: rgb(255, 159, 67);" title="P2: 1 u.t. (de t=8 a t=9)">P2</div><div class="gantt-block" style="width: 9.09091%; background-color: rgb(95, 39, 205);" title="P3: 2 u.t. (de t=9 a t=11)">P3</div><div class="gantt-block" style="width: 9.09091%; background-color: rgb(0, 210, 211);" title="P1: 2 u.t. (de t=11 a t=13)">P1</div><div class="gantt-block" style="width: 4.54545%; background-color: rgb(95, 39, 205);" title="P3: 1 u.t. (de t=13 a t=14)">P3</div><div class="gantt-block" style="width: 36.3636%; background-color: rgb(51, 51, 51);" title="OCIOSA: 8 u.t. (de t=14 a t=22)">OCIOSA</div></div>
+          <div id="ganttTicks" class="gantt-ticks"><div class="gantt-tick-item" style="width: 9.09091%;">2</div><div class="gantt-tick-item" style="width: 9.09091%;">4</div><div class="gantt-tick-item" style="width: 9.09091%;">6</div><div class="gantt-tick-item" style="width: 9.09091%;">8</div><div class="gantt-tick-item" style="width: 4.54545%;">9</div><div class="gantt-tick-item" style="width: 9.09091%;">11</div><div class="gantt-tick-item" style="width: 9.09091%;">13</div><div class="gantt-tick-item" style="width: 4.54545%;">14</div><div class="gantt-tick-item" style="width: 36.3636%;">22</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         [MODULO 2 - SIMULADOR] MÉTRICAS AO VIVO & REGISTRO DE EVENTOS (LOG)
+         ========================================================================== -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem;">
+      <!-- Painel de Métricas -->
+      <section class="glass-card">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase;">
+          📈 Métricas do Escalonador em Tempo Real
+        </h4>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div id="metricAvgWait" class="metric-num">8.0</div>
+            <div class="metric-lbl">T. Espera Médio</div>
+          </div>
+          <div class="metric-card">
+            <div id="metricAvgTurnaround" class="metric-num">12.0</div>
+            <div class="metric-lbl">Turnaround Médio</div>
+          </div>
+          <div class="metric-card">
+            <div id="metricAvgResponse" class="metric-num">3.0</div>
+            <div class="metric-lbl">T. Resposta Médio</div>
+          </div>
+          <div class="metric-card">
+            <div id="metricThroughput" class="metric-num">0.14</div>
+            <div class="metric-lbl">Throughput (p/ut)</div>
+          </div>
+          <div class="metric-card">
+            <div id="metricContextSwitches" class="metric-num">12</div>
+            <div class="metric-lbl">Trocas de Contexto</div>
+          </div>
+          <div class="metric-card">
+            <div id="metricPreemptions" class="metric-num">4</div>
+            <div class="metric-lbl">Preempções</div>
+          </div>
+          <div class="metric-card" style="border-color: rgba(239, 105, 45, 0.4);">
+            <div id="metricStarvations" class="metric-num" style="color: #ff4757;">0 / 0</div>
+            <div class="metric-lbl">Inanições Detec./Resolv.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Registro de Eventos (Log Rolante) -->
+      <section class="glass-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase;">
+            📜 Registro de Eventos do SO
+          </h4>
+          <button id="btnClearLog" class="btn-icon" style="font-size:0.72rem; padding: 1px 6px;">Limpar</button>
+        </div>
+        <div id="eventLogBox" class="log-box">
+          <div class="log-entry"><span class="log-time">[t=0]</span> Simulador iniciado. Pronto para escalonamento.</div>
+        <div class="log-entry">[t=0] P1 CRIADO e pronto (Burst 6, Prio 4, CPU-bound).</div><div class="log-entry">[t=0] P2 CRIADO e pronto (Burst 3, Prio 8, I/O-bound).</div><div class="log-entry">[t=0] P3 CRIADO e pronto (Burst 5, Prio 2, CPU-bound).</div><div class="log-entry">[t=1] P1: entrou na CPU (Restante: 6 u.t., Prio: 4).</div><div class="log-entry log-warn">[t=3] P1 PREEMPTADO: fim de quantum (Round-Robin).</div><div class="log-entry">[t=3] P2: entrou na CPU (Restante: 3 u.t., Prio: 8).</div><div class="log-entry log-warn">[t=4] P2: BLOQUEADO por E/S (aguardará 3 u.t.).</div><div class="log-entry">[t=5] P3: entrou na CPU (Restante: 5 u.t., Prio: 2).</div><div class="log-entry log-success">[t=7] P2: concluiu E/S e retornou para a Fila de Prontos.</div><div class="log-entry log-warn">[t=7] P3 PREEMPTADO: fim de quantum (Round-Robin).</div><div class="log-entry">[t=7] P1: entrou na CPU (Restante: 4 u.t., Prio: 4).</div><div class="log-entry log-warn">[t=9] P1 PREEMPTADO: fim de quantum (Round-Robin).</div><div class="log-entry">[t=9] P2: entrou na CPU (Restante: 1 u.t., Prio: 8).</div><div class="log-entry log-success">[t=9] P2: FINALIZADO — turnaround 9, espera 6.</div><div class="log-entry">[t=10] P3: entrou na CPU (Restante: 3 u.t., Prio: 2).</div><div class="log-entry log-warn">[t=12] P3 PREEMPTADO: fim de quantum (Round-Robin).</div><div class="log-entry">[t=12] P1: entrou na CPU (Restante: 2 u.t., Prio: 4).</div><div class="log-entry log-success">[t=13] P1: FINALIZADO — turnaround 13, espera 8.</div><div class="log-entry">[t=14] P3: entrou na CPU (Restante: 1 u.t., Prio: 2).</div><div class="log-entry log-success">[t=14] P3: FINALIZADO — turnaround 14, espera 10.</div></div>
+      </section>
+    </div>
+
+    <!-- ==========================================================================
+         [MODULO 3 - GAMIFICAÇÃO] MISSÕES, SELOS E PROGRESSÃO
+         ========================================================================== -->
+    <section class="glass-card">
+      <div class="gamification-bar">
+        <div>
+          <span style="font-weight: 700; font-size: 1rem; color: var(--accent-orange);">🎖️ Selos Conquistados</span>
+          <span style="font-size: 0.75rem; color: var(--text-sub); margin-left: 0.5rem;">Desbloqueie operando o simulador:</span>
+        </div>
+        <div class="badges-row">
+          <div id="badge-primeiro" class="badge-item unlocked" title="Criar o primeiro processo">🏭 Primeiro Processo</div>
+          <div id="badge-fcfs" class="badge-item" title="Concluir 3 processos com FCFS">🔀 FCFS</div>
+          <div id="badge-sjf" class="badge-item" title="Executar com algoritmo SJF">⚡ SJF Pro</div>
+          <div id="badge-rr" class="badge-item unlocked" title="Executar com Round-Robin">🔁 RR Master</div>
+          <div id="badge-prio" class="badge-item" title="Executar algoritmo de Prioridade">🎯 Prioridade</div>
+          <div id="badge-inanicao" class="badge-item" title="Detectar um processo em inanição">⚠️ Caçador de Inanição</div>
+          <div id="badge-aging" class="badge-item" title="Resolver inanição ativando aging">📈 Aging Aplicado</div>
+          <div id="badge-mestre" class="badge-item" title="Completar todas as missões">🧠 Escalonador Mestre</div>
+        </div>
+      </div>
+
+      <h4 style="margin: 0 0 0.6rem 0; font-size: 0.95rem; color: var(--text-sub); text-transform: uppercase;">
+        🎯 Missões de Aprendizagem &amp; Desafios
+      </h4>
+      <div class="missions-list">
+        <div id="mission-m1" class="mission-row">
+          <div>
+            <strong>M1: O Básico da Fila</strong> — Crie pelo menos 3 processos CPU-bound e execute-os usando FCFS até o fim.
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="mission-pts">+100 pts</span>
+            <button class="btn-futuristic" onclick="window.simGame.checkMission(1)" style="font-size:0.75rem; padding: 3px 8px;">Validar</button>
+          </div>
+        </div>
+
+        <div id="mission-m2" class="mission-row">
+          <div>
+            <strong>M2: Provocando Inanição</strong> — Crie um processo 
+com prioridade 1 e outros com prioridade 10 no modo Prioridade 
+Preemptiva. Observe o processo de prioridade 1 piscar em alerta de 
+inanição.
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="mission-pts">+150 pts</span>
+            <button class="btn-futuristic" onclick="window.simGame.checkMission(2)" style="font-size:0.75rem; padding: 3px 8px;">Validar</button>
+          </div>
+        </div>
+
+        <div id="mission-m3" class="mission-row">
+          <div>
+            <strong>M3: O Remédio do Aging</strong> — Ative a caixa "Ativar Aging" durante uma inanição e veja a prioridade do processo faminto aumentar gradativamente.
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="mission-pts">+150 pts</span>
+            <button class="btn-futuristic" onclick="window.simGame.checkMission(3)" style="font-size:0.75rem; padding: 3px 8px;">Validar</button>
+          </div>
+        </div>
+
+        <div id="mission-m4" class="mission-row">
+          <div>
+            <strong>M4: Comparando FCFS vs Round-Robin</strong> — Execute no mínimo 4 processos com RR (quantum 2) e observe a alternância e tempos de resposta.
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="mission-pts">+150 pts</span>
+            <button class="btn-futuristic" onclick="window.simGame.checkMission(4)" style="font-size:0.75rem; padding: 3px 8px;">Validar</button>
+          </div>
+        </div>
+
+        <div id="mission-m5" class="mission-row">
+          <div>
+            <strong>M5: Sentinela de Trocas</strong> — Acumule pelo menos 4 trocas de contexto na simulação atual.
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="mission-pts">+120 pts</span>
+            <button class="btn-futuristic" onclick="window.simGame.checkMission(5)" style="font-size:0.75rem; padding: 3px 8px;">Validar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       MODAIS
+       ========================================================================== -->
+
+  <!-- Modal PCB (Inspecionar Processo) -->
+  <div id="modalPCB" class="modal-backdrop" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>📑 Bloco de Controle de Processo (PCB)</span>
+        <button class="close-modal-btn" onclick="document.getElementById('modalPCB').style.display='none'">×</button>
+      </div>
+      <div id="pcbContentDetails" style="margin-top: 1rem; line-height: 1.6; font-size: 0.9rem;">
+        <!-- Injetado dinamicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Modo Demonstração -->
+  <div id="modalDemo" class="modal-backdrop" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>▶ Cenários de Demonstração Guiada</span>
+        <button class="close-modal-btn" onclick="document.getElementById('modalDemo').style.display='none'">×</button>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-sub);">
+        Carregue um cenário pedagógico pronto para observar o comportamento clássico dos algoritmos passo a passo:
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+        <div style="background: var(--surface-elevated); padding: 0.8rem; border-radius: 6px; border-left: 4px solid var(--accent-orange);">
+          <strong style="color:var(--text-main);">Cenário 1: Inanição Extrema por Prioridade</strong>
+          <p style="font-size: 0.82rem; margin: 0.3rem 0 0.5rem 0; color: var(--text-sub);">
+            Cria P1 (prioridade 1) e vários processos consecutivos de 
+prioridade 10. P1 fica preso na fila sem nunca receber a CPU até sofrer 
+inanição.
+          </p>
+          <button class="btn-futuristic" onclick="window.simGame.loadScenario(1)">Carregar Cenário 1</button>
+        </div>
+
+        <div style="background: var(--surface-elevated); padding: 0.8rem; border-radius: 6px; border-left: 4px solid #2ed573;">
+          <strong style="color:var(--text-main);">Cenário 2: FCFS vs Round-Robin</strong>
+          <p style="font-size: 0.82rem; margin: 0.3rem 0 0.5rem 0; color: var(--text-sub);">
+            Carrega um processo longo (burst 14) seguido de 3 processos 
+curtos (burst 2). Demonstra o efeito comboio no FCFS versus o 
+compartilhamento justo no RR (quantum 2).
+          </p>
+          <button class="btn-futuristic" onclick="window.simGame.loadScenario(2)">Carregar Cenário 2</button>
+        </div>
+
+        <div style="background: var(--surface-elevated); padding: 0.8rem; border-radius: 6px; border-left: 4px solid var(--p-cyan);">
+          <strong style="color:var(--text-main);">Cenário 3: SJF na Prática (Shortest Job First)</strong>
+          <p style="font-size: 0.82rem; margin: 0.3rem 0 0.5rem 0; color: var(--text-sub);">
+            Vários processos com tempos de CPU variados (10, 3, 2, 6, 
+1). Demonstra a ordenação ótima para minimizar o tempo de espera médio.
+          </p>
+          <button class="btn-futuristic" onclick="window.simGame.loadScenario(3)">Carregar Cenário 3</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Relatório Final -->
+  <div id="modalReport" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 760px;">
+      <div class="modal-title">
+        <span>📊 Relatório Geral da Sessão de Escalonamento</span>
+        <button class="close-modal-btn" onclick="document.getElementById('modalReport').style.display='none'">×</button>
+      </div>
+
+      <div id="reportSummaryStats" style="margin-top: 1rem;">
+        <!-- Métricas gerais -->
+      </div>
+
+      <h4 style="margin: 1.25rem 0 0.4rem 0; font-size: 0.95rem; color: var(--accent-orange);">Tabela de Processos Finalizados</h4>
+      <div style="overflow-x: auto;">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Processo</th>
+              <th>Tipo</th>
+              <th>Chegada</th>
+              <th>Burst Total</th>
+              <th>T. Espera</th>
+              <th>Turnaround</th>
+              <th>T. Resposta</th>
+            </tr>
+          </thead>
+          <tbody id="reportTableBody">
+            <!-- Linhas de tabela -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background: var(--surface-elevated); padding: 0.85rem; border-radius: 6px; margin-top: 1rem; border-left: 4px solid var(--accent-orange);">
+        <strong style="color: var(--accent-orange);">Conclusão Teórica:</strong>
+        <p style="font-size: 0.84rem; margin: 0.3rem 0 0 0; line-height: 1.45;">
+          Em um escalonamento por prioridades fixas sem envelhecimento, 
+processos de baixa prioridade podem sofrer inanição permanente na 
+presença de fluxo constante de processos com maior prioridade. O <strong>aging</strong>
+ é a solução clássica da engenharia de sistemas operacionais, elevando a
+ prioridade proporcionalmente ao tempo de espera até garantir a 
+execução.
+        </p>
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn-secondary-futuristic" onclick="window.print()">🖨️ Imprimir / Salvar em PDF</button>
+        <button class="btn-futuristic" onclick="document.getElementById('modalReport').style.display='none'; document.getElementById('modalQuiz').style.display='flex';">Ir para o Quiz ➜</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Quiz de Consolidação (11 Questões, 1 por tela) -->
+  <div id="modalQuiz" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 620px;">
+      <div class="modal-title">
+        <span id="quizHeaderTitle">🧠 Quiz de Fixação: Questão 1 / 11</span>
+        <button class="close-modal-btn" onclick="document.getElementById('modalQuiz').style.display='none'">×</button>
+      </div>
+
+      <div id="quizQuestionBody" style="margin-top: 1rem;">
+        <p id="quizQuestionText" style="font-weight: 600; font-size: 1.05rem; line-height: 1.4;"></p>
+        <div id="quizOptionsContainer" class="quiz-options">
+          <!-- Opções embaralhadas -->
+        </div>
+        <div id="quizFeedbackBox" class="feedback-box" style="display: none;">
+          <div id="quizFeedbackTitle" style="font-weight: 700; margin-bottom: 3px;"></div>
+          <div id="quizFeedbackText"></div>
+        </div>
+        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+          <button id="btnQuizNext" class="btn-futuristic" style="display: none;">Avançar Questão ➜</button>
+        </div>
+      </div>
+
+      <div id="quizResultView" style="display: none; text-align: center; padding: 1.5rem 0;">
+        <h3 style="font-size: 1.6rem; color: var(--accent-orange); margin: 0 0 0.5rem 0;">Resultado do Quiz</h3>
+        <p id="quizResultScore" style="font-size: 1.2rem; font-weight: bold; margin: 0.5rem 0 1.5rem 0;"></p>
+        <div style="display: flex; justify-content: center; gap: 1rem;">
+          <button class="btn-secondary-futuristic" onclick="window.simQuiz.restartQuiz()">🔄 Refazer Quiz</button>
+          <button class="btn-futuristic" onclick="document.getElementById('modalQuiz').style.display='none'">Voltar à Simulação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DO fixed shell (carregado conforme especificação do sistema) -->
+  
+
+  <!-- ==========================================================================
+       LÓGICA JAVASCRIPT MODULAR
+       ========================================================================== -->
+  <script>
+  (function () {
+    'use strict';
+
+    /* ==========================================================================
+       [SISTEMA DE SOM SINTETIZADO COM WEB AUDIO API]
+       Sem arquivos externos; acessível e pode ser mutado a qualquer momento
+       ========================================================================== */
+    let audioCtx = null;
+    let isSoundMuted = false;
+
+    function playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.08) {
+      if (isSoundMuted) return;
+      try {
+        if (!audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) audioCtx = new AudioContext();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        if (!audioCtx) return;
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // Ignorar se o navegador bloquear autoplay
+      }
+    }
+
+    const sound = {
+      tick: () => playTone(300, 'square', 0.03, 0.02),
+      startProcess: () => playTone(520, 'sine', 0.12, 0.05),
+      preempt: () => { playTone(440, 'triangle', 0.08, 0.06); setTimeout(() => playTone(330, 'triangle', 0.1, 0.06), 70); },
+      finish: () => { playTone(587, 'sine', 0.1, 0.06); setTimeout(() => playTone(880, 'sine', 0.18, 0.06), 90); },
+      starve: () => { playTone(240, 'sawtooth', 0.25, 0.07); },
+      correct: () => { playTone(523, 'sine', 0.09, 0.08); setTimeout(() => playTone(659, 'sine', 0.14, 0.08), 80); },
+      wrong: () => { playTone(180, 'sawtooth', 0.2, 0.09); }
+    };
+
+    /* Paleta de Cores para Processos */
+    const PROCESS_COLORS = [
+      '#00d2d3', '#ff9f43', '#5f27cd', '#10ac84', '#ee5253',
+      '#2e86de', '#e056fd', '#00cec9', '#f0932b', '#686de0'
+    ];
+
+    /* ==========================================================================
+       [ESTADO DO SIMULADOR & GAMIFICAÇÃO]
+       ========================================================================== */
+    const state = {
+      clock: 0,
+      isRunning: true,
+      stepInterval: null,
+      speedMs: 700,
+      nextPid: 1,
+
+      // Algoritmo atual
+      algorithm: 'rr', // 'fcfs', 'sjf', 'srtf', 'rr', 'prio-np', 'prio-p', 'multilevel'
+      quantum: 2,
+      agingEnabled: false,
+
+      // Filas do SO
+      readyQueue: [],
+      cpuRunning: null,      // Processo atual ou null
+      cpuQuantumLeft: 2,
+      waitQueue: [],
+      finishedQueue: [],
+      pendingArrivals: [],   // Processos agendados para chegar no futuro
+
+      // Histórico do Gantt [{pid, color, name, start, duration}]
+      ganttHistory: [],
+
+      // Métricas acumuladas
+      contextSwitches: 0,
+      preemptions: 0,
+      starvationsDetected: 0,
+      starvationsResolved: 0,
+
+      // Gamificação
+      score: 0,
+      lives: 5,
+      streak: 0,
+      highestStreak: 0,
+      profileLevelIndex: 0,
+      missionsCompleted: { 1: false, 2: false, 3: false, 4: false, 5: false },
+      unlockedBadges: new Set()
+    };
+
+    const PROFILE_LEVELS = [
+      'Processo Novo',
+      'Pronto',
+      'Em Execução',
+      'Prioridade Alta',
+      'Escalonador Mestre'
+    ];
+
+    /* ==========================================================================
+       CLASSE DO PROCESSO (PCB)
+       ========================================================================== */
+    class Process {
+      constructor(pid, burst, priority, isIO, arrivalTime) {
+        this.pid = pid;
+        this.name = 'P' + pid;
+        this.color = PROCESS_COLORS[(pid - 1) % PROCESS_COLORS.length];
+        this.burstTotal = burst;
+        this.burstRemaining = burst;
+        this.priority = priority;          // 1 a 10 (10 mais alta)
+        this.basePriority = priority;      // Para recuperar se aging for desligado
+        this.isIO = isIO;                  // booleano
+        this.arrivalTime = arrivalTime;
+
+        // Métricas individuais
+        this.firstExecutedTime = null;     // para cálculo do tempo de resposta
+        this.finishedTime = null;
+        this.waitTime = 0;                 // tempo total que passou na fila de prontos
+        this.timeInCurrentWait = 0;        // tempo contínuo aguardando na fila de prontos (para inanição)
+        this.isStarving = false;
+
+        // Estado interno de E/S
+        this.ioInterval = isIO ? Math.max(2, Math.floor(burst / 2)) : 9999;
+        this.ioTimeRemaining = 0;
+        this.runStreakSinceIO = 0;
+      }
+    }
+
+    /* ==========================================================================
+       [MODULO 2 - SIMULADOR] ORDENAÇÃO DA FILA DE PRONTOS CONFORME ALGORITMO
+       ========================================================================== */
+    function sortReadyQueue() {
+      const algo = state.algorithm;
+
+      state.readyQueue.sort((a, b) => {
+        if (algo === 'fcfs') {
+          return a.arrivalTime - b.arrivalTime;
+        } else if (algo === 'sjf') {
+          // Menor burst total (não-preemptivo escolhe pelo burst total)
+          return a.burstTotal - b.burstTotal || a.arrivalTime - b.arrivalTime;
+        } else if (algo === 'srtf') {
+          // Menor burst restante
+          return a.burstRemaining - b.burstRemaining || a.arrivalTime - b.arrivalTime;
+        } else if (algo === 'rr') {
+          // No Round-Robin, a ordem é estritamente FIFO da fila de prontos
+          return 0; // mantém a ordem da fila
+        } else if (algo === 'prio-np' || algo === 'prio-p') {
+          // Maior prioridade primeiro (10 > 1)
+          return b.priority - a.priority || a.arrivalTime - b.arrivalTime;
+        } else if (algo === 'multilevel') {
+          // Múltiplas filas por faixas de prioridade
+          return b.priority - a.priority || a.burstRemaining - b.burstRemaining;
+        }
+        return 0;
+      });
+    }
+
+    /* ==========================================================================
+       CRIAR NOVO PROCESSO
+       ========================================================================== */
+    function createProcess(burst, priority, isIO, arrivalOffset = 0) {
+      const pid = state.nextPid++;
+      const arrival = state.clock + parseInt(arrivalOffset || 0, 10);
+      const proc = new Process(pid, burst, priority, isIO, arrival);
+
+      if (arrivalOffset > 0) {
+        state.pendingArrivals.push(proc);
+        logMessage(`[t=${state.clock}] ${proc.name} agendado para chegar em t=${arrival} (Burst ${burst}, Prio ${priority}, ${isIO ? 'I/O' : 'CPU'}).`);
+      } else {
+        state.readyQueue.push(proc);
+        sortReadyQueue();
+        logMessage(`[t=${state.clock}] ${proc.name} CRIADO e pronto (Burst ${burst}, Prio ${priority}, ${isIO ? 'I/O-bound' : 'CPU-bound'}).`);
+      }
+
+      unlockBadge('primeiro');
+      addPoints(15, 'Processo Criado');
+      sound.startProcess();
+      renderAll();
+      return proc;
+    }
+
+    /* ==========================================================================
+       LOG DE EVENTOS
+       ========================================================================== */
+    function logMessage(text, type = 'normal') {
+      const box = document.getElementById('eventLogBox');
+      if (!box) return;
+      const el = document.createElement('div');
+      el.className = 'log-entry';
+      if (type === 'warn') el.classList.add('log-warn');
+      if (type === 'alert') el.classList.add('log-alert');
+      if (type === 'success') el.classList.add('log-success');
+      el.textContent = text;
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    /* ==========================================================================
+       NÚCLEO DO SIMULADOR (TICK / PASSO DE RELÓGIO)
+       ========================================================================== */
+    function pauseWhenAllProcessesFinish() {
+      const allProcessesFinished =
+        !state.cpuRunning &&
+        state.readyQueue.length === 0 &&
+        state.waitQueue.length === 0 &&
+        state.pendingArrivals.length === 0 &&
+        state.finishedQueue.length > 0;
+
+      if (!allProcessesFinished || !state.isRunning) return;
+
+      state.isRunning = false;
+      document.getElementById('btnPlayPause').textContent = '▶ Continuar';
+      logMessage(`[t=${state.clock}] Todos os processos foram finalizados. Simulação pausada.`, 'success');
+    }
+
+    function stepSimulation() {
+      state.clock++;
+
+      // 1. Verificar Chegadas Agendadas
+      const arrived = [];
+      const stillPending = [];
+      state.pendingArrivals.forEach(p => {
+        if (p.arrivalTime <= state.clock) {
+          arrived.push(p);
+        } else {
+          stillPending.push(p);
+        }
+      });
+      state.pendingArrivals = stillPending;
+      arrived.forEach(p => {
+        state.readyQueue.push(p);
+        logMessage(`[t=${state.clock}] ${p.name} CHEGOU ao sistema e entrou na fila de prontos.`, 'success');
+      });
+
+      // 2. Processar Fila de Espera (E/S)
+      const remainingWait = [];
+      state.waitQueue.forEach(p => {
+        p.ioTimeRemaining--;
+        if (p.ioTimeRemaining <= 0) {
+          p.runStreakSinceIO = 0;
+          state.readyQueue.push(p);
+          logMessage(`[t=${state.clock}] ${p.name}: concluiu E/S e retornou para a Fila de Prontos.`, 'success');
+        } else {
+          remainingWait.push(p);
+        }
+      });
+      state.waitQueue = remainingWait;
+
+      // 3. Atualizar Espera e Inanição na Fila de Prontos
+      // Limite para inanição: espera contínua maior que 16 u.t.
+      const starvationThreshold = 16;
+      state.readyQueue.forEach(p => {
+        p.waitTime++;
+        p.timeInCurrentWait++;
+
+        if (p.timeInCurrentWait >= starvationThreshold) {
+          if (!p.isStarving) {
+            p.isStarving = true;
+            state.starvationsDetected++;
+            logMessage(`⚠️ POSSÍVEL INANIÇÃO: ${p.name} aguarda há ${p.timeInCurrentWait} u.t. sem executar!`, 'alert');
+            sound.starve();
+            unlockBadge('inanicao');
+          }
+        }
+
+        // Se Aging estiver ativo e o processo estiver faminto, aumentar prioridade
+        if (state.agingEnabled && p.timeInCurrentWait % 2 === 0 && p.priority < 10) {
+          p.priority++;
+          logMessage(`[Aging] Prioridade de ${p.name} subiu para ${p.priority} (espera: ${p.timeInCurrentWait} u.t.)`, 'warn');
+          unlockBadge('aging');
+          state.starvationsResolved++;
+        }
+      });
+
+      // Ordenar a fila de prontos conforme o algoritmo vigente
+      sortReadyQueue();
+
+      // 4. Lógica de Preempção (para SRTF, RR e Prioridade Preemptiva)
+      if (state.cpuRunning) {
+        let shouldPreempt = false;
+        let preemptReason = '';
+
+        if (state.algorithm === 'rr') {
+          state.cpuQuantumLeft--;
+          if (state.cpuQuantumLeft <= 0 && state.cpuRunning.burstRemaining > 0 && state.readyQueue.length > 0) {
+            shouldPreempt = true;
+            preemptReason = 'fim de quantum (Round-Robin)';
+          }
+        } else if (state.algorithm === 'srtf' && state.readyQueue.length > 0) {
+          const shortest = state.readyQueue[0];
+          if (shortest.burstRemaining < state.cpuRunning.burstRemaining) {
+            shouldPreempt = true;
+            preemptReason = `chegou ${shortest.name} com menor burst (${shortest.burstRemaining} < ${state.cpuRunning.burstRemaining})`;
+          }
+        } else if (state.algorithm === 'prio-p' && state.readyQueue.length > 0) {
+          const highest = state.readyQueue[0];
+          if (highest.priority > state.cpuRunning.priority) {
+            shouldPreempt = true;
+            preemptReason = `chegou ${highest.name} com maior prioridade (${highest.priority} > ${state.cpuRunning.priority})`;
+          }
+        } else if (state.algorithm === 'multilevel' && state.readyQueue.length > 0) {
+          const top = state.readyQueue[0];
+          if (top.priority > state.cpuRunning.priority) {
+            shouldPreempt = true;
+            preemptReason = `chegou ${top.name} em fila de maior prioridade`;
+          }
+        }
+
+        if (shouldPreempt) {
+          const preempted = state.cpuRunning;
+          state.preemptions++;
+          state.contextSwitches++;
+          state.cpuRunning = null;
+          state.readyQueue.push(preempted);
+          sortReadyQueue();
+          logMessage(`[t=${state.clock}] ${preempted.name} PREEMPTADO: ${preemptReason}.`, 'warn');
+          sound.preempt();
+        }
+      }
+
+      // 5. Se a CPU estiver ociosa e houver processos prontos, escalonar o próximo
+      if (!state.cpuRunning && state.readyQueue.length > 0) {
+        const next = state.readyQueue.shift();
+        state.cpuRunning = next;
+        state.cpuQuantumLeft = state.quantum;
+        state.contextSwitches++;
+
+        if (next.firstExecutedTime === null) {
+          next.firstExecutedTime = state.clock;
+        }
+
+        // Se estava faminto, registrou alívio
+        if (next.isStarving) {
+          next.isStarving = false;
+          next.timeInCurrentWait = 0;
+          state.starvationsResolved++;
+        }
+
+        logMessage(`[t=${state.clock}] ${next.name}: entrou na CPU (Restante: ${next.burstRemaining} u.t., Prio: ${next.priority}).`);
+        sound.tick();
+      }
+
+      // 6. Execução na CPU (1 unidade de tempo)
+      if (state.cpuRunning) {
+        const curr = state.cpuRunning;
+        curr.burstRemaining--;
+        curr.runStreakSinceIO++;
+
+        // Registrar no Gantt
+        recordGantt(curr.name, curr.color);
+
+        // Se o processo for I/O-bound e atingiu o intervalo de bloquear
+        if (curr.isIO && curr.burstRemaining > 0 && curr.runStreakSinceIO >= curr.ioInterval) {
+          curr.ioTimeRemaining = 3; // 3 u.t. de E/S
+          curr.timeInCurrentWait = 0;
+          state.waitQueue.push(curr);
+          state.cpuRunning = null;
+          logMessage(`[t=${state.clock}] ${curr.name}: BLOQUEADO por E/S (aguardará 3 u.t.).`, 'warn');
+        }
+        // Se o processo terminou
+        else if (curr.burstRemaining <= 0) {
+          curr.finishedTime = state.clock;
+          const turnaround = curr.finishedTime - curr.arrivalTime;
+          const wait = curr.waitTime;
+          state.finishedQueue.push(curr);
+          state.cpuRunning = null;
+          logMessage(`[t=${state.clock}] ${curr.name}: FINALIZADO — turnaround ${turnaround}, espera ${wait}.`, 'success');
+          sound.finish();
+          addPoints(30, 'Processo Finalizado');
+
+          // Verificação de selos por algoritmos
+          if (state.algorithm === 'fcfs' && state.finishedQueue.length >= 3) unlockBadge('fcfs');
+          if (state.algorithm === 'sjf') unlockBadge('sjf');
+          if (state.algorithm === 'rr') unlockBadge('rr');
+          if (state.algorithm === 'prio-np' || state.algorithm === 'prio-p') unlockBadge('prio');
+        }
+      } else {
+        // CPU Ociosa nesta u.t.
+        recordGantt('OCIOSA', '#333333');
+      }
+
+      renderAll();
+      pauseWhenAllProcessesFinish();
+    }
+
+    /* ==========================================================================
+       GANTT RECORDING
+       ========================================================================== */
+    function recordGantt(name, color) {
+      const history = state.ganttHistory;
+      const last = history[history.length - 1];
+
+      if (last && last.name === name) {
+        last.duration++;
+      } else {
+        history.push({
+          name: name,
+          color: color,
+          start: state.clock - 1,
+          duration: 1
+        });
+      }
+    }
+
+    /* ==========================================================================
+       CÁLCULO DE MÉTRICAS AO VIVO
+       ========================================================================== */
+    function calculateMetrics() {
+      const finished = state.finishedQueue;
+      const totalDone = finished.length;
+
+      let avgWait = 0;
+      let avgTurnaround = 0;
+      let avgResponse = 0;
+
+      if (totalDone > 0) {
+        const sumWait = finished.reduce((acc, p) => acc + p.waitTime, 0);
+        const sumTurnaround = finished.reduce((acc, p) => acc + (p.finishedTime - p.arrivalTime), 0);
+        const sumResponse = finished.reduce((acc, p) => acc + (p.firstExecutedTime - p.arrivalTime), 0);
+
+        avgWait = (sumWait / totalDone).toFixed(1);
+        avgTurnaround = (sumTurnaround / totalDone).toFixed(1);
+        avgResponse = (sumResponse / totalDone).toFixed(1);
+      }
+
+      const throughput = state.clock > 0 ? (totalDone / state.clock).toFixed(2) : '0.00';
+
+      return {
+        avgWait,
+        avgTurnaround,
+        avgResponse,
+        throughput,
+        contextSwitches: state.contextSwitches,
+        preemptions: state.preemptions,
+        starvations: `${state.starvationsDetected} / ${state.starvationsResolved}`
+      };
+    }
+
+    /* ==========================================================================
+       RENDERIZAÇÃO DA ARENA VISUAL E DOM
+       ========================================================================== */
+    function renderProcessChip(proc, stateLabel) {
+      const chip = document.createElement('div');
+      chip.className = 'pcb-chip';
+      chip.style.borderLeftColor = proc.color;
+      if (proc.isStarving) chip.classList.add('starving-chip');
+
+      const percent = Math.min(100, Math.round(((proc.burstTotal - proc.burstRemaining) / proc.burstTotal) * 100));
+
+      chip.innerHTML = `
+        <div class="pcb-chip-top">
+          <span class="pcb-id" style="color:${proc.color}">${proc.name}</span>
+          <span class="pcb-tag">Prio ${proc.priority}</span>
+          <span class="pcb-tag" style="background:${proc.isIO ? 'rgba(239, 105, 45, 0.2)' : 'rgba(46, 213, 115, 0.2)'}">
+            ${proc.isIO ? 'I/O' : 'CPU'}
+          </span>
+        </div>
+        <div class="pcb-prog-bg">
+          <div class="pcb-prog-fill" style="width: ${percent}%; background:${proc.color}"></div>
+        </div>
+        <div class="pcb-details-row">
+          <span>Burst: ${proc.burstRemaining}/${proc.burstTotal}</span>
+          <span>${stateLabel}: ${stateLabel === 'Espera' ? proc.waitTime + 'u' : stateLabel}</span>
+        </div>
+      `;
+
+      chip.addEventListener('click', () => openPCBModal(proc));
+      return chip;
+    }
+
+    function renderAll() {
+      // 1. Relógio
+      document.getElementById('clockDisplay').textContent = `${state.clock} u.t.`;
+
+      // 2. Fila de Prontos
+      const readyBox = document.getElementById('readyQueueContainer');
+      readyBox.innerHTML = '';
+      document.getElementById('readyCountBadge').textContent = state.readyQueue.length;
+      if (state.readyQueue.length === 0) {
+        readyBox.innerHTML = '<span style="color:var(--text-sub); font-size:0.8rem; text-align:center; margin-top:2rem;">Fila vazia</span>';
+      } else {
+        state.readyQueue.forEach(p => {
+          readyBox.appendChild(renderProcessChip(p, 'Espera'));
+        });
+      }
+
+      // 3. CPU Slot
+      const cpuSlot = document.getElementById('cpuSlot');
+      const cpuStatusTag = document.getElementById('cpuStatusTag');
+      const quantumNotice = document.getElementById('cpuQuantumNotice');
+
+      if (state.cpuRunning) {
+        const p = state.cpuRunning;
+        cpuStatusTag.textContent = 'OCUPADA';
+        cpuStatusTag.style.color = '#2ed573';
+        cpuSlot.innerHTML = '';
+        const chip = renderProcessChip(p, 'Executando');
+        chip.style.width = '100%';
+        chip.style.boxSizing = 'border-box';
+        cpuSlot.appendChild(chip);
+
+        if (state.algorithm === 'rr') {
+          quantumNotice.style.display = 'block';
+          document.getElementById('quantumRemainDisplay').textContent = `${state.cpuQuantumLeft} u.t.`;
+        } else {
+          quantumNotice.style.display = 'none';
+        }
+      } else {
+        cpuStatusTag.textContent = 'OCIOSA';
+        cpuStatusTag.style.color = 'var(--text-sub)';
+        quantumNotice.style.display = 'none';
+        cpuSlot.innerHTML = '<span class="cpu-idle-text">CPU Ociosa (Aguardando processos prontos)</span>';
+      }
+
+      // 4. Fila de Espera (E/S)
+      const waitBox = document.getElementById('waitQueueContainer');
+      waitBox.innerHTML = '';
+      document.getElementById('waitCountBadge').textContent = state.waitQueue.length;
+      if (state.waitQueue.length === 0) {
+        waitBox.innerHTML = '<span style="color:var(--text-sub); font-size:0.8rem; text-align:center; margin-top:2rem;">Nenhum bloqueado</span>';
+      } else {
+        state.waitQueue.forEach(p => {
+          waitBox.appendChild(renderProcessChip(p, `E/S: ${p.ioTimeRemaining}u`));
+        });
+      }
+
+      // 5. Finalizados
+      const finBox = document.getElementById('finishedQueueContainer');
+      finBox.innerHTML = '';
+      document.getElementById('finishedCountBadge').textContent = state.finishedQueue.length;
+      if (state.finishedQueue.length === 0) {
+        finBox.innerHTML = '<span style="color:var(--text-sub); font-size:0.8rem; text-align:center; margin-top:2rem;">Nenhum finalizado</span>';
+      } else {
+        // Exibir os mais recentes no topo
+        [...state.finishedQueue].reverse().forEach(p => {
+          finBox.appendChild(renderProcessChip(p, 'Fim'));
+        });
+      }
+
+      // 6. Gantt
+      renderGantt();
+
+      // 7. Métricas
+      const m = calculateMetrics();
+      document.getElementById('metricAvgWait').textContent = m.avgWait;
+      document.getElementById('metricAvgTurnaround').textContent = m.avgTurnaround;
+      document.getElementById('metricAvgResponse').textContent = m.avgResponse;
+      document.getElementById('metricThroughput').textContent = m.throughput;
+      document.getElementById('metricContextSwitches').textContent = m.contextSwitches;
+      document.getElementById('metricPreemptions').textContent = m.preemptions;
+      document.getElementById('metricStarvations').textContent = m.starvations;
+    }
+
+    function renderGantt() {
+      const strip = document.getElementById('ganttStrip');
+      const ticks = document.getElementById('ganttTicks');
+      strip.innerHTML = '';
+      ticks.innerHTML = '';
+
+      const totalTime = state.clock;
+      if (totalTime === 0) {
+        strip.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; width:100%; color:var(--text-sub); font-size:0.75rem;">Aguardando execução...</div>';
+        return;
+      }
+
+      state.ganttHistory.forEach(block => {
+        const widthPct = (block.duration / totalTime) * 100;
+        const div = document.createElement('div');
+        div.className = 'gantt-block';
+        div.style.width = widthPct + '%';
+        div.style.backgroundColor = block.color;
+        div.title = `${block.name}: ${block.duration} u.t. (de t=${block.start} a t=${block.start + block.duration})`;
+        div.textContent = block.duration >= 2 ? block.name : (block.name === 'OCIOSA' ? '—' : block.name);
+        strip.appendChild(div);
+
+        const tick = document.createElement('div');
+        tick.className = 'gantt-tick-item';
+        tick.style.width = widthPct + '%';
+        tick.textContent = `${block.start + block.duration}`;
+        ticks.appendChild(tick);
+      });
+    }
+
+    /* ==========================================================================
+       MODAL DO PCB (BLOCO DE CONTROLE DE PROCESSO)
+       ========================================================================== */
+    function openPCBModal(proc) {
+      const modal = document.getElementById('modalPCB');
+      const content = document.getElementById('pcbContentDetails');
+
+      let currentState = 'Novo';
+      if (state.cpuRunning && state.cpuRunning.pid === proc.pid) currentState = 'Executando (Running)';
+      else if (state.waitQueue.some(p => p.pid === proc.pid)) currentState = 'Bloqueado (Waiting E/S)';
+      else if (state.readyQueue.some(p => p.pid === proc.pid)) currentState = 'Pronto (Ready)';
+      else if (state.finishedQueue.some(p => p.pid === proc.pid)) currentState = 'Finalizado (Terminated)';
+
+      content.innerHTML = `
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; background:var(--surface-elevated); padding:1rem; border-radius:8px;">
+          <div><strong>Identificador (PID):</strong> <span style="color:${proc.color}; font-weight:bold;">${proc.name} (PID ${proc.pid})</span></div>
+          <div><strong>Estado Atual:</strong> <span style="font-weight:bold; color:var(--accent-orange);">${currentState}</span></div>
+          <div><strong>Prioridade:</strong> ${proc.priority} (Base: ${proc.basePriority})</div>
+          <div><strong>Comportamento:</strong> ${proc.isIO ? 'I/O-bound (E/S frequente)' : 'CPU-bound (Computação pura)'}</div>
+          <div><strong>Tempo de Chegada:</strong> ${proc.arrivalTime} u.t.</div>
+          <div><strong>Burst Total Requerido:</strong> ${proc.burstTotal} u.t.</div>
+          <div><strong>Burst Restante:</strong> ${proc.burstRemaining} u.t.</div>
+          <div><strong>Tempo Já Executado:</strong> ${proc.burstTotal - proc.burstRemaining} u.t.</div>
+          <div><strong>Tempo em Espera (Total):</strong> ${proc.waitTime} u.t.</div>
+          <div><strong>Espera no Ciclo Atual:</strong> ${proc.timeInCurrentWait} u.t. ${proc.isStarving ? '⚠️ <em>(Em Risco de Inanição)</em>' : ''}</div>
+          <div><strong>Primeira Execução (Resposta):</strong> ${proc.firstExecutedTime !== null ? proc.firstExecutedTime + ' u.t.' : 'Ainda não executou'}</div>
+          <div><strong>Finalização:</strong> ${proc.finishedTime !== null ? proc.finishedTime + ' u.t.' : 'Em andamento'}</div>
+        </div>
+      `;
+      modal.style.display = 'flex';
+    }
+
+    /* ==========================================================================
+       [MODULO 3 - GAMIFICAÇÃO] VIDAS, PONTUAÇÃO, STREAK E MISSÕES
+       ========================================================================== */
+    function addPoints(pts, reason) {
+      state.score += pts;
+      document.getElementById('scoreDisplay').textContent = `${state.score} pts`;
+      checkProfileLevel();
+    }
+
+    function addStreak() {
+      state.streak++;
+      if (state.streak > state.highestStreak) state.highestStreak = state.streak;
+      const fillPct = Math.min(100, state.streak * 20);
+      document.getElementById('streakBar').style.width = fillPct + '%';
+      document.getElementById('streakCount').textContent = `${state.streak}x`;
+    }
+
+    function resetStreak() {
+      state.streak = 0;
+      document.getElementById('streakBar').style.width = '0%';
+      document.getElementById('streakCount').textContent = '0x';
+    }
+
+    function loseLife() {
+      state.lives--;
+      sound.wrong();
+      renderLives();
+      resetStreak();
+
+      if (state.lives <= 0) {
+        alert('💔 Você perdeu todas as vidas! A simulação e pontos foram reiniciados.');
+        restartSimulation();
+        state.lives = 5;
+        state.score = 0;
+        renderLives();
+        document.getElementById('scoreDisplay').textContent = '0 pts';
+      }
+    }
+
+    function gainLife() {
+      if (state.lives < 5) {
+        state.lives++;
+        renderLives();
+      }
+    }
+
+    function renderLives() {
+      let hearts = '';
+      for (let i = 0; i < 5; i++) {
+        hearts += i < state.lives ? '❤️' : '🖤';
+      }
+      document.getElementById('heartsDisplay').textContent = hearts;
+    }
+
+    function checkProfileLevel() {
+      let lvl = 0;
+      if (state.score >= 500) lvl = 4;
+      else if (state.score >= 350) lvl = 3;
+      else if (state.score >= 200) lvl = 2;
+      else if (state.score >= 80) lvl = 1;
+
+      state.profileLevelIndex = lvl;
+      document.getElementById('profileLevelDisplay').textContent = PROFILE_LEVELS[lvl];
+    }
+
+    function unlockBadge(id) {
+      if (!state.unlockedBadges.has(id)) {
+        state.unlockedBadges.add(id);
+        const el = document.getElementById('badge-' + id);
+        if (el) {
+          el.classList.add('unlocked');
+          sound.correct();
+          addPoints(50, `Badge ${id}`);
+        }
+      }
+    }
+
+    function validateMission(missionId) {
+      if (state.missionsCompleted[missionId]) {
+        alert('Esta missão já foi concluída!');
+        return;
+      }
+
+      let success = false;
+      let reason = '';
+
+      if (missionId === 1) {
+        // 3 processos finalizados com FCFS
+        const count = state.finishedQueue.filter(p => !p.isIO).length;
+        if (state.algorithm === 'fcfs' && count >= 3) {
+          success = true;
+        } else {
+          reason = 'Execute com FCFS até que pelo menos 3 processos CPU-bound terminem.';
+        }
+      } else if (missionId === 2) {
+        // Provocou inanição
+        if (state.starvationsDetected > 0) {
+          success = true;
+        } else {
+          reason = 'Nenhuma inanição detectada ainda. Use Prioridade Preemptiva com processos de prioridades 10 vs 1.';
+        }
+      } else if (missionId === 3) {
+        // Aging ativado e resolveu
+        if (state.agingEnabled && state.starvationsResolved > 0) {
+          success = true;
+        } else {
+          reason = 'Ative o checkbox de Aging e espere um processo faminto ter sua prioridade elevada.';
+        }
+      } else if (missionId === 4) {
+        // RR com pelo menos 4 processos
+        if (state.algorithm === 'rr' && state.finishedQueue.length >= 4) {
+          success = true;
+        } else {
+          reason = 'Mude para o algoritmo Round-Robin e finalize pelo menos 4 processos.';
+        }
+      } else if (missionId === 5) {
+        // Pelo menos 4 trocas de contexto
+        if (state.contextSwitches >= 4) {
+          success = true;
+        } else {
+          reason = `Foram realizadas apenas ${state.contextSwitches} trocas de contexto. Atinga 4 ou mais.`;
+        }
+      }
+
+      if (success) {
+        state.missionsCompleted[missionId] = true;
+        const row = document.getElementById('mission-m' + missionId);
+        if (row) row.classList.add('done');
+        sound.correct();
+        gainLife();
+        addPoints(150, `Missão M${missionId}`);
+        addStreak();
+        alert(`🎉 Missão M${missionId} concluída com sucesso! +150 pontos e 1 vida recuperada.`);
+
+        // Se completou todas as 5 missões
+        if (Object.values(state.missionsCompleted).every(v => v === true)) {
+          unlockBadge('mestre');
+        }
+      } else {
+        loseLife();
+        alert(`❌ Não atendeu aos critérios da Missão M${missionId}!\n${reason}\n(Você perdeu 1 vida)`);
+      }
+    }
+
+    /* ==========================================================================
+       CENÁRIOS DO MODO DEMONSTRAÇÃO
+       ========================================================================== */
+    function loadScenario(num) {
+      restartSimulation();
+      document.getElementById('modalDemo').style.display = 'none';
+
+      if (num === 1) {
+        // Cenário 1: Inanição Extrema por Prioridade
+        document.getElementById('algoSelect').value = 'prio-p';
+        state.algorithm = 'prio-p';
+        document.getElementById('agingCheck').checked = false;
+        state.agingEnabled = false;
+
+        // P1: prioridade muito baixa (1)
+        createProcess(16, 1, false, 0);
+        // Processos com prioridade máxima chegando em cascata
+        createProcess(4, 10, false, 0);
+        createProcess(5, 10, false, 2);
+        createProcess(6, 10, false, 5);
+
+        logMessage('🚀 Cenário 1 Carregado: P1 tem prioridade 1 e aguardará enquanto P2, P3 e P4 (prioridade 10) dominam a CPU.', 'alert');
+      } else if (num === 2) {
+        // Cenário 2: FCFS vs Round-Robin (efeito comboio)
+        document.getElementById('algoSelect').value = 'rr';
+        state.algorithm = 'rr';
+        document.getElementById('quantumInput').value = '2';
+        state.quantum = 2;
+
+        createProcess(14, 5, false, 0); // P1 Longo
+        createProcess(2, 5, false, 0);  // P2 Curto
+        createProcess(2, 5, false, 0);  // P3 Curto
+        createProcess(2, 5, false, 0);  // P4 Curto
+
+        logMessage('🚀 Cenário 2 Carregado: P1 longo (14u) e três curtos (2u). No RR, P2, P3 e P4 executam rapidamente sem sofrer com o comboio.', 'warn');
+      } else if (num === 3) {
+        // Cenário 3: SJF
+        document.getElementById('algoSelect').value = 'sjf';
+        state.algorithm = 'sjf';
+
+        createProcess(10, 5, false, 0);
+        createProcess(3, 5, false, 0);
+        createProcess(1, 5, false, 0);
+        createProcess(6, 5, false, 0);
+        createProcess(2, 5, false, 0);
+
+        logMessage('🚀 Cenário 3 Carregado: Vários bursts. O SJF ordenará a fila pelo menor burst para otimizar o tempo de espera médio.', 'success');
+      }
+
+      renderAll();
+    }
+
+    /* ==========================================================================
+       REINICIAR SIMULAÇÃO
+       ========================================================================== */
+    function restartSimulation() {
+      state.clock = 0;
+      state.nextPid = 1;
+      state.readyQueue = [];
+      state.cpuRunning = null;
+      state.cpuQuantumLeft = state.quantum;
+      state.waitQueue = [];
+      state.finishedQueue = [];
+      state.pendingArrivals = [];
+      state.ganttHistory = [];
+      state.contextSwitches = 0;
+      state.preemptions = 0;
+      state.starvationsDetected = 0;
+      state.starvationsResolved = 0;
+
+      const box = document.getElementById('eventLogBox');
+      if (box) box.innerHTML = '<div class="log-entry"><span class="log-time">[t=0]</span> Simulação reiniciada.</div>';
+
+      renderAll();
+    }
+
+    /* ==========================================================================
+       [MODULO 4 - QUIZ DE CONSOLIDAÇÃO] 11 QUESTÕES E EMBARALHAMENTO
+       ========================================================================== */
+    const QUIZ_QUESTIONS = [
+      {
+        q: "1. O que é um processo no contexto de Sistemas Operacionais?",
+        options: [
+          "Um programa em execução, com contexto próprio de código, dados e pilha",
+          "Um arquivo binário armazenado no disco rígido",
+          "Um código-fonte pronto para compilar",
+          "Um aplicativo instalado no computador"
+        ],
+        correctIndex: 0,
+        explanation: "Processo é o programa em execução, com código, dados, pilha e contexto gerenciados pelo SO através do PCB."
+      },
+      {
+        q: "2. Em qual estado um processo aguarda na fila, 100% apto a usar a CPU?",
+        options: [
+          "Novo",
+          "Pronto",
+          "Executando",
+          "Bloqueado"
+        ],
+        correctIndex: 1,
+        explanation: "Pronto = processo possui todos os recursos necessários e aguarda a decisão do escalonador para entrar na CPU."
+      },
+      {
+        q: "3. Qual componente do SO decide qual processo pronto vai executar na CPU?",
+        options: [
+          "O usuário do sistema",
+          "O compilador de código",
+          "O escalonador de processos",
+          "O gerenciador de arquivos em disco"
+        ],
+        correctIndex: 2,
+        explanation: "O escalonador (scheduler) seleciona o próximo processo pronto conforme os critérios do algoritmo ativo."
+      },
+      {
+        q: "4. No algoritmo FCFS (First-Come, First-Served), o critério de escolha é:",
+        options: [
+          "Menor tempo restante de execução",
+          "Maior prioridade estática",
+          "Ordem cronológica de chegada na fila",
+          "Sorteio randômico dos processos"
+        ],
+        correctIndex: 2,
+        explanation: "O FCFS (FIFO) atende estritamente na ordem em que os processos chegam e é não-preemptivo."
+      },
+      {
+        q: "5. Qual algoritmo de escalonamento seleciona o processo de MENOR tempo de CPU (burst)?",
+        options: [
+          "FCFS",
+          "Round-Robin",
+          "SJF (Shortest Job First)",
+          "Prioridade Fixa"
+        ],
+        correctIndex: 2,
+        explanation: "O Shortest Job First escolhe o menor burst, minimizando o tempo de espera médio da fila."
+      },
+      {
+        q: "6. No algoritmo Round-Robin, o que interrompe a execução contínua de um processo?",
+        options: [
+          "O fim do quantum de tempo",
+          "A chegada de um processo maior",
+          "A prioridade mínima do sistema",
+          "O término do tempo de espera"
+        ],
+        correctIndex: 0,
+        explanation: "Quando o quantum expira, ocorre a preempção por tempo e o processo volta para o final da fila de prontos."
+      },
+      {
+        q: "7. O conceito de preempção significa:",
+        options: [
+          "Retirar a CPU de um processo antes do fim de sua execução",
+          "Aumentar a prioridade de um processo por bom comportamento",
+          "Bloquear um processo obrigatoriamente por operações de disco",
+          "Eliminar definitivamente um processo com erro de sistema"
+        ],
+        correctIndex: 0,
+        explanation: "Preempção é a interrupção forçada do processo em execução para alocar a CPU a outro processo mais prioritário."
+      },
+      {
+        q: "8. A troca de contexto realizada pelo SO envolve fundamentalmente:",
+        options: [
+          "Substituir o arquivo binário armazenado em disco",
+          "Salvar o contexto do processo atual e restaurar o do próximo via PCB",
+          "Alterar as credenciais do usuário atualmente logado",
+          "Recompilar o código-fonte em tempo real na CPU"
+        ],
+        correctIndex: 1,
+        explanation: "O SO salva registradores, ponteiro de instrução e status no PCB do processo atual e restaura os dados do próximo."
+      },
+      {
+        q: "9. O fenômeno de inanição (starvation) ocorre quando:",
+        options: [
+          "Dois processos entram em impasse bloqueando mutuamente os recursos",
+          "O buffer de memória principal fica totalmente lotado",
+          "Um processo de baixa prioridade nunca consegue receber a CPU",
+          "A CPU atinge superaquecimento por loop infinito"
+        ],
+        correctIndex: 2,
+        explanation: "Inanição ocorre quando a CPU é concedida continuamente a outros processos, deixando o processo faminto sem executar."
+      },
+      {
+        q: "10. A técnica de envelhecimento (aging) tem como objetivo principal:",
+        options: [
+          "Diminuir gradativamente o valor do quantum da CPU",
+          "Aumentar a prioridade de processos que esperam há muito tempo",
+          "Finalizar e remover processos que estão ociosos na memória",
+          "Acelerar o clock físico do processador da máquina"
+        ],
+        correctIndex: 1,
+        explanation: "O aging aumenta a prioridade de processos conforme o tempo na fila de espera cresce, solucionando a inanição."
+      },
+      {
+        q: "11. A métrica de Turnaround (Tempo de Retorno) representa:",
+        options: [
+          "O tempo total de uso exclusivo de registradores da CPU",
+          "Apenas o tempo em que o processo esteve na fila de prontos",
+          "O intervalo total entre a chegada e a finalização completa do processo",
+          "A duração exata configurada para o quantum do sistema"
+        ],
+        correctIndex: 2,
+        explanation: "Turnaround = tempo de término − tempo de chegada. Mede o ciclo de vida total do processo no sistema operacional."
+      }
+    ];
+
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let shuffledOptions = [];
+
+    function openQuiz() {
+      currentQuizIndex = 0;
+      quizScore = 0;
+      document.getElementById('quizResultView').style.display = 'none';
+      document.getElementById('quizQuestionBody').style.display = 'block';
+      document.getElementById('modalQuiz').style.display = 'flex';
+      renderQuizQuestion();
+    }
+
+    function renderQuizQuestion() {
+      const qData = QUIZ_QUESTIONS[currentQuizIndex];
+      document.getElementById('quizHeaderTitle').textContent = `🧠 Quiz de Fixação: Questão ${currentQuizIndex + 1} / ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quizQuestionText').textContent = qData.q;
+
+      const optsContainer = document.getElementById('quizOptionsContainer');
+      optsContainer.innerHTML = '';
+      document.getElementById('quizFeedbackBox').style.display = 'none';
+      document.getElementById('btnQuizNext').style.display = 'none';
+
+      // Criação de cópias das opções para embaralhar posições garantindo regra de integridade
+      const mapped = qData.options.map((text, idx) => ({
+        text: text,
+        isCorrect: idx === qData.correctIndex
+      }));
+
+      // Embaralhar aleatoriamente
+      for (let i = mapped.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
+      }
+      shuffledOptions = mapped;
+
+      const letters = ['a) ', 'b) ', 'c) ', 'd) '];
+      mapped.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-btn';
+        btn.textContent = letters[idx] + opt.text;
+        btn.addEventListener('click', () => handleQuizAnswer(opt, btn));
+        optsContainer.appendChild(btn);
+      });
+    }
+
+    function handleQuizAnswer(selectedOption, clickedBtn) {
+      const qData = QUIZ_QUESTIONS[currentQuizIndex];
+      const allBtns = document.querySelectorAll('.quiz-btn');
+      allBtns.forEach(b => b.disabled = true);
+
+      const feedbackBox = document.getElementById('quizFeedbackBox');
+      const feedbackTitle = document.getElementById('quizFeedbackTitle');
+      const feedbackText = document.getElementById('quizFeedbackText');
+      const nextBtn = document.getElementById('btnQuizNext');
+
+      if (selectedOption.isCorrect) {
+        clickedBtn.classList.add('correct');
+        quizScore++;
+        feedbackTitle.textContent = '✅ Resposta Correta!';
+        feedbackTitle.style.color = '#2ed573';
+        sound.correct();
+        addPoints(30, 'Resposta Correta no Quiz');
+        addStreak();
+      } else {
+        clickedBtn.classList.add('incorrect');
+        // Destacar a resposta correta
+        allBtns.forEach((b, i) => {
+          if (shuffledOptions[i].isCorrect) b.classList.add('correct');
+        });
+        feedbackTitle.textContent = '❌ Resposta Incorreta!';
+        feedbackTitle.style.color = '#ff4757';
+        sound.wrong();
+        loseLife();
+      }
+
+      feedbackText.textContent = qData.explanation;
+      feedbackBox.style.display = 'block';
+      nextBtn.style.display = 'inline-block';
+    }
+
+    function nextQuizQuestion() {
+      currentQuizIndex++;
+      if (currentQuizIndex < QUIZ_QUESTIONS.length) {
+        renderQuizQuestion();
+      } else {
+        showQuizResults();
+      }
+    }
+
+    function showQuizResults() {
+      document.getElementById('quizQuestionBody').style.display = 'none';
+      const resultView = document.getElementById('quizResultView');
+      resultView.style.display = 'block';
+
+      const pct = Math.round((quizScore / QUIZ_QUESTIONS.length) * 100);
+      document.getElementById('quizResultScore').innerHTML = `
+        Você acertou <span style="color:var(--accent-orange); font-size:1.5rem;">${quizScore}</span> de ${QUIZ_QUESTIONS.length} questões (${pct}% de aproveitamento).
+      `;
+
+      if (quizScore >= 9) {
+        unlockBadge('mestre');
+        addPoints(100, 'Quiz Excelente');
+      }
+    }
+
+    /* ==========================================================================
+       [MODULO 5 - RELATÓRIO FINAL]
+       ========================================================================== */
+    function openReportModal() {
+      const modal = document.getElementById('modalReport');
+      const m = calculateMetrics();
+      const statsBox = document.getElementById('reportSummaryStats');
+      const tbody = document.getElementById('reportTableBody');
+
+      statsBox.innerHTML = `
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.65rem;">
+          <div class="metric-card"><div class="metric-num">${state.finishedQueue.length}</div><div class="metric-lbl">Processos Concluídos</div></div>
+          <div class="metric-card"><div class="metric-num">${m.avgWait} u.t.</div><div class="metric-lbl">Espera Média</div></div>
+          <div class="metric-card"><div class="metric-num">${m.avgTurnaround} u.t.</div><div class="metric-lbl">Turnaround Médio</div></div>
+          <div class="metric-card"><div class="metric-num">${m.throughput}</div><div class="metric-lbl">Throughput (p/ut)</div></div>
+          <div class="metric-card"><div class="metric-num">${state.starvationsDetected} / ${state.starvationsResolved}</div><div class="metric-lbl">Inanições Detec./Resolv.</div></div>
+        </div>
+      `;
+
+      tbody.innerHTML = '';
+      if (state.finishedQueue.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-sub); padding:1rem;">Nenhum processo foi finalizado ainda nesta sessão.</td></tr>';
+      } else {
+        state.finishedQueue.forEach(p => {
+          const turnaround = p.finishedTime - p.arrivalTime;
+          const resp = p.firstExecutedTime !== null ? (p.firstExecutedTime - p.arrivalTime) : '—';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:bold; color:${p.color}">${p.name}</td>
+            <td>${p.isIO ? 'I/O-bound' : 'CPU-bound'}</td>
+            <td>${p.arrivalTime}</td>
+            <td>${p.burstTotal}</td>
+            <td>${p.waitTime}</td>
+            <td>${turnaround}</td>
+            <td>${resp}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    /* ==========================================================================
+       INICIALIZAÇÃO E EVENT LISTENERS
+       ========================================================================== */
+    function init() {
+      // Configurar Timer Principal da Simulação
+      state.stepInterval = setInterval(() => {
+        if (state.isRunning) {
+          stepSimulation();
+        }
+      }, state.speedMs);
+
+      // Botões de Controle de Simulação
+      const btnPlayPause = document.getElementById('btnPlayPause');
+      btnPlayPause.addEventListener('click', () => {
+        state.isRunning = !state.isRunning;
+        btnPlayPause.textContent = state.isRunning ? '⏸ Pausar' : '▶ Continuar';
+      });
+
+      document.getElementById('btnStep').addEventListener('click', () => {
+        state.isRunning = false;
+        btnPlayPause.textContent = '▶ Continuar';
+        stepSimulation();
+      });
+
+      document.getElementById('btnReset').addEventListener('click', () => {
+        restartSimulation();
+      });
+
+      document.getElementById('speedSelect').addEventListener('change', (e) => {
+        state.speedMs = parseInt(e.target.value, 10);
+        clearInterval(state.stepInterval);
+        state.stepInterval = setInterval(() => {
+          if (state.isRunning) stepSimulation();
+        }, state.speedMs);
+      });
+
+      // Seleção de Algoritmo
+      const algoSelect = document.getElementById('algoSelect');
+      const rrGroup = document.getElementById('rrQuantumGroup');
+      algoSelect.addEventListener('change', (e) => {
+        state.algorithm = e.target.value;
+        rrGroup.style.display = state.algorithm === 'rr' ? 'flex' : 'none';
+        sortReadyQueue();
+        logMessage(`[SO] Algoritmo alterado para: ${e.target.options[e.target.selectedIndex].text}`, 'warn');
+        renderAll();
+      });
+
+      document.getElementById('quantumInput').addEventListener('change', (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (val > 0) {
+          state.quantum = val;
+          state.cpuQuantumLeft = val;
+        }
+      });
+
+      document.getElementById('agingCheck').addEventListener('change', (e) => {
+        state.agingEnabled = e.target.checked;
+        logMessage(`[SO] Envelhecimento (Aging) ${state.agingEnabled ? 'ATIVADO' : 'DESATIVADO'}.`, 'warn');
+      });
+
+      // Criação Manual de Processo
+      document.getElementById('btnCreateProcess').addEventListener('click', () => {
+        const burst = parseInt(document.getElementById('newBurstInput').value, 10) || 4;
+        const prio = parseInt(document.getElementById('newPrioInput').value, 10) || 5;
+        const isIO = document.getElementById('newTypeSelect').value === 'io';
+        const arrivalOffset = parseInt(document.getElementById('newArrivalSelect').value, 10) || 0;
+
+        createProcess(burst, prio, isIO, arrivalOffset);
+      });
+
+      // Limpar Log
+      document.getElementById('btnClearLog').addEventListener('click', () => {
+        document.getElementById('eventLogBox').innerHTML = '<div class="log-entry"><span class="log-time">[t=' + state.clock + ']</span> Log limpo.</div>';
+      });
+
+      // Tema Claro / Escuro
+      document.getElementById('btnThemeToggle').addEventListener('click', () => {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme') || 'dark';
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+      });
+
+      // Som Toggle
+      document.getElementById('btnSoundToggle').addEventListener('click', () => {
+        isSoundMuted = !isSoundMuted;
+        document.getElementById('soundIcon').textContent = isSoundMuted ? '🔇 Mudo' : '🔊 Som Ativo';
+      });
+
+      // Modais
+      document.getElementById('btnDemoModal').addEventListener('click', () => {
+        document.getElementById('modalDemo').style.display = 'flex';
+      });
+
+      document.getElementById('btnOpenQuiz').addEventListener('click', openQuiz);
+      document.getElementById('btnQuizNext').addEventListener('click', nextQuizQuestion);
+      document.getElementById('btnOpenReport').addEventListener('click', openReportModal);
+
+      // Carga inicial com 3 processos didáticos prontos
+      createProcess(6, 4, false, 0);
+      createProcess(3, 8, true, 0);
+      createProcess(5, 2, false, 0);
+
+      renderLives();
+      renderAll();
+    }
+
+    // Expor APIs globais necessárias para eventos inline de botões
+    window.simGame = {
+      checkMission: validateMission,
+      loadScenario: loadScenario
+    };
+
+    window.simQuiz = {
+      restartQuiz: openQuiz
+    };
+
+    // Iniciar após DOM carregado
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+<script>
+/* Skip artifact shell — fixed helpers served beside every artifact. */
+(function () {
+  "use strict";
+
+  var fmt = {
+    num: function (v, opts) { return new Intl.NumberFormat("pt-BR", opts || {}).format(v); },
+    brl: function (v) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v); },
+    pct: function (v) { return new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 }).format(v); }
+  };
+
+  // axisFmt keeps axis tick labels short (compact notation) so long values
+  // (e.g. full BRL amounts) never clip against the plot edge.
+  function axisFmt(v) {
+    return fmt.num(v, { notation: "compact", maximumFractionDigits: 1 });
+  }
+
+  // format accepts a function OR one of the fmt names ("num" | "brl" | "pct").
+  function coerceFormat(spec) {
+    if (typeof spec === "function") return spec;
+    if (typeof spec === "string" && fmt[spec]) return fmt[spec];
+    return function (v) { return fmt.num(v); };
+  }
+
+  function accent() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2563eb";
+  }
+  function mutedColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#5b6472";
+  }
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function frame(el, w, h) {
+    var svg = svgEl("svg", { viewBox: "0 0 " + w + " " + h, role: "img" });
+    el.innerHTML = "";
+    el.appendChild(svg);
+    return svg;
+  }
+
+  // maxOf guards the axis scale: empty values would give -Infinity (truthy,
+  // so "|| 1" can't catch it) and a non-positive max would flip the chart.
+  function maxOf(values) {
+    var m = values.length ? Math.max.apply(null, values) : 0;
+    return m > 0 ? m : 1;
+  }
+
+  // bar(el, {labels:[], values:[], color?, format?}) — vertical bar chart.
+  function bar(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 12, plotH = H - padT - padB;
+    var step = plotW / n, bw = Math.min(step * 0.62, 64);
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 12, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    cfg.values.forEach(function (v, i) {
+      var bh = Math.max(0, (v / max) * plotH);
+      var x = padL + i * step + (step - bw) / 2;
+      var y = padT + plotH - bh;
+      var r = svgEl("rect", { x: x, y: y, width: bw, height: bh, rx: 4, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(v);
+      r.appendChild(t);
+      svg.appendChild(r);
+      var tx = svgEl("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // line(el, {labels:[], values:[], color?, format?}) — single-series line.
+  function line(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 16, plotH = H - padT - padB;
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 16, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    var pts = cfg.values.map(function (v, i) {
+      var x = padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+      var y = padT + plotH - (v / max) * plotH;
+      return [x, y];
+    });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round" }));
+    pts.forEach(function (p, i) {
+      var c = svgEl("circle", { cx: p[0], cy: p[1], r: 3.5, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(cfg.values[i]);
+      c.appendChild(t);
+      svg.appendChild(c);
+      var tx = svgEl("text", { x: p[0], y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // donut(el, {labels:[], values:[], colors?}) — donut with center total.
+  function donut(el, cfg) {
+    var W = 320, H = 280, cx = W / 2, cy = H / 2, R = 92, r = 58;
+    var svg = frame(el, W, H);
+    var total = cfg.values.reduce(function (a, b) { return a + b; }, 0) || 1;
+    var palette = cfg.colors || [accent(), "#1baf7a", "#eda100", "#e34948", "#4a3aa7", "#e87ba4"];
+    var a0 = -Math.PI / 2;
+    cfg.values.forEach(function (v, i) {
+      var a1 = a0 + (v / total) * Math.PI * 2;
+      var large = a1 - a0 > Math.PI ? 1 : 0;
+      var p = ["M", cx + R * Math.cos(a0), cy + R * Math.sin(a0),
+        "A", R, R, 0, large, 1, cx + R * Math.cos(a1), cy + R * Math.sin(a1),
+        "L", cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+        "A", r, r, 0, large, 0, cx + r * Math.cos(a0), cy + r * Math.sin(a0), "Z"].join(" ");
+      var path = svgEl("path", { d: p, fill: palette[i % palette.length] });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + fmt.num(v) + " (" + fmt.pct(v / total) + ")";
+      path.appendChild(t);
+      svg.appendChild(path);
+      a0 = a1;
+    });
+    var center = svgEl("text", { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 20, "font-weight": 650, fill: "currentColor" });
+    center.textContent = fmt.num(total);
+    svg.appendChild(center);
+  }
+
+  window.skipShell = { fmt: fmt };
+  window.skipChart = { bar: bar, line: line, donut: donut };
+})();
+
+</script>
+
+
+</body></html>

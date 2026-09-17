@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atividades | Sistemas Operacionais</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <header class="topo">
+    <h1>⚡ Atividades de Sistemas Operacionais</h1>
+    <div class="controles">
+      <button id="btnTema" title="Alternar tema claro/escuro">🌓</button>
+      <button id="btnSom" title="Ativar/desativar som">🔊</button>
+      <button id="btnFonteMenos" title="Diminuir fonte" aria-label="Diminuir fonte">A−</button>
+      <button id="btnFontePadrao" title="Restaurar tamanho padrão da fonte" aria-label="Restaurar tamanho padrão da fonte">A</button>
+      <button id="btnFonteMais" title="Aumentar fonte" aria-label="Aumentar fonte">A+</button>
+    </div>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+
+  <!-- Motor do jogo (sempre primeiro) -->
+  <script src="js/motor.js"></script>
+
+  <!-- Jogos: adicione um <script> para cada jogo criado -->
+  <script src="js/jogo-exemplo.js"></script>
+</body>
+</html>

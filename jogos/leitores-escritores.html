@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Leitores e Escritores</title>
-  <link rel="stylesheet" href="leitores-escritores_files/basecoat.cdn.min__1Ii.css">
-  <style>
+  <link rel="stylesheet" href="../css/layer.css">
+  <link rel="stylesheet" href="../css/le_styles.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <!-- <style>
 /* Skip artifact shell — fixed styles served beside every artifact.
    Complements basecoat; artifacts override --accent for their own identity. */
 :root {
@@ -113,9 +115,9 @@ table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 
   @keyframes shell-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 }
 
-</style>
+</style> -->
   
-  <style>
+  <!-- <style>
     :root {
       --accent: #364C41;
       --accent-text: #8FB39F;
@@ -1061,7 +1063,7 @@ table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 
         box-shadow: none !important;
       }
     }
-  </style>
+  </style> -->
 </head>
 <body cz-shortcut-listen="true">
 
@@ -1081,6 +1083,10 @@ table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 
         </div>
       </div>
       <div class="header-actions">
+        <a class="btn-icon" href="index.html" aria-label="Voltar para a página inicial">
+          <span aria-hidden="true">←</span>
+          <span>Voltar</span>
+        </a>
         <button id="btn-sound-toggle" class="btn-icon" aria-label="Alternar som">
           <span id="sound-icon">🔇</span>
           <span id="sound-label">Mudo</span>
@@ -1095,22 +1101,19 @@ table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 
 
   <!-- 4 Big Phase Tabs -->
   <nav class="tabs-nav" aria-label="Fases de Aprendizagem">
-    <button class="tab-btn" data-tab="tab-1">
+    <button class="tab-btn active" data-tab="tab-1">
       <span class="tab-num">1</span>
       <span>Explorar</span>
-      <span class="tab-check" id="check-1" style="display: inline;">✓</span>
     </button>
     <button class="tab-btn" data-tab="tab-2">
       <span class="tab-num">2</span>
       <span>Coordenar</span>
-      <span class="tab-check" id="check-2" style="display: inline;">✓</span>
     </button>
     <button class="tab-btn" data-tab="tab-3">
       <span class="tab-num">3</span>
       <span>Detectar</span>
-      <span class="tab-check" id="check-3" style="display: inline;">✓</span>
     </button>
-    <button class="tab-btn active" data-tab="tab-4">
+    <button class="tab-btn" data-tab="tab-4">
       <span class="tab-num">4</span>
       <span>Consolidar (Quiz)</span>
       <span class="tab-check" id="check-4" style="display:none;">✓</span>
@@ -1123,7 +1126,7 @@ table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 
     <details class="theory-box" id="theory-accordion">
       <summary>
         <span>📖 <strong>Teoria em Resumo</strong> — Conceitos Fundamentais de Sincronização</span>
-        <span style="font-size: 0.88rem; color: var(--text-muted); font-weight:600;">(clique para abrir/fechar)</span>
+        <span style="font-size: 0.88rem; color: var(--text-muted); font-weight:600;">▼</span>
       </summary>
       <div class="theory-content">
         <div class="theory-card">
@@ -1162,7 +1165,7 @@ compartilhados sem sincronização e o resultado final depende da ordem de
     </details>
 
     <!-- Phase 1: Explorar Header Card -->
-    <div id="phase-banner-1" class="stage-card" style="display: none;">
+    <div id="phase-banner-1" class="stage-card" style="display: block;">
       <div class="stage-card-title">
         <h2><span>🔍 Fase 1: Explorar a Sincronização</span></h2>
         <span class="stage-badge badge-sync-on">Sincronização: ATIVA</span>
@@ -1195,7 +1198,7 @@ compartilhados sem sincronização e o resultado final depende da ordem de
     </div>
 
     <!-- Phase 4: Consolidar Header Card -->
-    <div id="phase-banner-4" class="stage-card" style="display: block;">
+    <div id="phase-banner-4" class="stage-card" style="display: none;">
       <div class="stage-card-title">
         <h2><span>🎯 Fase 4: Consolidar Conhecimento (Quiz)</span></h2>
         <span class="stage-badge badge-sync-on">11 Perguntas Objetivas</span>
@@ -1206,7 +1209,7 @@ compartilhados sem sincronização e o resultado final depende da ordem de
     </div>
 
     <!-- SIMULATION SUITE (Shared by Phase 1, 2, 3) -->
-    <div id="simulation-suite" style="display: none;">
+    <div id="simulation-suite" style="display: block;">
 
       <!-- Race Condition Alert Banner (Phase 3 only) -->
       <div id="race-alert" class="race-alert-banner">
@@ -1462,7 +1465,7 @@ coordenação, e o valor final dos dados depende da velocidade e ordem com
     </div>
 
     <!-- PHASE 4: QUIZ CONSOLIDAR -->
-    <div id="quiz-suite" style="display: block;">
+    <div id="quiz-suite" style="display: none;">
       <div class="quiz-container">
         <!-- Quiz Progress Bar & Score Tracker -->
         <div class="stage-card" style="margin-bottom: 20px;">
@@ -2813,6 +2816,7 @@ nenhum outro escritor pode estar escrevendo simultaneamente.</div></div><div cla
       renderProcessCards();
       updateKPIs();
       setupQuiz();
+      switchTab(1);
     });
   </script>
 <script>
