@@ -1,8 +1,8 @@
 JOGO2.registrar({
   id: "conceito-tarefa",
-  titulo: "O Conceito de Tarefa",
-  disciplina: "Sistemas Operacionais",
-  descricao: "Revise o conceito de tarefa, a gerência do processador e o ciclo de vida dos processos.",
+  titulo: "O conceito de tarefa",
+  disciplina: "🔲 Gerência de Processador",
+  descricao: "Atividade de estudo e revisão do capítulo 4: o conceito de tarefa, objetivos do gerenciamento, sistemas monotarefa, monitor de sistema, multitarefa, tempo compartilhado e ciclo de vida das tarefas.",
   vidas: 5,
   niveis: [
     { nome: "Iniciante", xp: 0 },
@@ -11,21 +11,37 @@ JOGO2.registrar({
   ],
   teoria: `
     <h3>O conceito de tarefa</h3>
-    <p>Uma <strong>tarefa</strong>, ou processo, é um programa em execução. O sistema operacional gerencia as tarefas e alterna seu uso do processador de forma justa e eficiente.</p>
-    <h3>Objetivos da gerência de tarefas</h3>
+    <p>Uma <strong>tarefa</strong> (ou processo) é a unidade básica de trabalho do sistema operacional, representando a execução de um programa. O SO é responsável por gerenciar todas as tarefas do sistema, alternando sua execução para compartilhar o processador de maneira justa e eficiente.</p>
+
+    <h3>Objetivos do SO como gerente de tarefas</h3>
+    <p>O SO tem dois objetivos principais ao gerenciar as tarefas:</p>
     <ul>
-      <li><strong>Multiplexar o processador:</strong> permitir que várias tarefas compartilhem a CPU.</li>
-      <li><strong>Abstrair o processador:</strong> livrar o programador de controlar diretamente o tempo de uso da CPU.</li>
+      <li><strong>Multiplexar o processador:</strong> permite que várias tarefas compartilhem o mesmo processador, dando a sensação de que cada uma tem seu próprio processador.</li>
+      <li><strong>Abstração do processador:</strong> libera o programador da preocupação com gerenciamento do tempo de uso do processador, oferecendo a ideia de que a tarefa "possui" o processador.</li>
     </ul>
-    <h3>Modelos de gerência</h3>
+
+    <h3>Gerência de tarefas</h3>
     <ul>
-      <li><strong>Monotarefa:</strong> apenas uma tarefa executa por vez.</li>
-      <li><strong>Monitor de sistema:</strong> programa residente que intercala trabalhos de usuários e rotinas de manutenção.</li>
-      <li><strong>Multitarefa cooperativa:</strong> cada tarefa cede voluntariamente o processador.</li>
-      <li><strong>Multitarefa preemptiva:</strong> o núcleo interrompe uma tarefa para entregar a CPU a outra.</li>
+      <li><strong>Sistemas monotarefa:</strong> somente uma tarefa pode executar por vez, ocupando todos os recursos da máquina (ex.: MS-DOS, leitores de MP3).</li>
+      <li><strong>Monitor de sistema:</strong> um programa (monitor) fica residente na memória e faz a alternância entre o programa do usuário e as rotinas de manutenção (como em mainframes nos anos 60/70).</li>
+      <li><strong>Sistemas multitarefa:</strong> soluções com núcleo (kernel) que gerencia a alternância entre as tarefas. A alternância de execução pode ocorrer de duas maneiras:</li>
+      <ul>
+        <li><strong>Cooperativa:</strong> as tarefas cedem voluntariamente o processador.</li>
+        <li><strong>Preemptiva:</strong> o núcleo interrompe e retoma a tarefa, atribuindo-o a outra (utiliza tempo compartilhado).</li>
+      </ul>
+      <li><strong>Solução de tempo compartilhado (time-sharing):</strong> o processador é alternado entre as tarefas de forma tão rápida que o usuário tem a sensação de que todas executam simultaneamente.</li>
     </ul>
-    <h3>Ciclo de vida</h3>
-    <p>Uma tarefa pode estar nos estados Entrada, Pronto, Executando, Suspenso e Término. Transições comuns incluem Entrada → Pronto, Pronto → Executando, Executando → Suspenso e Suspenso → Pronto.</p>
+
+    <h3>Ciclo de vida da tarefa</h3>
+    <p>Uma tarefa passa por diversos estados durante sua execução. Os principais estados são:</p>
+    <ul>
+      <li><strong>Entrada (E):</strong> a tarefa foi criada, mas ainda não está disponível para execução.</li>
+      <li><strong>Pronto (P):</strong> a tarefa está aguardando o uso do processador para execução.</li>
+      <li><strong>Executando (N):</strong> a tarefa está sendo executada no processador.</li>
+      <li><strong>Suspenso (S):</strong> a tarefa está aguardando a ocorrência de um evento (E/S, etc.) para continuar.</li>
+      <li><strong>Término (T):</strong> a tarefa foi encerrada e já não utiliza recursos do sistema.</li>
+    </ul>
+    <p>As transições principais são: E→P (nova tarefa fica pronta), P→N (pronta passa a executar), N→P (volta a ficar pronta), N→S (execução bloqueada), S→P (bloqueada fica pronta), P→T e S→T (término).</p>
   `,
   fases: [
     {
@@ -34,37 +50,74 @@ JOGO2.registrar({
         {
           categoria: "Conceito de tarefa",
           pergunta: "O que é uma tarefa no contexto de sistemas operacionais?",
-          opcoes: ["Um arquivo armazenado em disco", "A unidade de trabalho que representa a execução de um programa", "O código-fonte do núcleo", "Um dispositivo de hardware"],
+          opcoes: [
+            "Um arquivo armazenado em disco que pode ser executado pelo usuário",
+            "A unidade básica de trabalho que representa a execução de um programa",
+            "O escalonador do núcleo do sistema operacional que gerencia a execução de processos",
+            "Um dispositivo de hardware que executa instruções do sistema operacional"
+          ],
           correta: 1,
-          explicacao: "Uma tarefa ou processo representa um programa em execução, com código, dados e contexto de execução."
+          explicacao: "Uma tarefa (ou processo) é a unidade básica de trabalho que representa a execução de um programa, contendo código, dados e contexto."
         },
         {
           categoria: "Objetivos",
           pergunta: "Um dos principais objetivos do sistema operacional ao gerenciar tarefas é:",
-          opcoes: ["Manter todas as tarefas em modo núcleo", "Impedir aplicações de usar o processador", "Multiplexar o processador e abstrair seu uso", "Executar cada tarefa em uma CPU física diferente"],
+          opcoes: [
+            "Manter as tarefas sempre em modo núcleo para maior eficiência",
+            "Impedir que as aplicações acessem o processador",
+            "Multiplexar o processador e abstrair seu uso do desenvolvedor",
+            "Executar cada tarefa em um processador físico diferente"
+          ],
           correta: 2,
-          explicacao: "O SO compartilha o processador entre tarefas e abstrai esse gerenciamento para as aplicações."
+          explicacao: "O SO multiplexa o processador para várias tarefas compartilharem o mesmo hardware e abstrai seu gerenciamento, liberando o programador da programação concorrente."
         },
         {
-          categoria: "Abstração",
-          pergunta: "A abstração do processador oferecida pelo SO tem como objetivo principal:",
-          opcoes: ["Fazer o programador controlar cada ciclo da CPU", "Eliminar a necessidade de memória RAM", "Liberar o programador do gerenciamento do tempo de CPU", "Substituir chamadas de sistema"],
+          categoria: "Objetivos",
+          pergunta: "A abstração do processador proporcionada pelo SO tem como principal objetivo:",
+          opcoes: [
+            "Fazer o programador lidar diretamente com o tempo de processamento",
+            "Eliminar a necessidade de uso e gerenciamento de memória RAM no sistema",
+            "Liberar o programador da preocupação com o gerenciamento do processador",
+            "Substituir a utilização de chamadas de sistema"
+          ],
           correta: 2,
-          explicacao: "A abstração permite que o programador não precise controlar diretamente o compartilhamento do processador."
+          explicacao: "Ao abstrair o processador, o SO livra o programador de gerenciar o tempo de uso da CPU, criando a abstração de que cada tarefa 'possui' seu próprio processador."
         },
         {
-          categoria: "Monotarefa",
-          pergunta: "Um leitor de MP3 simples que executa uma única tarefa por vez é exemplo de sistema:",
-          opcoes: ["Multitarefa", "De tempo compartilhado", "Monotarefa", "Distribuído"],
-          correta: 2,
-          explicacao: "Sistemas monotarefa executam apenas uma tarefa por vez, ocupando os recursos da máquina."
-        },
-        {
-          categoria: "Abstração",
-          pergunta: "A sensação de que cada tarefa possui seu próprio processador caracteriza:",
-          opcoes: ["Separação entre política e mecanismo", "Abstração do processador", "Prioridade de tarefas", "Comunicação entre tarefas"],
+          categoria: "Conceito de tarefa",
+          pergunta: "Qual das seguintes afirmações sobre o conceito de tarefa está correta?",
+          opcoes: [
+            "Uma tarefa sempre usa apenas o processador durante todo seu ciclo de vida",
+            "As tarefas podem ser gerenciadas pelo SO sem envolvimento do usuário",
+            "Toda tarefa executa diretamente no hardware sem intermediação do SO",
+            "Só é possível ter uma tarefa por vez no sistema"
+          ],
           correta: 1,
-          explicacao: "A abstração do processador cria a impressão de que cada tarefa dispõe exclusivamente da CPU."
+          explicacao: "O SO gerencia a multiplexação do processador entre as tarefas, e o programador não precisa se preocupar com o compartilhamento do tempo de CPU."
+        },
+        {
+          categoria: "Conceito de tarefa",
+          pergunta: "O iPod, um reprodutor de MP3 que executa uma única tarefa, é exemplo de sistema:",
+          opcoes: [
+            "Sistema monotarefa",
+            "Sistema multitarefa",
+            "Sistema de tempo compartilhado",            
+            "Sistema distribuído"
+          ],
+          correta: 0,
+          explicacao: "Sistemas monotarefa executam apenas uma tarefa por vez, ocupando todos os recursos da máquina. Leitores de MP3 simples são exemplos típicos desse tipo de sistema."
+        },
+        {
+          categoria: "Objetivos",
+          pergunta: "O SO, ao multiplexar o processador, cria a ideia de que cada tarefa tem seu próprio processador. Isso caracteriza:",
+          opcoes: [
+            "A separação entre política e mecanismo",
+            "A abstração do processador",
+            "A prioridade das tarefas",
+            "A comunicação entre tarefas"
+          ],
+          correta: 1,
+          explicacao: "A abstração do processador dá a sensação de que cada tarefa possui o processador exclusivamente, simplificando a programação."
         }
       ]
     },
@@ -73,38 +126,75 @@ JOGO2.registrar({
       perguntas: [
         {
           categoria: "Sistema monotarefa",
-          pergunta: "Em um sistema monotarefa, as tarefas executam-se:",
-          opcoes: ["Uma após a outra, usando todo o sistema", "Em paralelo em múltiplos processadores", "Concorrentemente em interfaces sincronizadas", "Somente em modo núcleo"],
+          pergunta: "Em um sistema chamado de monotarefa, as tarefas são executadas:",
+          opcoes: [
+            "Uma após a outra, utilizando todo o sistema",
+            "Em paralelo verdadeiro, em múltiplos processadores",
+            "Concorrentemente, em interfaces sincronizadas",
+            "Somente em modo núcleo do sistema"
+          ],
           correta: 0,
-          explicacao: "Em sistemas monotarefa, apenas uma tarefa executa por vez e ocupa os recursos disponíveis."
+          explicacao: "Em sistemas monotarefa, apenas uma tarefa executa por vez, ocupando todos os recursos do sistema (ex.: MS-DOS)."
         },
         {
           categoria: "Monitor de sistema",
-          pergunta: "Na história dos sistemas operacionais, o monitor de sistema era:",
-          opcoes: ["Um sensor de temperatura da CPU", "Um programa residente que intercala trabalhos e rotinas de manutenção", "Um antivírus para mainframes", "Um hardware de monitoramento de rede"],
+          pergunta: "No contexto da história dos SOs, o monitor de sistema (system monitor) era:",
+          opcoes: [
+            "Um dispositivo que periodicamente verificava a temperatura do processador",
+            "Um programa residente em memória que alternava entre tarefas por interrupções",
+            "O primeiro antivírus desenvolvido para mainframes, nos anos 70",
+            "Um hardware dedicado de monitoração da rede local"
+          ],
           correta: 1,
-          explicacao: "O monitor de sistema permanecia na memória e organizava a execução sequencial de trabalhos e rotinas de manutenção."
+          explicacao: "O monitor de sistema ficava residente em memória e intercalava o programa do usuário com rotinas de manutenção, precedendo os sistemas atuais."
         },
         {
-          categoria: "Multitarefa cooperativa",
-          pergunta: "Em um sistema multitarefa cooperativo, a alternância entre tarefas ocorre quando:",
-          opcoes: ["O núcleo interrompe tarefas a cada quantum", "Cada tarefa cede voluntariamente o processador", "Um dispositivo externo escolhe a tarefa", "Não há alternância possível"],
+          categoria: "Sistemas multitarefa",
+          pergunta: "Em um sistema multitarefa cooperativo, a alternância de execução entre tarefas:",
+          opcoes: [
+            "É controlada pelo núcleo, que interrompe a tarefa a cada quantum de tempo",            
+            "É determinada por um árbitro de hardware no processador, que decide qual tarefa executa",
+            "Não é possível, pois o processador é exclusivo de cada tarefa",
+            "Acontece quando cada tarefa cede voluntariamente o processador às demais"
+          ],
+          correta: 3,
+          explicacao: "No modelo cooperativo, as próprias tarefas cedem o processador; uma tarefa mal-comportada pode travar o sistema."
+        },
+        {
+          categoria: "Solução de tempo compartilhado",
+          pergunta: "Em um sistema preemptivo com tempo compartilhado, o núcleo interrompe a tarefa em execução e atribui o processador a outra:",
+          opcoes: [
+            "Somente quando a tarefa em execução o libera o processador voluntariamente",
+            "Antes que a tarefa consiga monopolizar o processador por tempo demais",
+            "Após o encerramento completo de uma tarefa, garantindo que todas terminem em tempo hábil",
+            "Apenas nos instantes de final do expediente, quando o usuário não está mais ativo"
+          ],
           correta: 1,
-          explicacao: "No modelo cooperativo, as próprias tarefas devem ceder a CPU; uma tarefa mal-comportada pode bloquear o sistema."
+          explicacao: "Na preempção por tempo (time-slicing), o núcleo associa um quantum a cada tarefa e interrompe a execução para que todas tenham oportunidade de executar."
         },
         {
-          categoria: "Multitarefa preemptiva",
-          pergunta: "No tempo compartilhado preemptivo, o núcleo interrompe a tarefa em execução para:",
-          opcoes: ["Entregar a CPU a outra tarefa antes da monopolização", "Esperar o encerramento completo da tarefa", "Atender apenas ao fim do expediente", "Remover toda tarefa da memória"],
-          correta: 0,
-          explicacao: "A preempção usa um quantum de tempo para impedir que uma tarefa monopolize o processador."
-        },
-        {
-          categoria: "Escalonamento",
-          pergunta: "Nos sistemas multitarefa preemptivos, quem define qual tarefa executa e por quanto tempo?",
-          opcoes: ["O programador da aplicação", "O usuário final", "O núcleo do sistema operacional, por meio do escalonador", "O controlador de disco"],
+          categoria: "Gerência de tarefas",
+          pergunta: "Nos sistemas multitarefa preemptivos, quem tem o controle sobre quem executa e por quanto tempo?",
+          opcoes: [
+            "O próprio programador, que define o tempo no código",
+            "O usuário final, por meio de ferramenta de gerenciamento",
+            "O núcleo do sistema operacional, como despachante (dispatcher)",
+            "O hardware, com um escalonador de tarefas embutido"
+          ],
           correta: 2,
-          explicacao: "O escalonador, parte do núcleo do sistema operacional, controla a escolha e o tempo de execução das tarefas."
+          explicacao: "Em sistemas preemptivos, o núcleo (despachante) controla qual tarefa executa e por quanto tempo, utilizando políticas de escalonamento."
+        },
+        {
+          categoria: "Solução de tempo compartilhado",
+          pergunta: "A técnica de tempo compartilhado (time-sharing) produz a sensação de que:",
+          opcoes: [
+            "O sistema está executando as tarefas de forma assíncrona e independente",
+            "O sistema está executando apenas uma tarefa de cada vez",
+            "Várias tarefas executam simultaneamente, mas na verdade há alternância rápida",
+            "A memória principal RAM foi duplicada para cada tarefa"
+          ],
+          correta: 2,
+          explicacao: "No tempo compartilhado, a alternância rápida das tarefas no processador dá a impressão de execução simultânea, embora compartilhem o mesmo processador."
         }
       ]
     },
@@ -113,38 +203,75 @@ JOGO2.registrar({
       perguntas: [
         {
           categoria: "Estados da tarefa",
-          pergunta: "Uma tarefa pronta para executar, mas aguardando o processador, está no estado:",
-          opcoes: ["Executando", "Suspenso", "Pronto", "Término"],
+          pergunta: "Uma tarefa que está pronta para executar, mas aguarda o processador, encontra-se no estado:",
+          opcoes: [
+            "Executando (N)",
+            "Suspenso (S)",
+            "Pronto (P)",
+            "Término (T)"
+          ],
           correta: 2,
-          explicacao: "No estado Pronto, a tarefa pode executar, mas ainda aguarda a escolha do escalonador."
+          explicacao: "O estado Pronto (P) significa que a tarefa está apta a executar, mas ainda aguarda a escolha do despachante para receber o processador."
         },
         {
           categoria: "Estados da tarefa",
-          pergunta: "A transição Executando → Suspenso geralmente ocorre quando:",
-          opcoes: ["A tarefa termina", "A tarefa cede voluntariamente a CPU", "A tarefa solicita uma operação de entrada e saída", "O quantum expira"],
+          pergunta: "A transição Executando → Suspenso (N→S) ocorre geralmente quando:",
+          opcoes: [
+            "A tarefa termina sua execução e libera o processador",
+            "A tarefa cede o processador voluntariamente",
+            "A tarefa solicita uma operação de entrada e saída (E/S)",
+            "O quantum de tempo da tarefa expira"
+          ],
           correta: 2,
-          explicacao: "Ao solicitar uma operação de E/S, a tarefa aguarda o evento e fica suspensa, liberando a CPU."
+          explicacao: "Quando uma tarefa precisa de uma operação de E/S (ler disco, teclado etc.), ela bloqueia e vai para Suspenso, liberando o processador para outra tarefa."
         },
         {
           categoria: "Estados da tarefa",
-          pergunta: "A transição Suspenso → Pronto ocorre quando:",
-          opcoes: ["A tarefa é encerrada", "O evento aguardado, como uma operação de E/S, termina", "O núcleo remove a tarefa da memória", "A tarefa sofre uma falha de compilação"],
+          pergunta: "A transição Suspenso → Pronto (S→P) ocorre quando:",
+          opcoes: [
+            "A tarefa é cancelada pelo software de configuração do sistema",
+            "O evento que a tarefa aguardava (como uma E/S) é finalizado",
+            "O núcleo decide remover a tarefa da memória",
+            "A tarefa comete uma falha em sua execução"
+          ],
           correta: 1,
-          explicacao: "Quando o evento aguardado termina, o SO coloca a tarefa de volta na fila de prontas."
+          explicacao: "Ao ser completada a operação de E/S que a tarefa aguardava, o SO a devolve ao estado Pronto para que possa continuar executando."
         },
         {
           categoria: "Estados da tarefa",
-          pergunta: "Na sequência Entrada → Pronto → Executando → Suspenso → Pronto → Executando → Término, o estado final é:",
-          opcoes: ["Executando", "Suspenso", "Término", "Entrada"],
+          pergunta: "Considere a seguinte sequência de mudanças de estado: E→P→N→S→P→N→T. No final da sequência, a tarefa se encontra no estado:",
+          opcoes: [
+            "Executando (N)",
+            "Suspenso (S)",
+            "Término (T)",
+            "Entrada (E)"
+          ],
           correta: 2,
-          explicacao: "A sequência termina em Término, quando a tarefa encerra sua execução e libera os recursos."
+          explicacao: "A sequência mostra: Entrada → Pronto → Executando → Suspenso → Pronto → Executando → Término. O estado final é Término (T), quando a tarefa encerra."
         },
         {
-          categoria: "Escalonamento",
-          pergunta: "A transição Pronto → Executando é responsabilidade de:",
-          opcoes: ["Usuário no terminal", "Escalonador ou despachante do sistema", "Da própria tarefa", "Driver de disco"],
+          categoria: "Estados da tarefa",
+          pergunta: "A transição Pronto → Executando (P→N) é de responsabilidade:",
+          opcoes: [
+            "Do usuário que inicia a tarefa no terminal",
+            "Do escalonador (dispatcher) do sistema",
+            "Da própria tarefa que decide executar",
+            "Do driver de disco responsável pela alocação"
+          ],
           correta: 1,
-          explicacao: "O escalonador escolhe uma tarefa da fila de prontas e entrega a ela o processador."
+          explicacao: "O escalonador (dispatcher) escolhe a próxima tarefa a executar dentre a fila de prontas e faz a transição Pronto → Executando."
+        },
+        {
+          categoria: "Ciclo de vida",
+          pergunta: "Se uma tarefa ao ser iniciada (E) já vai diretamente para Suspenso (S) e depois retorna para Pronto (P), o que significa isso?",
+          opcoes: [
+            "A tarefa falhou ao tentar obter memória e precisou de recurso de terceiros",
+            "A tarefa teve de esperar imediatamente um recurso ou evento para começar",
+            "O núcleo decidiu suspender a tarefa por configuração incorreta",
+            "A tarefa não pode transicionar diretamente sem passar por Pronto primeiro"
+          ],
+          correta: 1,
+          explicacao: "Algumas tarefas aguardam um recurso mesmo na criação imediata (ex.: iniciar com a rede). Por isso vão ao Suspenso (E→S) antes de entrar na fila de prontos (S→P)."
         }
       ]
     }

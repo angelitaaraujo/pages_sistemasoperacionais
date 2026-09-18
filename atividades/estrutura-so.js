@@ -1,13 +1,13 @@
 JOGO2.registrar({
   id: "estrutura-so",
   titulo: "Estrutura de um SO",
-  disciplina: "Sistemas Operacionais",
+  disciplina: "ℹ️ Introdução a Sistemas Operacionais",
   descricao: "Atividade de estudo e revisão do capítulo 2: elementos do sistema operacional, elementos de hardware (arquitetura, interrupções e níveis de privilégio) e chamadas de sistema.",
   vidas: 5,
   niveis: [
     { nome: "Iniciante", xp: 0 },
-    { nome: "Intermediário", xp: 120 },
-    { nome: "Avançado", xp: 240 }
+    { nome: "Intermediário", xp: 72 },
+    { nome: "Avançado", xp: 170 }
   ],
   teoria: `
     <h3>Elementos do sistema operacional</h3>

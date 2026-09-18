@@ -1,7 +1,7 @@
 JOGO2.registrar({
   id: "arquiteturas-so",
   titulo: "Arquiteturas de SOs",
-  disciplina: "Sistemas Operacionais",
+  disciplina: "ℹ️ Introdução a Sistemas Operacionais",
   descricao: "Atividade de estudo e revisão do capítulo 3: sistemas monolíticos, micronúcleo, em camadas, híbridos e arquiteturas avançadas (máquinas virtuais, contêineres, exonúcleo e uninúcleo).",
   vidas: 5,
   niveis: [

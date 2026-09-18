@@ -1,7 +1,7 @@
 JOGO2.registrar({
   id: "conceitos-basicos",
   titulo: "Conceitos Básicos de SO",
-  disciplina: "Sistemas Operacionais",
+  disciplina: "ℹ️ Introdução a Sistemas Operacionais",
   descricao: "Atividade de estudo e revisão do capítulo 1: objetivos do SO, abstração e gerência de recursos, funcionalidades, categorias e um breve histórico.",
   vidas: 5,
   niveis: [
