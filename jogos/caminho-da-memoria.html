@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Caminho da Memória — Jogo de Consolidação</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--accent:#EF692D;--green:#364C41;--gray:#A3A3A3;--ok:#3FAE7A;--bad:#E5484D;--warn:#E0A030;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+--bg:#f4f6f4;--surface:#fff;--elev:#e8eee9;--border:#cbd5ce;--text:#1d2621;--muted:#59655e;--accent-text:#b8430e;--glow:rgba(239,105,45,.35);--beam-color:rgba(239,105,45,.9);--grid:rgba(54,76,65,.07)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#151c19;--surface:#1e2823;--elev:#283730;--border:#364c41;--text:#f0f4f1;--muted:#a3a3a3;--accent-text:#ff854d;--glow:rgba(239,105,45,.5);--grid:rgba(163,163,163,.06)}}
+:root[data-theme=dark]{--bg:#151c19;--surface:#1e2823;--elev:#283730;--border:#364c41;--text:#f0f4f1;--muted:#a3a3a3;--accent-text:#ff854d;--glow:rgba(239,105,45,.5);--grid:rgba(163,163,163,.06)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px}
+button{font:inherit;color:inherit;cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+code,.mono{font-family:var(--mono)}
+/* ---------- cabeçalho / HUD ---------- */
+.top-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);border-bottom:2px solid var(--green);box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.header-content{max-width:1280px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:1.25rem;letter-spacing:.02em}h1 span{color:var(--accent);filter:drop-shadow(0 0 6px var(--accent))}
+.header-title-group p{margin:0;font-size:.78rem;color:var(--muted)}
+.header-actions{display:flex;flex-wrap:wrap;gap:6px}
+.btn-action{background:var(--elev);border:1px solid var(--border);border-radius:9px;padding:7px 12px;font-weight:600;font-size:.85rem;display:inline-flex;gap:6px;align-items:center;transition:transform .15s,box-shadow .2s,border-color .2s}
+.btn-action:hover:not(:disabled){border-color:var(--accent);box-shadow:0 0 12px var(--glow);transform:translateY(-1px)}
+.btn-action.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn-action:disabled{opacity:.4;cursor:not-allowed}
+.hud{max-width:1280px;margin:0 auto;padding:0 16px 8px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:.8rem}
+.hud-rank{display:flex;flex-direction:column;min-width:190px}.hud-rank b{color:var(--accent-text);font-size:.95rem}
+.xpbar{height:7px;border-radius:5px;background:var(--elev);overflow:hidden;margin-top:3px}.xpbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--accent));transition:width .6s cubic-bezier(.2,.9,.3,1)}
+.streak{display:flex;align-items:center;gap:6px}.cells{display:flex;gap:3px}.cells i{width:16px;height:10px;border-radius:3px;background:var(--elev);border:1px solid var(--border);transition:all .3s}
+.cells i.on{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px var(--accent)}.streak.hot .cells i.on{animation:pulse 1s infinite}
+.hud-stat b{font-family:var(--mono);color:var(--accent-text)}
+.gprog{height:4px;background:var(--elev)}.gprog i{display:block;height:100%;width:0;background:var(--accent);box-shadow:0 0 10px var(--accent);transition:width .6s}
+/* ---------- teoria (pop-up em todas as fases) ---------- */
+.theory-drawer{position:fixed;z-index:90;top:0;right:0;height:100%;width:min(480px,100%);background:var(--surface);border-left:2px solid var(--accent);transform:translateX(105%);transition:transform .35s cubic-bezier(.2,.9,.3,1);overflow-y:auto;padding:14px;padding-top:calc(14px + env(safe-area-inset-top,0px));box-shadow:-10px 0 30px rgba(0,0,0,.35)}
+.theory-drawer.open{transform:none}.theory-header{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin-bottom:10px}
+.theory-cards-grid{display:grid;gap:8px}.theory-card{background:var(--elev);border-left:3px solid var(--green);border-radius:8px;padding:8px 10px}.theory-card h4{margin:0 0 2px;font-size:.88rem}.theory-card p{margin:0;font-size:.8rem;color:var(--muted)}
+.btn-close{background:none;border:0;font-size:1.6rem;line-height:1;color:var(--muted)}
+/* ---------- hierarquia ---------- */
+.main-workspace{flex:1;width:100%;max-width:1280px;margin:0 auto;padding:16px 16px 110px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+@media(max-width:900px){.main-workspace{grid-template-columns:1fr}}
+.hierarchy-container{position:relative;display:flex;flex-direction:column;gap:10px}
+#beamSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.level-node{background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--green);border-radius:12px;padding:10px 12px;transition:box-shadow .3s,border-color .3s}
+.level-node:nth-child(2){margin-inline:3%}.level-node:nth-child(3){margin-inline:6%}.level-node:nth-child(4){margin-inline:9%}.level-node:nth-child(5){margin-inline:3%}
+.level-header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.level-name{font-weight:700}.level-latency{display:block;font-size:.76rem;color:var(--muted);font-family:var(--mono)}
+.level-meta{display:flex;gap:8px;align-items:center}.level-slots-count{font-family:var(--mono);font-size:.8rem;background:var(--elev);border-radius:6px;padding:2px 8px}
+.btn-detail{background:transparent;border:1px solid var(--gray);border-radius:7px;padding:3px 10px;font-size:.78rem;transition:all .2s}.btn-detail:hover{border-color:var(--accent);color:var(--accent-text)}
+.blocks-container,.disk-blocks-subgroup{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;min-height:38px;align-items:center}
+.slot-empty-hint{font-size:.78rem;color:var(--muted);font-style:italic}
+.block-card{position:relative;background:var(--elev);border:2px solid var(--border);border-radius:9px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:.88rem;display:inline-flex;gap:6px;align-items:center;transition:all .2s;animation:slideIn .35s both}
+.block-card:hover{border-color:var(--gray);transform:translateY(-2px)}.block-card.selected{border-color:var(--accent);box-shadow:0 0 14px var(--glow);animation:glow 1.6s infinite}
+.copy-badge{font-size:.7rem;font-family:var(--mono);background:var(--green);color:#fff;border-radius:10px;padding:0 6px}.copy-badge.pop{animation:bounce .5s}
+.disk-subdivisions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}@media(max-width:600px){.disk-subdivisions{grid-template-columns:1fr}}
+.disk-sub-card{background:var(--bg);border:1px dashed var(--border);border-radius:10px;padding:8px}.disk-sub-title{display:flex;justify-content:space-between;font-size:.8rem;font-weight:600}.disk-sub-badge{font-size:.68rem;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:0 6px}
+.pulse-receive{animation:receive .8s}.origin-stay-pulse{animation:bounce .6s}.flash-origin{animation:receive .45s}.shake-card{animation:shake .45s}
+.flying-ghost{position:fixed;z-index:80;pointer-events:none;background:var(--accent);color:#fff;border-radius:9px;padding:6px 12px;font-weight:700;font-size:.85rem;box-shadow:0 0 20px var(--accent);transition:top .6s cubic-bezier(.4,0,.2,1),left .6s cubic-bezier(.4,0,.2,1)}
+.sidebar-panel{display:flex;flex-direction:column;gap:12px}.side-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}.side-card h3{margin:0 0 8px;font-size:.92rem}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi-box{background:var(--elev);border-radius:9px;padding:6px 8px}.kpi-box-label{display:block;font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.kpi-box-val{font-family:var(--mono);font-weight:700;display:inline-block}.kpi-pop{animation:bounce .35s}
+.history-list{list-style:none;margin:0;padding:0;font-size:.8rem}.history-item{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);animation:slideIn .3s}.history-time{color:var(--muted);font-family:var(--mono)}
+.tip-box{display:flex;gap:8px;background:var(--elev);border-left:4px solid var(--accent);border-radius:8px;padding:10px;font-size:.82rem}
+.bottom-action-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:2px solid var(--accent);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(0,0,0,.25)}
+.action-bar-content{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.selected-tag{background:var(--elev);border-radius:7px;padding:2px 10px;font-weight:700}.inline-feedback{color:var(--accent-text);font-size:.82rem;margin-left:8px}.action-controls{display:flex;gap:8px}
+.app-footer{text-align:center;padding:14px;font-size:.78rem;color:var(--muted);margin-bottom:70px}
+/* ---------- modais ---------- */
+.modal{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) 12px 16px;overflow-y:auto;backdrop-filter:blur(3px)}
+.modal.open{display:flex;animation:fadeIn .25s}.modal-content{background:var(--surface);border:1px solid var(--accent);border-radius:14px;width:min(560px,100%);box-shadow:0 0 30px var(--glow);animation:slideUp .35s cubic-bezier(.2,.9,.3,1)}.modal-content.wide{width:min(1120px,100%)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2;border-radius:14px 14px 0 0}.modal-header{flex-wrap:wrap}.modal-header h3{margin:0;font-size:1.02rem}.action-controls{flex-wrap:wrap}@media(max-width:600px){.modal-header h3{flex:1 1 100%}}.modal-body{padding:14px 16px}
+.modal-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.meta-item{background:var(--elev);border-radius:9px;padding:8px}.meta-label{font-size:.68rem;color:var(--muted);text-transform:uppercase}.meta-val{font-weight:700;font-size:.88rem}.modal-desc{font-size:.88rem;color:var(--muted)}
+.vm-table{width:100%;border-collapse:collapse;font-size:.8rem}.vm-table th,.vm-table td{border:1px solid var(--border);padding:5px 8px;text-align:left}.vm-table th{background:var(--elev)}.vm-table tr.hl td{background:rgba(239,105,45,.18)}
+/* ---------- laboratório MMU ---------- */
+.chips,.tabs-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chip,.tab-btn{border:2px solid var(--border);background:var(--elev);border-radius:10px;padding:6px 12px;font-weight:600;font-size:.84rem;transition:all .2s}
+.chip.on,.tab-btn.active{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 0 14px var(--glow)}.chip i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--c)}
+.vm-ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;background:var(--elev);border-radius:10px;padding:8px;margin-bottom:10px}
+.vm-ctrl label{display:flex;flex-direction:column;font-size:.7rem;color:var(--muted);text-transform:uppercase}.vm-ctrl select,.vm-ctrl input{font:inherit;font-size:.85rem;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-family:var(--mono)}
+.mmu-board{position:relative;display:grid;grid-template-columns:170px minmax(0,1fr) 260px;gap:14px;align-items:start;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;overflow:hidden}
+@media(max-width:860px){.mmu-board{grid-template-columns:1fr}}
+.bussvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.bus{fill:none;stroke:var(--gray);stroke-width:3;stroke-linecap:round;stroke-dasharray:8 6;opacity:.35}.bus.on{stroke:var(--accent);opacity:1;animation:dash .5s linear infinite;filter:drop-shadow(0 0 5px var(--accent))}.bus.done{stroke:var(--ok);opacity:.55}.bus.bad{stroke:var(--bad)}
+.packet{position:absolute;left:0;top:0;z-index:4;background:var(--accent);color:#fff;font:700 .72rem var(--mono);border-radius:6px;padding:2px 7px;white-space:nowrap;box-shadow:0 0 14px var(--accent);pointer-events:none}.packet.bad{background:var(--bad)}
+.bmmu{border:2px solid var(--green);border-radius:12px;padding:8px 10px;background:var(--surface);display:flex;flex-direction:column;gap:8px}.mtitle{font-weight:800;letter-spacing:.15em;color:var(--accent-text);font-size:.8rem}
+.mrow{display:flex;flex-wrap:wrap;gap:8px}.mrow>.blk{flex:1 1 130px}
+.blk{background:var(--elev);border:2px solid var(--border);border-radius:9px;padding:6px 9px;transition:all .25s;min-width:0}.bt{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}.bv{font:700 .82rem var(--mono);word-break:break-all}
+.blk.reg{border-left:4px solid var(--accent)}.blk.logic{border-style:dashed}.blk.exc{border-color:var(--bad);opacity:.55}.blk.cpu{border-color:var(--green)}
+.blk.active{border-color:var(--accent);box-shadow:0 0 16px var(--accent);animation:pulse .7s infinite}.blk.ok{border-color:var(--ok);box-shadow:0 0 10px var(--ok);animation:bounce .45s}.blk.warn{border-color:var(--warn);box-shadow:0 0 10px var(--warn)}.blk.bad{border-color:var(--bad);box-shadow:0 0 14px var(--bad);animation:shake .45s;opacity:1}
+.blk.regload{animation:regload .9s}.blk table{width:100%;border-collapse:collapse;font:.72rem var(--mono);margin-top:3px}.blk td,.blk th{border:1px solid var(--border);padding:2px 5px;text-align:center}.blk th{color:var(--muted)}tr.hl td{background:rgba(239,105,45,.28);transition:background .3s}tr.new td{animation:receive .9s}
+.ramgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px;margin-top:5px;max-height:310px;overflow-y:auto}
+.rc{border:2px solid var(--border);border-top:5px solid var(--c);border-radius:7px;padding:2px 6px;background:var(--surface);font-size:.68rem;transition:all .3s}.rc b{display:block}.rc small{font-family:var(--mono);color:var(--muted);font-size:.6rem}.rc.hit{border-color:var(--accent);box-shadow:0 0 16px var(--accent);animation:bounce .6s 2;background:rgba(239,105,45,.15)}.rc.dim{opacity:.55}
+.vm-lower{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}@media(max-width:760px){.vm-lower{grid-template-columns:1fr}}
+.panel{background:var(--elev);border-radius:10px;padding:10px;font-size:.84rem;min-height:90px}.panel h4{margin:0 0 6px;font-size:.85rem}.steplog{list-style:none;margin:0;padding:0;max-height:210px;overflow-y:auto}.steplog li{padding:3px 0;border-bottom:1px solid var(--border);animation:slideIn .3s}.steplog li.bad{color:var(--bad)}.steplog li.ok{color:var(--ok)}
+.res-ok{border-left:5px solid var(--ok)}.res-bad{border-left:5px solid var(--bad)}.big{font:800 1.15rem var(--mono);color:var(--accent-text)}
+/* ---------- desafio / quiz ---------- */
+.chal{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:12px;margin-bottom:10px;animation:slideUp .3s;box-shadow:0 0 18px var(--glow)}.chal h4{margin:0 0 8px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:620px){.opts{grid-template-columns:1fr}}
+.opt{text-align:left;background:var(--elev);border:2px solid var(--border);border-radius:10px;padding:10px 12px;font-weight:600;font-size:.88rem;transition:all .2s}.opt:hover:not(:disabled){border-color:var(--accent);transform:translateX(3px)}.opt.correct{border-color:var(--ok);background:rgba(63,174,122,.2);animation:bounce .5s}.opt.wrong{border-color:var(--bad);background:rgba(229,72,77,.18);animation:shake .4s}.opt:disabled{cursor:default}
+.fb{margin-top:8px;padding:8px 10px;border-radius:8px;font-size:.85rem;animation:fadeIn .3s}.fb.ok{background:rgba(63,174,122,.18)}.fb.bad{background:rgba(229,72,77,.15)}
+.qmeta{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:6px}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.bd{background:var(--elev);border-radius:10px;padding:8px;text-align:center;font-size:.8rem;opacity:.45;filter:grayscale(1)}.bd.on{opacity:1;filter:none;border:1px solid var(--accent);box-shadow:0 0 10px var(--glow)}.bd b{display:block;font-size:1.6rem}
+.badge-pop{position:fixed;z-index:120;left:50%;top:22%;transform:translate(-50%,-50%) scale(.6);opacity:0;background:var(--surface);border:2px solid var(--accent);border-radius:16px;padding:16px 26px;text-align:center;box-shadow:0 0 40px var(--accent);pointer-events:none;transition:all .45s cubic-bezier(.2,1.4,.4,1)}.badge-pop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}.badge-pop b{font-size:2.6rem;display:block;animation:bounce .8s 2}.badge-pop small{color:var(--muted)}
+/* ---------- animações ---------- */
+@keyframes fadeIn{from{opacity:0}}@keyframes slideIn{from{opacity:0;transform:translateX(-14px)}}@keyframes slideUp{from{opacity:0;transform:translateY(24px)}}
+@keyframes pulse{50%{transform:scale(1.03)}}@keyframes glow{50%{box-shadow:0 0 24px var(--accent)}}@keyframes bounce{30%{transform:translateY(-8px) scale(1.06)}60%{transform:translateY(2px)}}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}@keyframes dash{to{stroke-dashoffset:-28}}
+@keyframes receive{0%{box-shadow:0 0 0 0 var(--accent)}50%{box-shadow:0 0 26px 6px var(--accent)}100%{box-shadow:none}}@keyframes regload{0%{background:var(--accent);transform:scale(1.08)}100%{background:var(--elev)}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<header class="top-header">
+  <div class="header-content">
+    <div class="header-title-group"><h1><span>⚡</span> Caminho da Memória</h1><p>Jogo de Consolidação · Gestão de Memória (Maziero, Cap. 14)</p></div>
+    <div class="header-actions">
+      <button class="btn-action" id="btnBack" title="Voltar à tela anterior"><span>←</span> Voltar</button>
+      <button class="btn-action" id="btnThemeToggle" title="Alternar tema claro/escuro"><span id="themeIcon">☀️</span> Tema</button>
+      <button class="btn-action" id="btnMute" title="Ligar/desligar áudio"><span id="muteIcon">🔊</span></button>
+      <button class="btn-action" id="btnTheoryToggle" title="Teoria em resumo"><span>📖</span> Teoria</button>
+      <button class="btn-action primary" id="btnVirtualMemory" title="Laboratório de Memória Virtual e MMU"><span>🔀</span> Memória Virtual</button>
+      <button class="btn-action" id="btnQuiz" title="Quiz de fixação"><span>🎯</span> Quiz</button>
+      <button class="btn-action" id="btnBadges" title="Selos e conquistas"><span>🏅</span> Selos</button>
+      <button class="btn-action" id="btnInfoModal" title="Vantagens, desvantagens e comparação dos modelos"><span>ℹ️</span> Informações</button>
+    </div>
+  </div>
+  <div class="hud" aria-live="polite">
+    <div class="hud-rank"><span>Patente: <b id="rankName">Dev Júnior</b></span><div class="xpbar"><i id="xpFill"></i></div><small id="xpTxt" class="mono">0 XP</small></div>
+    <div class="streak" id="streakBox"><span>Combo</span><div class="cells" id="streakCells"></div><b class="mono" id="streakNum">×0</b></div>
+    <div class="hud-stat">Score da sessão: <b id="scoreVal">0</b></div>
+    <div class="hud-stat">Selos: <b id="badgeCount">0/11</b></div>
+  </div>
+  <div class="gprog" title="Progresso de conquistas"><i id="gprogBar"></i></div>
+</header>
+
+<aside class="theory-drawer" id="theoryDrawer" aria-label="Teoria em resumo">
+  <div class="theory-header"><span>📖 Teoria em Resumo</span><button class="btn-close" id="btnCloseTheory" aria-label="Fechar">&times;</button></div>
+  <div class="theory-cards-grid">
+    <div class="theory-card"><h4>📊 Hierarquia</h4><p>Quanto mais alto o nível, menor a latência, mais caro é o byte e menor a capacidade total.</p></div>
+    <div class="theory-card"><h4>🔥 Registradores</h4><p>Acesso direto dos circuitos do processador. ~1 ciclo de clock (~0,3 ns). Capacidade mínima (KB).</p></div>
+    <div class="theory-card"><h4>⚡ Cache L1</h4><p>SRAM integrada por núcleo, latência de ~4 ciclos. Extremamente veloz para instruções e dados imediatos.</p></div>
+    <div class="theory-card"><h4>🔷 Caches L2 e L3</h4><p>Níveis intermediários de SRAM (~10 a 30 ciclos). A L3 é frequentemente compartilhada entre núcleos.</p></div>
+    <div class="theory-card"><h4>🧠 RAM</h4><p>Memória principal baseada em DRAM (~100 ns). Volátil, guarda os processos em execução.</p></div>
+    <div class="theory-card"><h4>💾 Disco</h4><p>Memória não volátil (SSD/HDD). Latência de µs a ms. Guarda arquivos e a área de paginação (swap).</p></div>
+    <div class="theory-card"><h4>📍 Localidade de Referência</h4><p>Temporal (o que foi usado tende a ser reusado) e espacial (vizinhos no endereço tendem a ser buscados juntos).</p></div>
+    <div class="theory-card"><h4>🔄 Princípio de Operação</h4><p>Os dados sobem sob demanda como CÓPIAS; o original permanece nos níveis inferiores.</p></div>
+    <div class="theory-card"><h4>🧭 MMU</h4><p>Hardware entre CPU e RAM que traduz endereços lógicos em físicos a cada acesso e verifica proteção. Os registradores da MMU são recarregados a cada troca de contexto.</p></div>
+    <div class="theory-card"><h4>📐 Partições e Segmentos</h4><p>Partição: físico = Base + Offset se Offset &lt; Limit. Segmentação: o descritor (Base, Limit, permissões) vem da tabela apontada pelo STBR. Violação gera Segmentation Fault.</p></div>
+    <div class="theory-card"><h4>📄 Paginação</h4><p>Endereço = VPN | Offset (12 bits para páginas de 4 KB). A tabela de páginas (PTBR) dá o PFN e flags (P, R/W, Dirty). Físico = PFN ‖ Offset.</p></div>
+    <div class="theory-card"><h4>⚡ TLB e Page Fault</h4><p>A TLB guarda traduções recentes (hit ≈ 1 ciclo). Se P=0 ocorre falta de página: o SO traz a página do swap e a instrução é reexecutada. A TLB é invalidada na troca de contexto (sem ASID).</p></div>
+  </div>
+</aside>
+
+<main class="main-workspace">
+  <div class="hierarchy-container" id="hierarchyContainer"><svg id="beamSvg"></svg></div>
+  <aside class="sidebar-panel">
+    <div class="side-card"><h3>📈 Métricas da Sessão</h3><div class="kpi-row">
+      <div class="kpi-box"><span class="kpi-box-label">Bloco selecionado</span><span class="kpi-box-val" id="kpiSelectedBlock">—</span></div>
+      <div class="kpi-box"><span class="kpi-box-label">Nível da cópia</span><span class="kpi-box-val" id="kpiCurrentLevel">—</span></div>
+      <div class="kpi-box"><span class="kpi-box-label">Cópias do bloco</span><span class="kpi-box-val" id="kpiCopiesCount">—</span></div>
+      <div class="kpi-box"><span class="kpi-box-label">Movimentos</span><span class="kpi-box-val" id="kpiMovesCount">0</span></div>
+      <div class="kpi-box"><span class="kpi-box-label">Endereço lógico</span><span class="kpi-box-val" id="kpiLogical">—</span></div>
+      <div class="kpi-box"><span class="kpi-box-label">Endereço físico</span><span class="kpi-box-val" id="kpiPhysical">—</span></div>
+    </div></div>
+    <div class="side-card"><h3>📜 Registro de Operações</h3><ul class="history-list" id="historyList"><li class="history-item"><span>Sistema iniciado no Disco</span><span class="history-time">00:00</span></li></ul></div>
+    <div class="tip-box"><span>💡</span><span id="contextualTip"></span></div>
+  </aside>
+</main>
+
+<aside class="bottom-action-bar" aria-label="Controles de movimentação"><div class="action-bar-content">
+  <div class="current-block-status"><span>Alvo ativo:</span> <span class="selected-tag" id="barSelectedName">Nenhum</span><span class="inline-feedback" id="inlineFeedback"></span></div>
+  <div class="action-controls"><button class="btn-action primary" id="btnLoadUp" title="Copiar bloco para o nível imediatamente superior">⬆ Carregar</button><button class="btn-action" id="btnEvictDown" title="Remover a cópia do nível atual (evicção)">🗑 Retirar</button></div>
+</div></aside>
+
+<div id="modais">
+  <div class="modal" id="modalLevelDetails"><div class="modal-content"><div class="modal-header"><h3 id="modalTitle">Detalhes do Nível</h3><button class="btn-close" data-close="modalLevelDetails" aria-label="Fechar">&times;</button></div><div class="modal-body">
+    <div class="modal-meta-grid">
+      <div class="meta-item"><div class="meta-label">Capacidade típica (2026)</div><div class="meta-val" id="metaCapacity">—</div></div>
+      <div class="meta-item"><div class="meta-label">Volatilidade</div><div class="meta-val" id="metaVolatility">—</div></div>
+      <div class="meta-item"><div class="meta-label">Custo por byte</div><div class="meta-val" id="metaCost">—</div></div>
+      <div class="meta-item"><div class="meta-label">Latência típica</div><div class="meta-val" id="metaLatency">—</div></div>
+    </div><p class="modal-desc" id="modalRoleDesc">—</p></div></div></div>
+
+  <div class="modal" id="modalVirtualMemory"><div class="modal-content wide"><div class="modal-header"><h3>🔀 Laboratório de MMU · Memória Virtual</h3>
+    <div class="action-controls"><button class="btn-action" id="btnLabTheme" title="Alternar tema claro/escuro">🌓 Tema</button><button class="btn-action" id="btnLabInfo">ℹ️ Sobre este modelo</button><button class="btn-action" id="btnLabTheory">📖 Teoria</button><button class="btn-close" data-close="modalVirtualMemory" aria-label="Fechar">&times;</button></div></div>
+    <div class="modal-body">
+      <div class="chips" id="procBar" role="tablist" aria-label="Processos"></div>
+      <div class="tabs-bar" id="vmTabs">
+        <button class="tab-btn active" data-tab="paginacao">1. Paginação Pura</button><button class="tab-btn" data-tab="segmentacao">2. Segmentação</button>
+        <button class="tab-btn" data-tab="particoes">3. Partições Dinâmicas</button><button class="tab-btn" data-tab="segpag">4. Segmentos com Páginas</button></div>
+      <div class="vm-ctrl">
+        <label>Cenário<select id="cScen"></select></label>
+        <label id="lSeg">Segmento<select id="cSeg"></select></label>
+        <label><span id="lOff">Endereço lógico (hex)</span><input id="cOff" size="12" spellcheck="false"></label>
+        <label>Operação<select id="cOp"><option value="R">R · leitura</option><option value="W">W · escrita</option><option value="X">X · execução</option></select></label>
+        <label>Velocidade<select id="cSpd"><option value="1.6">Lenta</option><option value="1" selected>Normal</option><option value="0.5">Rápida</option></select></label>
+        <label>Modo desafio<select id="cChal"><option value="1">Ligado (prever)</option><option value="0">Desligado</option></select></label>
+        <button class="btn-action primary" id="btnRun">▶ Traduzir</button>
+      </div>
+      <div id="chalBox"></div>
+      <div class="mmu-board" id="board"></div>
+      <div class="vm-lower"><div class="panel"><h4>🧾 Passo a passo da MMU</h4><ol class="steplog" id="stepLog"><li>Escolha um cenário e clique em Traduzir.</li></ol></div><div class="panel" id="resBox"><h4>📍 Resultado</h4><span style="color:var(--muted)">Aguardando tradução…</span></div></div>
+    </div></div></div>
+
+  <div class="modal" id="modalInfo"><div class="modal-content wide"><div class="modal-header"><h3>ℹ️ Informações &amp; Comparativo de Arquiteturas de Memória</h3><button class="btn-close" data-close="modalInfo" aria-label="Fechar">&times;</button></div><div class="modal-body">
+    <div class="modal-desc"><strong>Referência:</strong> Sistemas Operacionais — Carlos A. Maziero (Capítulo 14). Trade-offs de tempo vs. espaço e o papel de cada estrutura no SO moderno.</div>
+    <div style="overflow-x:auto"><table class="vm-table" id="infoTable"><thead><tr><th>Técnica</th><th>Vantagens</th><th>Desvantagens / Custo</th><th>Fragmentação</th></tr></thead><tbody>
+      <tr id="info-particoes"><td><strong>Partições</strong></td><td>Simplicidade máxima de hardware; sem sobrecarga de tradução por página.</td><td>Alocação contígua obrigatória; processo limitado ao bloco inicial.</td><td>Externa (espaços ociosos entre blocos) ou interna (em partições fixas).</td></tr>
+      <tr id="info-segmentacao"><td><strong>Segmentação</strong></td><td>Visão lógica do programador (código, pilha, dados separados); proteção refinada (R/W/X).</td><td>Tamanhos variáveis exigem algoritmos de alocação (First-fit, Best-fit); compactação pesada.</td><td>Externa.</td></tr>
+      <tr id="info-paginacao"><td><strong>Paginação</strong></td><td>Elimina fragmentação externa; quadros homogêneos; swap granular.</td><td>Tabelas de páginas ocupam DRAM; exige TLB para mitigar o acesso duplo.</td><td>Apenas interna (última página de cada processo).</td></tr>
+      <tr id="info-segpag"><td><strong>Segm. + Paginação</strong></td><td>Combina proteção/compartilhamento lógico dos segmentos com a eliminação da fragmentação externa.</td><td>Alta complexidade de hardware (2 níveis: tabela de segmentos → tabela de páginas).</td><td>Interna leve (páginas finais de cada segmento).</td></tr>
+    </tbody></table></div></div></div></div>
+
+  <div class="modal" id="modalQuiz"><div class="modal-content"><div class="modal-header"><h3>🎯 Quiz de Fixação</h3><div class="action-controls"><button class="btn-action" id="btnQuizTheme" title="Alternar tema claro/escuro">🌓</button><button class="btn-action" id="btnQuizTheory">📖 Teoria</button><button class="btn-close" data-close="modalQuiz" aria-label="Fechar">&times;</button></div></div><div class="modal-body" id="quizBody"></div></div></div>
+
+  <div class="modal" id="modalBadges"><div class="modal-content wide"><div class="modal-header"><h3>🏅 Selos e Insígnias</h3><button class="btn-close" data-close="modalBadges" aria-label="Fechar">&times;</button></div><div class="modal-body"><div class="badges" id="badgeGrid"></div></div></div></div>
+</div>
+<div class="badge-pop" id="badgePop" role="status"></div>
+<footer class="app-footer">Sistemas Operacionais · Gestão de Memória · Material Educacional · Base: Maziero, Cap. 14</footer>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const h=(n,w=8)=>'0x'+(n>>>0).toString(16).toUpperCase().padStart(w,'0');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const NS='http://www.w3.org/2000/svg';
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* =========================================================
+   ESTADO E METADADOS (preservados do projeto original)
+   ========================================================= */
+const LEVEL_METADATA=[
+ {id:0,name:'Disco (Armazenamento Secundário)',short:'Disco',capacitySlots:4,latency:'~ms (10M+ ciclos)',typicalCap:'512 GB – 4 TB',volatility:'Não volátil (Persistente)',cost:'Muito baixo (~R$ 0,0003/MB)',role:'Armazena arquivos executáveis, documentos e áreas de troca (swap/pagefile). O acesso exige barramento SATA/NVMe e drivers de E/S, sendo ordens de magnitude mais lento que a DRAM.'},
+ {id:1,name:'Memória Principal (RAM)',short:'RAM',capacitySlots:3,latency:'~100 ns (~300 ciclos)',typicalCap:'8 GB – 64 GB',volatility:'Volátil',cost:'Médio (~R$ 0,02/MB)',role:'Guarda as páginas de código e dados dos processos em execução no SO. Endereçada linearmente pela MMU. Seus blocos são transferidos para os caches sob demanda de cache miss.'},
+ {id:2,name:'Cache L3',short:'Cache L3',capacitySlots:2,latency:'~30 ciclos (~10 ns)',typicalCap:'8 MB – 64 MB',volatility:'Volátil (SRAM)',cost:'Alto',role:'Último nível no chip do processador (LLC - Last Level Cache), frequentemente compartilhado entre todos os núcleos de CPU, atenuando a penalidade de acesso à RAM.'},
+ {id:3,name:'Cache L2',short:'Cache L2',capacitySlots:2,latency:'~10 ciclos (~3 ns)',typicalCap:'512 KB – 1 MB por núcleo',volatility:'Volátil (SRAM)',cost:'Muito Alto',role:'Cache intermediária rápida dedicada ou compartilhada por pares de núcleos. Reduz substancialmente a contenção de acesso ao cache L3.'},
+ {id:4,name:'Cache L1',short:'Cache L1',capacitySlots:1,latency:'~4 ciclos (~1 ns)',typicalCap:'32 KB – 64 KB (I-Cache/D-Cache)',volatility:'Volátil (SRAM)',cost:'Extremamente Alto',role:'Cache mais próxima dos pipelines de execução. Geralmente dividida em L1 de instruções (L1i) e L1 de dados (L1d) para maximizar o paralelismo do pipeline superescalar.'},
+ {id:5,name:'Registradores',short:'Registradores',capacitySlots:1,latency:'~1 ciclo (~0.3 ns)',typicalCap:'~1 KB – 2 KB (ex: 16 regs de 64 bits)',volatility:'Volátil (Flip-flops)',cost:'Máximo (área de silício crítica)',role:'Integrados diretamente à ALU e unidade de controle. Alimentam operandos imediatos para instruções de máquina (ex: RAX, RBX, RIP em x86-64).'}];
+const LV_VIEW={0:['💾','Armazenamento Secundário (HD &amp; SSD)','HD ~ms | SSD NVMe ~10–50 µs'],1:['🧠','Memória Principal (RAM)'],2:['🔶','Cache L3'],3:['🔷','Cache L2'],4:['⚡','Cache L1'],5:['🔥','Registradores']};
+const BLOCK_DEFS=[
+ {key:'prog',name:'prog.exe',icon:'⚙️',diskType:'ssd',logicalAddr:'0x00401000'},
+ {key:'dados',name:'dados.txt',icon:'📄',diskType:'hd',logicalAddr:'0x00408000'},
+ {key:'lib',name:'biblioteca.so',icon:'📦',diskType:'ssd',logicalAddr:'0x7FFF0020'}];
+let nextInstanceSeq=1;
+function createInstance(blockKey,level){
+ const def=BLOCK_DEFS.find(b=>b.key===blockKey);
+ return{id:`inst_${blockKey}_lvl${level}_${nextInstanceSeq++}`,blockKey:def.key,name:def.name,icon:def.icon,level,diskType:def.diskType,logicalAddr:def.logicalAddr,
+  physicalAddr:`0x${((level+1)*0x100000+nextInstanceSeq*0x1000).toString(16).toUpperCase()}`};
+}
+const state={instances:[createInstance('prog',0),createInstance('dados',0),createInstance('lib',0)],selectedInstanceId:null,moveCount:0,isMoving:false,theme:'dark',activeVmTab:'paginacao'};
+
+/* =========================================================
+   GAMIFICAÇÃO: XP, COMBO (STREAK), PATENTES, SELOS, ÁUDIO
+   (sem sistema de vidas; nada é persistido: tudo reinicia com a sessão)
+   ========================================================= */
+const G={xp:0,score:0,streak:0,best:0,muted:false,badges:new Set(),modes:new Set()};
+const RANKS=[[0,'Dev Júnior'],[120,'SysAdmin'],[320,'Arquiteto de Sistemas'],[600,'Mestre do Kernel']];
+const BADGES=[
+ ['copy','🔁','Primeira Cópia','Copie um bloco para um nível superior.'],
+ ['cpu','🔥','Direto na CPU','Leve uma cópia até os Registradores.'],
+ ['full','🏛️','Hierarquia Completa','Mantenha cópias do mesmo bloco nos 6 níveis.'],
+ ['ctx','🔀','Troca de Contexto','Ative outro processo na MMU.'],
+ ['tlb','⚡','TLB Hit','Obtenha um acerto na TLB.'],
+ ['seg','🛑','Caçador de Segfault','Provoque um Segmentation Fault.'],
+ ['pf','💾','Page Fault','Provoque e trate uma falta de página.'],
+ ['modes','🧭','Explorador da MMU','Traduza endereços nos 4 modelos.'],
+ ['c3','🔋','Combo ×3','3 acertos seguidos.'],
+ ['c5','🚀','Combo ×5','5 acertos seguidos.'],
+ ['quiz','🎓','Quiz Concluído','Finalize o quiz de fixação.']];
+let lastRank=0,popT,AC=null;
+function beep(f,d=.12,type='sine',v=.05){if(G.muted)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.stop(AC.currentTime+d)}catch(e){}}
+const SFX={ok(){beep(660,.1);setTimeout(()=>beep(880,.15),90)},bad(){beep(150,.28,'sawtooth')},tick(){beep(520,.05,'square',.025)},up(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.12),i*90))},bus(){beep(320,.08,'triangle',.04)}};
+function hud(){
+ let r=0;RANKS.forEach((x,k)=>{if(G.xp>=x[0])r=k});
+ const lo=RANKS[r][0],nx=RANKS[r+1],pct=nx?(G.xp-lo)/(nx[0]-lo)*100:100;
+ $('#rankName').textContent=RANKS[r][1];$('#xpFill').style.width=pct+'%';
+ $('#xpTxt').textContent=G.xp+' XP'+(nx?` · próxima patente: ${nx[0]} XP`:' · patente máxima');
+ $('#scoreVal').textContent=G.score;$('#streakNum').textContent='×'+G.streak;
+ $$('#streakCells i').forEach((c,k)=>c.classList.toggle('on',k<Math.min(5,G.streak)));
+ $('#streakBox').classList.toggle('hot',G.streak>=3);
+ $('#badgeCount').textContent=G.badges.size+'/'+BADGES.length;$('#gprogBar').style.width=(G.badges.size/BADGES.length*100)+'%';
+ return r;
+}
+function toast(ic,t,s){const p=$('#badgePop');p.innerHTML=`<b>${ic}</b><div><strong>${t}</strong></div><small>${s}</small>`;p.classList.add('show');clearTimeout(popT);popT=setTimeout(()=>p.classList.remove('show'),2800)}
+function addXP(n){G.xp+=n;G.score+=n;const r=hud();if(r>lastRank){lastRank=r;SFX.up();toast('⭐','Nova patente: '+RANKS[r][1],'Continue evoluindo na hierarquia de memória!')}}
+function unlock(k){if(G.badges.has(k))return;G.badges.add(k);const b=BADGES.find(x=>x[0]==k);SFX.up();toast(b[1],'Selo desbloqueado: '+b[2],b[3]);hud()}
+/* Combo: acerto consecutivo gera bônus progressivo (+5 por nível, até +25); erro apenas zera o combo */
+function judge(ok,base){
+ if(ok){G.streak++;G.best=Math.max(G.best,G.streak);const bonus=Math.min(G.streak-1,5)*5;addXP(base+bonus);SFX.ok();if(G.streak>=3)unlock('c3');if(G.streak>=5)unlock('c5');return base+bonus}
+ G.streak=0;SFX.bad();hud();return 0;
+}
+function renderBadges(){$('#badgeGrid').innerHTML=BADGES.map(b=>`<div class="bd ${G.badges.has(b[0])?'on':''}"><b>${b[1]}</b><strong>${b[2]}</strong><div>${b[3]}</div></div>`).join('')}
+
+/* =========================================================
+   MODAIS E TEMA
+   ========================================================= */
+function abrirModal(id){$('#'+id).classList.add('open')}
+function fecharModal(id){$('#'+id).classList.remove('open')}
+function initTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('#themeIcon').textContent=state.theme==='dark'?'☀️':'🌙'}
+function toggleTheme(){state.theme=state.theme==='dark'?'light':'dark';initTheme()}
+function toggleTheory(on){$('#theoryDrawer').classList.toggle('open',on)}
+
+/* =========================================================
+   HIERARQUIA DE MEMÓRIA (regras de cópia e evicção preservadas)
+   ========================================================= */
+function buildHierarchy(){
+ const c=$('#hierarchyContainer'),lvl=l=>{const m=LEVEL_METADATA[l],v=LV_VIEW[l];
+  const head=`<div class="level-header"><div class="level-info"><span class="level-name">${v[0]} ${v[1]}</span><span class="level-latency">${v[2]||m.latency}</span></div><div class="level-meta"><span class="level-slots-count" id="count-${l}">0/${m.capacitySlots}</span><button class="btn-detail" data-lvl="${l}">Detalhes</button></div></div>`;
+  if(l===0)return`<section class="level-node" id="level-0" data-level="0" data-capacity="4">${head}<div class="disk-subdivisions"><div class="disk-sub-card"><div class="disk-sub-title"><span>💿 HD Mecânico (Arquivos de Usuário)</span><span class="disk-sub-badge">Magnético</span></div><div class="disk-blocks-subgroup" id="slots-hd"></div></div><div class="disk-sub-card"><div class="disk-sub-title"><span>⚡ SSD NVMe (Sistema + Usuário)</span><span class="disk-sub-badge">NAND Flash</span></div><div class="disk-blocks-subgroup" id="slots-ssd"></div></div></div></section>`;
+  return`<section class="level-node" id="level-${l}" data-level="${l}" data-capacity="${m.capacitySlots}">${head}<div class="blocks-container" id="slots-${l}"></div></section>`};
+ c.insertAdjacentHTML('beforeend',[5,4,3,2,1,0].map(lvl).join(''));
+ c.addEventListener('click',e=>{const b=e.target.closest('.btn-detail');if(b)openLevelDetails(+b.dataset.lvl)});
+}
+function buildBlockElement(inst,hk){
+ const d=document.createElement('div');d.className=`block-card ${state.selectedInstanceId===inst.id?'selected':''}`;d.id=`block-card-${inst.id}`;
+ const n=state.instances.filter(i=>i.blockKey===inst.blockKey).length;
+ d.innerHTML=`<span>${inst.icon} ${inst.name}</span>`;
+ const b=document.createElement('span');b.className=`copy-badge ${hk===inst.blockKey?'pop':''}`;b.textContent=`×${n}`;b.title=`Presente em ${n} nível(is) da hierarquia`;d.appendChild(b);
+ d.addEventListener('click',e=>{e.stopPropagation();selectInstance(inst.id)});return d;
+}
+function renderAllBlocks(hk=null){
+ for(let l=1;l<=5;l++){
+  const el=$('#slots-'+l),list=state.instances.filter(i=>i.level===l);el.innerHTML='';
+  $('#count-'+l).textContent=`${list.length}/${LEVEL_METADATA[l].capacitySlots}`;
+  if(!list.length)el.innerHTML='<span class="slot-empty-hint">Nenhuma cópia ativa neste nível</span>';else list.forEach(i=>el.appendChild(buildBlockElement(i,hk)));
+ }
+ const disk=state.instances.filter(i=>i.level===0);$('#count-0').textContent=`${disk.length}/4`;
+ ['hd','ssd'].forEach(t=>{const el=$('#slots-'+t),l=disk.filter(i=>i.diskType===t);el.innerHTML='';if(!l.length)el.innerHTML='<span class="slot-empty-hint">Vazio</span>';else l.forEach(i=>el.appendChild(buildBlockElement(i,hk)))});
+}
+function selectInstance(id){if(state.isMoving)return;state.selectedInstanceId=state.selectedInstanceId===id?null:id;clearInlineFeedback();SFX.tick();renderAllBlocks();updateControls()}
+function updateControls(){
+ const s=state.instances.find(i=>i.id===state.selectedInstanceId),up=$('#btnLoadUp'),dn=$('#btnEvictDown'),tip=$('#contextualTip');
+ if(!s){$('#barSelectedName').textContent='Nenhum';up.disabled=dn.disabled=true;['kpiSelectedBlock','kpiCurrentLevel','kpiCopiesCount','kpiLogical','kpiPhysical'].forEach(k=>$('#'+k).textContent='—');
+  tip.textContent='Na hierarquia real, os caches guardam CÓPIAS dos dados — o original permanece nos níveis inferiores. Selecione uma cópia para operar.';return}
+ const m=LEVEL_METADATA[s.level],n=state.instances.filter(i=>i.blockKey===s.blockKey).length;
+ $('#barSelectedName').textContent=`${s.icon} ${s.name}`;$('#kpiSelectedBlock').textContent=s.name;$('#kpiCurrentLevel').textContent=m.short;$('#kpiCopiesCount').textContent=`×${n}`;
+ $('#kpiLogical').textContent=s.logicalAddr;$('#kpiPhysical').textContent=s.physicalAddr;
+ up.disabled=s.level>=5||state.isMoving;dn.disabled=s.level===0||state.isMoving;
+ tip.textContent=s.level===0?`${s.name} no Disco é o original permanente. Carregar cria uma CÓPIA na RAM mantendo o original no Disco.`
+  :s.level===1?`Cópia em RAM de ${s.name}. Subir cria uma cópia em Cache L3; Retirar realiza evicção apenas da RAM (Disco continua intacto).`
+  :s.level<=4?`Cópia na ${m.short}. Subir replica o bloco para cache superior. Retirar descarta esta cópia deste nível mantendo as inferiores.`
+  :`${s.name} está nos Registradores (nível máximo de CPU). Retirar remove esta cópia mantendo os caches e disco.`;
+}
+function setInlineFeedback(m){$('#inlineFeedback').textContent=m}
+function clearInlineFeedback(){$('#inlineFeedback').textContent=''}
+function shakeTargetLevel(l){const c=$('#level-'+l);if(!c)return;c.classList.remove('shake-card');void c.offsetWidth;c.classList.add('shake-card');setTimeout(()=>c.classList.remove('shake-card'),450);SFX.bad()}
+function triggerPop(el){el.classList.remove('kpi-pop');void el.offsetWidth;el.classList.add('kpi-pop');setTimeout(()=>el.classList.remove('kpi-pop'),350)}
+function copySelectedBlockUp(){
+ if(state.isMoving||!state.selectedInstanceId)return;
+ const src=state.instances.find(i=>i.id===state.selectedInstanceId);if(!src||src.level>=5)return;
+ const from=src.level,to=from+1,tm=LEVEL_METADATA[to];
+ if(state.instances.some(i=>i.level===to&&i.blockKey===src.blockKey)){setInlineFeedback('Este bloco já está neste nível.');shakeTargetLevel(to);return}
+ if(state.instances.filter(i=>i.level===to).length>=tm.capacitySlots){setInlineFeedback(`Nível cheio — retire um bloco de ${tm.short} antes.`);shakeTargetLevel(to);return}
+ clearInlineFeedback();state.isMoving=true;updateControls();
+ const oc=$('#level-'+from),tc=$('#level-'+to),be=$('#block-card-'+src.id);
+ drawLaserBeam(oc,tc);SFX.bus();
+ animateGhostCopy(be,tc,()=>{
+  const c=createInstance(src.blockKey,to);state.instances.push(c);state.selectedInstanceId=c.id;state.moveCount++;
+  $('#kpiMovesCount').textContent=state.moveCount;['kpiMovesCount','kpiCurrentLevel','kpiCopiesCount'].forEach(k=>triggerPop($('#'+k)));
+  tc.classList.add('pulse-receive');setTimeout(()=>tc.classList.remove('pulse-receive'),800);
+  if(be){be.classList.add('origin-stay-pulse');setTimeout(()=>be.classList.remove('origin-stay-pulse'),800)}
+  logOperation(`${src.name}: copiado ${LEVEL_METADATA[from].short} → ${tm.short}`);
+  state.isMoving=false;renderAllBlocks(src.blockKey);updateControls();
+  addXP(5);SFX.ok();unlock('copy');if(to===5)unlock('cpu');
+  if([0,1,2,3,4,5].every(l=>state.instances.some(i=>i.level===l&&i.blockKey===src.blockKey)))unlock('full');
+ });
+}
+function evictSelectedBlock(){
+ if(state.isMoving||!state.selectedInstanceId)return;
+ const s=state.instances.find(i=>i.id===state.selectedInstanceId);if(!s||s.level===0)return;
+ const l=s.level,nm=s.name,key=s.blockKey;
+ state.instances=state.instances.filter(i=>i.id!==s.id);state.selectedInstanceId=null;state.moveCount++;
+ $('#kpiMovesCount').textContent=state.moveCount;triggerPop($('#kpiMovesCount'));triggerPop($('#kpiCopiesCount'));
+ const c=$('#level-'+l);if(c){c.classList.add('flash-origin');setTimeout(()=>c.classList.remove('flash-origin'),450)}
+ logOperation(`${nm}: removido da ${LEVEL_METADATA[l].short}`);clearInlineFeedback();renderAllBlocks(key);updateControls();addXP(2);SFX.tick();
+}
+function animateGhostCopy(src,target,done){
+ if(!src){done();return}
+ const a=src.getBoundingClientRect(),b=target.getBoundingClientRect(),g=src.cloneNode(true);
+ g.className='flying-ghost';g.style.top=a.top+'px';g.style.left=a.left+'px';g.style.width=a.width+'px';document.body.appendChild(g);src.classList.add('origin-stay-pulse');
+ requestAnimationFrame(()=>{g.style.top=(b.top+28)+'px';g.style.left=(b.left+24)+'px'});
+ setTimeout(()=>{g.remove();done()},620);
+}
+function drawLaserBeam(o,t){
+ const c=$('#hierarchyContainer'),svg=$('#beamSvg'),cr=c.getBoundingClientRect(),a=o.getBoundingClientRect(),b=t.getBoundingClientRect();
+ svg.setAttribute('viewBox',`0 0 ${cr.width} ${cr.height}`);
+ const ln=document.createElementNS(NS,'line');
+ [['x1',a.left-cr.left+a.width/2],['y1',a.top-cr.top+a.height/2],['x2',b.left-cr.left+b.width/2],['y2',b.top-cr.top+b.height/2],['stroke','var(--beam-color)'],['stroke-width',4],['stroke-linecap','round'],['stroke-dasharray','8 6']].forEach(([k,v])=>ln.setAttribute(k,v));
+ ln.style.cssText='opacity:1;transition:opacity .5s;filter:drop-shadow(0 0 6px var(--accent))';svg.appendChild(ln);
+ setTimeout(()=>{ln.style.opacity='0';setTimeout(()=>ln.remove(),500)},500);
+}
+function logOperation(text){
+ const l=$('#historyList'),n=new Date(),p=x=>String(x).padStart(2,'0'),it=document.createElement('li');
+ it.className='history-item';it.innerHTML=`<span>${text}</span><span class="history-time">${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}</span>`;
+ l.prepend(it);while(l.children.length>5)l.removeChild(l.lastChild);
+}
+function openLevelDetails(i){
+ const m=LEVEL_METADATA[i];if(!m)return;
+ $('#modalTitle').textContent=m.name;$('#metaCapacity').textContent=m.typicalCap;$('#metaVolatility').textContent=m.volatility;$('#metaCost').textContent=m.cost;$('#metaLatency').textContent=m.latency;$('#modalRoleDesc').textContent=m.role;
+ abrirModal('modalLevelDetails');
+}
+
+/* =========================================================
+   MMU: DADOS DOS PROCESSOS (cada processo tem seus registradores e tabelas)
+   ========================================================= */
+const MODES={paginacao:'Paginação Pura',segmentacao:'Segmentação',particoes:'Partições Dinâmicas',segpag:'Segmentos com Páginas'};
+const PROCS=[{pid:1042,name:'prog.exe',color:'#EF692D'},{pid:2048,name:'navegador',color:'#5FA37F'},{pid:3071,name:'player.bin',color:'#A3A3A3'},{pid:4096,name:'gcc',color:'#E0B040'}];
+const PART=[{B:0x10000000,L:0x20000000},{B:0x38000000,L:0x40000000},{B:0x78000000,L:0x10000000},{B:0x88000000,L:0x08000000}];
+const SEGN=['0 · Código (.text)','1 · Dados (.data)','2 · Pilha (stack)'],SEGP=['RX','RW','RW'];
+const SEGL=[[0x10000,0x20000,0x40000],[0x40000,0x80000,0x20000],[0x8000,0x10000,0x10000],[0x20000,0x40000,0x10000]];
+const segBase=(i,s)=>0x00400000+i*0x01000000+[0,0x100000,0x3F0000][s];
+const stbr=i=>0x0000A000+i*0x100,ptbr=i=>0x00200000+i*0x10000;
+const PT=[
+ {0x401:{pfn:0x00C,p:1,rw:'RX',d:0},0x402:{pfn:0x01B,p:1,rw:'RW',d:1},0x403:{swap:512,p:0,rw:'RW',d:0}},
+ {0x401:{pfn:0x020,p:1,rw:'RX',d:0},0x402:{pfn:0x021,p:1,rw:'RW',d:1},0x403:{pfn:0x022,p:1,rw:'RW',d:0},0x404:{swap:640,p:0,rw:'RW',d:0}},
+ {0x401:{pfn:0x030,p:1,rw:'RX',d:0},0x402:{pfn:0x031,p:1,rw:'RW',d:0},0x403:{pfn:0x032,p:1,rw:'RW',d:1}},
+ {0x401:{pfn:0x040,p:1,rw:'RX',d:0},0x402:{pfn:0x041,p:1,rw:'RW',d:1},0x403:{swap:768,p:0,rw:'RW',d:0},0x404:{pfn:0x042,p:1,rw:'RW',d:0}}];
+const SP_NAME=['CS · Código','DS · Dados','SH · Bibliotecas'],SP_PAGES=[16,32,64],SP_PERM=['RX','RW','R'],SP_PT=['PT_CODE','PT_DATA','PT_SHARED'];
+const spPfn=(i,s,k)=>(i+1)*0x100+s*0x40+k,spTab=(i,s)=>100+i*0x10+[0,4,110][s];
+const V={act:0,busy:false,speed:1,chal:true,pfCount:0,loaded:new Set(),tlb:[{pid:1042,vpn:0x401,pfn:0x00C}]};
+const OUT={seg:'Exceção de Segmentation Fault',prot:'Exceção de Violação de Perm.',pf:'Exceção de Falta de Página',ok:'Tradução válida sem exceção'};
+
+function scen(m,i){const L=PART[i].L;
+ if(m==='particoes')return[['Acesso válido · offset 0x00004000',0,'0x00004000','R'],['Acesso válido · meio da partição',0,h(L>>>1),'W'],['Inválido · offset além do limite',0,h(L+0x1000),'R']];
+ if(m==='segmentacao')return[['Código · offset 0x0042 (execução)',0,'0x0042','X'],['Dados · offset 0x0042 (escrita)',1,'0x0042','W'],['Violação · escrita no código',0,'0x0100','W'],['Violação · pilha além do limite',2,h(SEGL[i][2]+0x10,6),'R']];
+ if(m==='paginacao')return[['VPN 0x00401 · código (TLB/RAM)',0,'0x0040103A','X'],['VPN 0x00402 · dados (escrita)',0,'0x00402010','W'],['VPN 0x00403 · RAM ou swap',0,'0x00403A40','R'],['VPN 0x00404 · swap ou não mapeada',0,'0x00404008','R'],['VPN 0x00401 · escrita em código (proteção)',0,'0x00401004','W']];
+ return[['Código · página 0 (execução)',0,'0x0A30','X'],['Dados · página 3 (escrita)',1,'0x3010','W'],['Biblioteca · página 7 (swap)',2,'0x7010','R'],['Biblioteca · escrita proibida',2,'0x0010','W'],['Dados · além do limite',1,'0x20000','R']];
+}
+
+/* =========================================================
+   TRADUÇÃO (função pura): devolve os passos que a MMU executa e o resultado
+   ========================================================= */
+function translate(m,i,x){
+ const S=[],P=PROCS[i],off=x.off>>>0,op=x.op;
+ const st=(blk,t,long,ok,from,val,ex)=>S.push(Object.assign({blk,t,long,ok,from,val},ex||{}));
+ const exc=(t,long,from)=>st('exc',t,long,false,from);
+ if(m==='particoes'){
+  const{B,L}=PART[i];
+  st('cpu',h(off),`A CPU emite o endereço lógico ${h(off)} (${op}).`,null,null,h(off));
+  st('regBase','BASE '+h(B),`Registrador BASE (relocação) carregado do PCB de ${P.name}: ${h(B)}.`,null,'cpu',h(off));
+  st('regLimit','LIMIT '+h(L),`Registrador LIMIT carregado do PCB: ${h(L)} (${L/0x100000} MB).`,null,'regBase');
+  const ok=off<L;
+  st('cmp',ok?'Offset < Limit ✔':'Offset ≥ Limit ✘',`Comparador: ${h(off)} < ${h(L)}? ${ok?'SIM, o acesso está dentro da partição.':'NÃO, o endereço está fora da partição.'}`,ok,'regLimit');
+  if(!ok){exc('SEGMENTATION FAULT',`Exceção entregue ao SO: Segmentation Fault. O SO encerra ${P.name} (SIGSEGV).`,'cmp');return{S,res:{fault:'seg',msg:'Segmentation Fault: o offset ultrapassa o limite da partição.'}}}
+  const ph=(B+off)>>>0;
+  st('add',h(ph),`Somador: BASE + Offset = ${h(B)} + ${h(off)} = ${h(ph)}.`,true,'cmp',h(ph));
+  return{S,res:{phys:ph,eq:`BASE + Offset = ${h(B)} + ${h(off)} = ${h(ph)}`}};
+ }
+ if(m==='segmentacao'||m==='segpag'){
+  const s=x.seg,sg=m==='segmentacao',Bs=segBase(i,s),Ls=sg?SEGL[i][s]:SP_PAGES[s]*4096,Pm=sg?SEGP[s]:SP_PERM[s],ad=stbr(i)+s*8;
+  const LIN=[0x00400000,0x00800000,0x70000000];
+  st('cpu',`[${s}:${h(off,4)}]`,`A CPU emite o endereço lógico bidimensional [segmento ${s} : offset ${h(off)}] (${op}).`,null,null,`[${s}:${h(off,4)}]`);
+  st('regStbr','STBR '+h(stbr(i)),`STBR carregado do PCB de ${P.name}: tabela de segmentos em ${h(stbr(i))}.`,null,'cpu');
+  if(sg)st('regStlr','STLR 3','STLR = 3: o número do segmento deve ser menor que 3.',true,'regStbr');
+  st(sg?'tbl':'stbl',`linha ${s}`,`Descritor em STBR + ${s}×8 = ${h(ad)}: ${sg?'Base física '+h(Bs):'Base linear '+h(LIN[s])}, Limit ${h(Ls,6)}, perm ${Pm}.`,null,sg?'regStlr':'regStbr',h(ad),{row:'row-'+s});
+  const ok=off<Ls;
+  st('cmp',ok?'Offset < Limit ✔':'Offset ≥ Limit ✘',`Comparador: ${h(off)} < ${h(Ls,6)}? ${ok?'SIM, dentro do segmento.':'NÃO, deslocamento além do limite do segmento.'}`,ok,sg?'tbl':'stbl');
+  if(!ok){exc('SEGMENTATION FAULT','Exceção: Segmentation Fault por violação de limite do segmento.','cmp');return{S,res:{fault:'seg',msg:'Segmentation Fault: offset além do limite do segmento.'}}}
+  const pk=Pm.includes(op);
+  st('perm',`${op} ∈ ${Pm}? ${pk?'✔':'✘'}`,`Verificação de permissão: a operação ${op} ${pk?'é':'NÃO é'} permitida pelo descritor (${Pm}).`,pk,'cmp');
+  if(!pk){exc('VIOLAÇÃO DE PROTEÇÃO',`Exceção: ${op} proibida em segmento ${Pm}. O SO envia SIGSEGV.`,'perm');return{S,res:{fault:'prot',msg:`Violação de proteção: operação ${op} em segmento ${Pm}.`}}}
+  if(sg){const ph=(Bs+off)>>>0;st('add',h(ph),`Somador: Base + Offset = ${h(Bs)} + ${h(off)} = ${h(ph)}.`,true,'perm',h(ph));return{S,res:{phys:ph,eq:`Base + Offset = ${h(Bs)} + ${h(off)} = ${h(ph)}`}}}
+  const pg=off>>>12,po=off&0xFFF,key=`${i}-${s}-${pg}`,present=pg%8!==7||V.loaded.has(key),pfn=spPfn(i,s,pg);
+  st('regPt',SP_PT[s],`PTBR do segmento: ${SP_PT[s]} no quadro ${spTab(i,s)}. Endereço linear = ${h(LIN[s])} + ${h(off)} = ${h(LIN[s]+off)}.`,null,'perm');
+  st('ptbl',`pág. ${pg}`,`Página do segmento = ${h(off)} >> 12 = ${pg}; Offset = ${h(po,3)}. Lendo a entrada ${pg} de ${SP_PT[s]}.`,null,'regPt',`pág ${pg}`,{row:'prow-'+pg,tbl:'b-ptbl',rowHTML:`<td>${pg}</td><td>${present?h(pfn,3):'swap'}</td><td>${present?1:0}</td>`});
+  st('vld',present?'P = 1 ✔':'P = 0 ✘',`Bit de presença: ${present?'1, a página está na RAM.':'0, a página está no swap.'}`,present,'ptbl');
+  if(!present){exc('PAGE FAULT','Exceção: falta de página. O SO deve buscar a página no swap.','vld');return{S,res:{fault:'pf',msg:`Falta de página: a página ${pg} de ${SP_NAME[s]} está no swap.`,pf:{key}}}}
+  const ph=((pfn<<12)|po)>>>0;
+  st('cat',h(ph),`Concatenador: PFN ${h(pfn,3)} ‖ Offset ${h(po,3)} = ${h(ph)}.`,true,'vld',h(ph));
+  return{S,res:{phys:ph,eq:`PFN ${h(pfn,3)} × 4096 + ${h(po,3)} = ${h(ph)}`}};
+ }
+ /* paginação pura (tabela de 1 nível + TLB) */
+ const vpn=off>>>12,po=off&0xFFF,e=PT[i][vpn],hit=V.tlb.find(t=>t.pid===P.pid&&t.vpn===vpn);
+ st('cpu',h(off),`A CPU emite o endereço virtual ${h(off)} (${op}).`,null,null,h(off));
+ st('cpu',`VPN ${h(vpn,5)} | Off ${h(po,3)}`,`Com páginas de 4 KB: VPN = ${h(off)} >> 12 = ${h(vpn,5)}; Offset = ${h(off)} & 0xFFF = ${h(po,3)}.`,null);
+ st('tlb',hit?'TLB HIT':'TLB MISS',hit?`TLB: a VPN ${h(vpn,5)} já está na TLB (PFN ${h(hit.pfn,3)}). Tradução em ~1 ciclo, sem acessar a tabela.`:'TLB: a VPN não está na TLB (miss). É preciso consultar a tabela de páginas na RAM.',hit?true:'warn','cpu',`VPN ${h(vpn,5)}`,hit?{row:'trow-'+vpn}:{});
+ let pfn;
+ if(hit)pfn=hit.pfn;
+ else{
+  st('regPtbr','PTBR '+h(ptbr(i)),`PTBR carregado do PCB: tabela de páginas de ${P.name} em ${h(ptbr(i))}.`,null,'tlb');
+  st('tbl',`VPN ${h(vpn,5)}`,`Indexa a tabela em PTBR + VPN×entrada: ${e?'entrada encontrada.':'não há entrada para esta VPN.'}`,null,'regPtbr',h(vpn,5),{row:'prow-'+vpn});
+  if(!e){st('vld','V = 0 ✘','Bit de validade 0: a página não pertence ao espaço de endereçamento do processo.',false,'tbl');exc('SEGMENTATION FAULT','Acesso a página não mapeada: o SO envia SIGSEGV.','vld');return{S,res:{fault:'seg',msg:'Segmentation Fault: página não mapeada para este processo.'}}}
+  st('vld',e.p?'P = 1 ✔':'P = 0 ✘',e.p?'Bit de presença 1: a página está na RAM.':`Bit de presença 0: a página está no swap (bloco ${e.swap}).`,!!e.p,'tbl');
+  if(!e.p){exc('PAGE FAULT','Exceção: falta de página. O SO carrega a página do swap e reexecuta a instrução.','vld');return{S,res:{fault:'pf',msg:`Falta de página: a VPN ${h(vpn,5)} está no swap (bloco ${e.swap}).`,pf:{vpn}}}}
+  pfn=e.pfn;
+ }
+ const pk=e.rw.includes(op);
+ st('perm',`${op} ∈ ${e.rw}? ${pk?'✔':'✘'}`,`Permissão da página (${e.rw}): a operação ${op} ${pk?'é permitida.':'NÃO é permitida.'}`,pk,hit?'tlb':'vld');
+ if(!pk){exc('VIOLAÇÃO DE PROTEÇÃO',`Exceção: ${op} em página ${e.rw}. O SO envia SIGSEGV.`,'perm');return{S,res:{fault:'prot',msg:`Violação de proteção: ${op} em página ${e.rw}.`}}}
+ const ph=((pfn<<12)|po)>>>0;
+ st('cat',h(ph),`Concatenador: PFN ${h(pfn,3)} ‖ Offset ${h(po,3)} = ${h(ph)}. (PFN × 4096 + Offset)`,true,'perm',h(ph));
+ return{S,res:{phys:ph,eq:`PFN ${h(pfn,3)} × 4096 + ${h(po,3)} = ${h(ph)}`,tlbHit:!!hit,tlbIns:hit?null:{pid:P.pid,vpn,pfn},dirty:op==='W'&&!e.d?vpn:null}};
+}
+
+/* =========================================================
+   MAPA DA RAM E RENDERIZAÇÃO DO HARDWARE
+   ========================================================= */
+function ramCells(m,i){
+ const c=[];
+ if(m==='particoes'){
+  c.push({l:'Kernel',a:0,b:0x0FFFFFFF,k:-1});
+  PART.forEach((p,k)=>{c.push({l:`P${k+1} · ${PROCS[k].name}`,a:p.B,b:p.B+p.L-1,k});if(!k)c.push({l:'Livre (frag. externa)',a:0x30000000,b:0x37FFFFFF,k:-2})});
+ }else if(m==='segmentacao'){
+  c.push({l:'Kernel / reservado',a:0,b:0x3FFFFF,k:-1});
+  PROCS.forEach((_,k)=>[0,1,2].forEach(s=>c.push({l:`P${k+1}.${['text','data','stack'][s]}`,a:segBase(k,s),b:segBase(k,s)+SEGL[k][s]-1,k})));
+ }else if(m==='paginacao'){
+  [0,1].forEach(f=>c.push({l:'Kernel',a:f<<12,b:(f<<12)+0xFFF,k:-1,sub:'PFN '+h(f,3)}));
+  PROCS.forEach((_,k)=>Object.values(PT[k]).forEach(e=>{if(e.p)c.push({l:`P${k+1} · ${PROCS[k].name}`,a:e.pfn<<12,b:(e.pfn<<12)+0xFFF,k,sub:'PFN '+h(e.pfn,3)})}));
+  c.sort((a,b)=>a.a-b.a);
+ }else{
+  PROCS.forEach((_,k)=>[0,1,2].forEach(s=>{const n=SP_PAGES[s],f=spPfn(k,s,0);c.push({l:`P${k+1}.${['CS','DS','SH'][s]}`,a:f<<12,b:((f+n)<<12)-1,k,sub:`PFN ${h(f,3)}–${h(f+n-1,3)}`})}));
+ }
+ return c.map((x,id)=>Object.assign(x,{id}));
+}
+const cellFor=(m,i,ph)=>ramCells(m,i).find(c=>ph>=c.a&&ph<=c.b);
+const blk=(id,t,v,c='')=>`<div class="blk ${c}" id="b-${id}"><div class="bt">${t}</div><div class="bv" id="v-${id}">${v}</div></div>`;
+const tlbRows=()=>'<tr><th>PID</th><th>VPN</th><th>PFN</th></tr>'+[0,1,2,3].map(k=>{const t=V.tlb[k];return t?`<tr id="trow-${t.vpn}"><td>${t.pid}</td><td>${h(t.vpn,5)}</td><td>${h(t.pfn,3)}</td></tr>`:'<tr><td>—</td><td>—</td><td>—</td></tr>'}).join('');
+function boardHTML(){
+ const m=state.activeVmTab,i=V.act,P=PROCS[i],seg=+($('#cSeg')?$('#cSeg').value:0)||0;let mmu='';
+ const segT=sg=>`<div class="blk" id="b-${sg?'tbl':'stbl'}"><div class="bt">Tabela de Segmentos · ${P.name} (@${h(stbr(i))})</div><table><tr><th>seg</th><th>${sg?'base física':'base linear'}</th><th>limit</th><th>perm</th></tr>${[0,1,2].map(s=>`<tr id="row-${s}"><td>${s}</td><td>${h(sg?segBase(i,s):[0x00400000,0x00800000,0x70000000][s])}</td><td>${h(sg?SEGL[i][s]:SP_PAGES[s]*4096,6)}</td><td>${sg?SEGP[s]:SP_PERM[s]}</td></tr>`).join('')}</table></div>`;
+ const permB=blk('perm','Permissão<br>op ∈ perm?','—','logic'),cmpB=blk('cmp','Comparador<br>Offset &lt; Limit?','—','logic');
+ if(m==='particoes')mmu=`<div class="mrow">${blk('regBase','BASE',h(PART[i].B),'reg')}${blk('regLimit','LIMIT',h(PART[i].L),'reg')}</div><div class="mrow">${cmpB}${blk('add','Somador<br>Base + Offset','—','logic')}</div>`;
+ else if(m==='segmentacao')mmu=`<div class="mrow">${blk('regStbr','STBR',h(stbr(i)),'reg')}${blk('regStlr','STLR','3','reg')}</div>${segT(true)}<div class="mrow">${cmpB}${permB}${blk('add','Somador<br>Base + Offset','—','logic')}</div>`;
+ else if(m==='paginacao'){
+  const rows=[0x401,0x402,0x403,0x404].map(v=>{const e=PT[i][v];return e?`<tr id="prow-${v}"><td>${h(v,5)}</td><td>${e.p?h(e.pfn,3):'swap '+e.swap}</td><td>${e.p}</td><td>${e.rw}</td><td>${e.d}</td></tr>`:`<tr id="prow-${v}"><td>${h(v,5)}</td><td colspan="4">sem entrada (V=0)</td></tr>`}).join('');
+  mmu=`<div class="mrow">${blk('regPtbr','PTBR',h(ptbr(i)),'reg')}<div class="blk" id="b-tlb"><div class="bt">TLB · 4 entradas</div><table id="tlbT">${tlbRows()}</table></div></div><div class="blk" id="b-tbl"><div class="bt">Tabela de Páginas · ${P.name}</div><table><tr><th>VPN</th><th>PFN</th><th>P</th><th>perm</th><th>Dirty</th></tr>${rows}</table></div><div class="mrow">${blk('vld','Presente?<br>P = 1','—','logic')}${permB}${blk('cat','Concatenador<br>PFN ‖ Offset','—','logic')}</div>`;
+ }else{
+  const rows=[0,1,2,3,4,5,6,7].map(k=>{const pr=k%8!==7||V.loaded.has(`${i}-${seg}-${k}`);return`<tr id="prow-${k}"><td>${k}</td><td>${pr?h(spPfn(i,seg,k),3):'swap'}</td><td>${pr?1:0}</td></tr>`}).join('');
+  mmu=`<div class="mrow">${blk('regStbr','STBR',h(stbr(i)),'reg')}${blk('regPt','PTBR do segmento',SP_PT[seg]+' @ q.'+spTab(i,seg),'reg')}</div>${segT(false)}<div class="mrow">${cmpB}${permB}</div><div class="blk" id="b-ptbl"><div class="bt">${SP_PT[seg]} · ${SP_PAGES[seg]} páginas (exibindo 0–7)</div><table><tr><th>pág</th><th>PFN</th><th>P</th></tr>${rows}</table></div><div class="mrow">${blk('vld','Presente?<br>P = 1','—','logic')}${blk('cat','Concatenador<br>PFN ‖ Offset','—','logic')}</div>`;
+ }
+ const cells=ramCells(m,i).map(c=>`<div class="rc" id="rc-${c.id}" style="--c:${c.k>=0?PROCS[c.k].color:'#A3A3A3'}"><b>${c.l}</b><small>${c.sub||h(c.a)+'–'+h(c.b)}</small></div>`).join('');
+ return`<svg id="busSvg" class="bussvg"></svg><div><div class="blk cpu" id="b-cpu"><div class="bt">CPU · endereço lógico</div><div class="bv" id="v-cpu">—</div></div><div class="blk" style="margin-top:8px"><div class="bt">Processo ativo</div><div class="bv" style="color:${P.color}">PID ${P.pid}<br>${P.name}</div></div></div><div class="bmmu"><div class="mtitle">MMU · ${MODES[m].toUpperCase()}</div>${mmu}${blk('exc','Exceção → SO','—','exc')}</div><div><div class="blk" id="b-ram"><div class="bt">Memória RAM · mapa físico</div><div class="ramgrid">${cells}</div></div></div>`;
+}
+function renderBoard(fresh){
+ $('#board').innerHTML=boardHTML();
+ if(fresh)$$('#board .blk.reg').forEach((b,k)=>setTimeout(()=>b.classList.add('regload'),k*160));
+}
+function setupCtrl(){
+ const m=state.activeVmTab,sgm=m==='segmentacao'||m==='segpag';
+ $('#cScen').innerHTML=scen(m,V.act).map((s,k)=>`<option value="${k}">${s[0]}</option>`).join('');
+ $('#cSeg').innerHTML=(m==='segmentacao'?SEGN:m==='segpag'?SP_NAME:[]).map((n,k)=>`<option value="${k}">${n}</option>`).join('');
+ $('#lSeg').style.display=sgm?'':'none';$('#lOff').textContent=m==='paginacao'?'Endereço virtual (hex)':m==='particoes'?'Offset lógico (hex)':'Offset (hex)';
+ applyScen(0);
+}
+function applyScen(k){const s=scen(state.activeVmTab,V.act)[k]||scen(state.activeVmTab,V.act)[0];$('#cSeg').value=s[1];$('#cOff').value=s[2];$('#cOp').value=s[3];if(state.activeVmTab==='segpag')renderBoard()}
+function renderLab(fresh){
+ $('#procBar').innerHTML=PROCS.map((p,k)=>`<button class="chip ${k===V.act?'on':''}" data-p="${k}" style="--c:${p.color}" role="tab" aria-selected="${k===V.act}"><i></i>${k===V.act?'★ ATIVO · ':''}P${k+1} · PID ${p.pid} · ${p.name}</button>`).join('');
+ $$('#vmTabs .tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.activeVmTab));
+ setupCtrl();renderBoard(fresh);
+}
+function switchVmTab(key){if(V.busy)return;state.activeVmTab=key;resetOutputs();renderLab(true)}
+function switchProc(i){
+ if(V.busy||i===V.act)return;V.act=i;V.tlb=[];resetOutputs();renderLab(true);unlock('ctx');addXP(3);SFX.tick();
+ $('#stepLog').innerHTML=`<li class="ok">🔀 Troca de contexto: o SO carregou os registradores da MMU e as tabelas de <b>${PROCS[i].name}</b> (PID ${PROCS[i].pid}) a partir do PCB${state.activeVmTab==='paginacao'?' e invalidou a TLB (sem ASID)':''}.</li>`;
+}
+function resetOutputs(){$('#chalBox').innerHTML='';$('#stepLog').innerHTML='<li>Escolha um cenário e clique em Traduzir.</li>';$('#resBox').innerHTML='<h4>📍 Resultado</h4><span style="color:var(--muted)">Aguardando tradução…</span>'}
+
+/* =========================================================
+   MOTOR DE ANIMAÇÃO: pacotes de bits percorrendo os barramentos
+   ========================================================= */
+function clearBoard(){
+ $$('#board .blk').forEach(b=>b.classList.remove('active','ok','warn','bad','regload'));
+ $$('#board tr.hl,#board tr.new').forEach(r=>r.classList.remove('hl','new'));
+ $$('#board .rc').forEach(r=>r.classList.remove('hit','dim'));
+ $$('#board .blk.logic .bv,#board .blk.exc .bv').forEach(v=>v.textContent='—');
+ $('#busSvg').innerHTML='';$$('#board .packet').forEach(p=>p.remove());const ex=$('#b-exc');if(ex)ex.style.opacity='';
+}
+async function hop(fromId,toId,label,bad,sp){
+ const box=$('#board'),A=$('#'+fromId),B=$('#'+toId);if(!A||!B)return;
+ const br=box.getBoundingClientRect(),c=e=>{const r=e.getBoundingClientRect();return[r.left-br.left+r.width/2,r.top-br.top+r.height/2]};
+ const[x1,y1]=c(A),[x2,y2]=c(B),svg=$('#busSvg');svg.setAttribute('viewBox',`0 0 ${br.width} ${br.height}`);
+ const ln=document.createElementNS(NS,'path');ln.setAttribute('d',`M${x1} ${y1}L${x2} ${y2}`);ln.setAttribute('class','bus on'+(bad?' bad':''));svg.appendChild(ln);
+ const pk=document.createElement('div');pk.className='packet'+(bad?' bad':'');pk.textContent=label||'●';box.appendChild(pk);SFX.bus();
+ const tr=(x,y,s)=>`translate(${x}px,${y}px) translate(-50%,-50%) scale(${s})`;
+ try{await pk.animate([{transform:tr(x1,y1,.6),opacity:0},{opacity:1,offset:.15},{transform:tr(x2,y2,1),opacity:1}],{duration:Math.max(220,650*sp),easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'}).finished}catch(e){}
+ pk.remove();ln.setAttribute('class','bus '+(bad?'bad on':'done'));
+}
+function setBlock(s){
+ $$('#board .blk.active').forEach(b=>b.classList.remove('active'));
+ const el=$('#b-'+s.blk);if(!el)return;
+ el.classList.remove('ok','warn','bad','active');el.classList.add(s.ok===true?'ok':s.ok===false?'bad':s.ok==='warn'?'warn':'active');
+ const v=$('#v-'+s.blk);if(v&&!el.classList.contains('reg'))v.textContent=s.t;
+ if(s.row){let r=$('#'+s.row);
+  if(!r&&s.rowHTML&&$('#'+s.tbl)){r=document.createElement('tr');r.id=s.row;r.innerHTML=s.rowHTML;$('#'+s.tbl+' table').appendChild(r)}
+  if(r){r.classList.add('hl');r.scrollIntoView({block:'nearest'})}}
+}
+function logStep(n,s){const li=document.createElement('li');li.className=s.ok===false?'bad':s.ok===true?'ok':'';li.innerHTML=`<b>${n}.</b> ${s.long}`;const l=$('#stepLog');l.appendChild(li);l.scrollTop=l.scrollHeight}
+async function run(m,i,x,T){
+ V.busy=true;$('#btnRun').disabled=true;clearBoard();$('#stepLog').innerHTML='';
+ const sp=V.speed,res=T.res;let last='cpu',n=0;
+ for(const s of T.S){
+  if(s.from)await hop('b-'+s.from,'b-'+s.blk,s.val||'',s.ok===false,sp);
+  setBlock(s);logStep(++n,s);SFX.tick();await wait(300*sp);
+  if(s.ok!==false)last=s.blk;
+ }
+ $$('#board .blk.active').forEach(b=>b.classList.remove('active'));
+ const box=$('#resBox'),P=PROCS[i];
+ if(res.phys!=null){
+  const cell=cellFor(m,i,res.phys);
+  await hop('b-'+last,cell?'rc-'+cell.id:'b-ram',h(res.phys),false,sp);
+  $$('#board .rc').forEach(r=>r.classList.add('dim'));
+  if(cell){const rc=$('#rc-'+cell.id);rc.classList.remove('dim');rc.classList.add('hit');rc.scrollIntoView({block:'nearest'})}
+  if(res.tlbIns){V.tlb.push(res.tlbIns);if(V.tlb.length>4)V.tlb.shift();$('#tlbT').innerHTML=tlbRows();const r=$('#trow-'+res.tlbIns.vpn);if(r)r.classList.add('new')}
+  if(res.dirty!=null){PT[i][res.dirty].d=1;const r=$('#prow-'+res.dirty);if(r&&r.cells[4]){r.cells[4].textContent='1';r.classList.add('new')}}
+  box.innerHTML=`<h4>📍 Resultado</h4><div class="res-ok" style="padding-left:8px">Endereço físico gerado<div class="big">${h(res.phys)}</div><div class="mono">${res.eq}</div><div>Região da RAM: <b>${cell?cell.l:'—'}</b>${res.tlbHit?' · <b style="color:var(--ok)">TLB hit</b>':''}${res.tlbIns?' · entrada inserida na TLB (próximo acesso será hit)':''}</div>${res.dirty!=null?'<div>Escrita: a MMU ligou o bit <b>Dirty</b> da página.</div>':''}</div>`;
+  if(res.tlbHit)unlock('tlb');
+ }else{
+  SFX.bad();const ex=$('#b-exc');ex.style.opacity=1;
+  box.innerHTML=`<h4>📍 Resultado</h4><div class="res-bad" style="padding-left:8px"><b style="color:var(--bad)">${res.msg}</b><div>A MMU não gera endereço físico: ela dispara uma exceção (trap) e o controle passa ao núcleo do SO.</div>${res.pf?'<button class="btn-action primary" id="btnPF" style="margin-top:8px">🛠 Tratar falta de página (SO)</button>':''}</div>`;
+  if(res.fault==='seg'||res.fault==='prot')unlock('seg');
+  if(res.pf)$('#btnPF').onclick=()=>handlePF(m,i,res.pf);
+ }
+ V.busy=false;$('#btnRun').disabled=false;G.modes.add(m);if(G.modes.size===4)unlock('modes');
+}
+async function handlePF(m,i,pf){
+ if(V.busy)return;V.busy=true;
+ const log=t=>{const li=document.createElement('li');li.className='ok';li.innerHTML=t;$('#stepLog').appendChild(li);$('#stepLog').scrollTop=1e5};
+ log('🛠 SO: escolhe um quadro livre na RAM.');await wait(450*V.speed);
+ log('💿 SO: inicia a leitura do bloco no swap (DMA) e bloqueia o processo.');await wait(650*V.speed);
+ if(m==='paginacao'){const e=PT[i][pf.vpn],nf=0x050+V.pfCount++;PT[i][pf.vpn]={pfn:nf,p:1,rw:e.rw,d:0};log(`📝 SO: atualiza a tabela de páginas (P=1, PFN ${h(nf,3)}).`)}
+ else{V.loaded.add(pf.key);log('📝 SO: atualiza a tabela de páginas do segmento (P=1).')}
+ await wait(450*V.speed);log('↩️ SO: reexecuta a instrução. Clique em Traduzir novamente.');
+ renderBoard();unlock('pf');addXP(8);SFX.up();V.busy=false;$('#resBox').innerHTML='<h4>📍 Resultado</h4><span class="mono">Página carregada. Traduza de novo para ver o acesso concluído.</span>';
+}
+
+/* =========================================================
+   TRADUZIR + MODO DESAFIO (previsão com feedback imediato)
+   ========================================================= */
+function readInputs(){
+ const raw=String($('#cOff').value).trim().replace(/^0x/i,''),off=parseInt(raw,16);
+ if(!raw||isNaN(off)||off<0||off>0xFFFFFFFF){toast('⚠️','Endereço inválido','Informe um valor hexadecimal de até 32 bits.');return null}
+ return{off,seg:+$('#cSeg').value||0,op:$('#cOp').value};
+}
+function startTranslate(){
+ if(V.busy)return;const m=state.activeVmTab,i=V.act,x=readInputs();if(!x)return;
+ const T=translate(m,i,x);$('#chalBox').innerHTML='';
+ if(V.chal)askChallenge(m,i,x,T);else{addXP(2);run(m,i,x,T)}
+}
+function distractors(m,i,x,c){
+ const off=x.off>>>0,po=off&0xFFF;let pool;
+ if(m==='particoes'){const{B,L}=PART[i];pool=[off,B,B+L-off,B+off+0x1000,B-off]}
+ else if(m==='segmentacao'){const B=segBase(i,x.seg),L=SEGL[i][x.seg];pool=[off,B,B+L,B+off+0x10,B-off]}
+ else{const pfn=c>>>12;pool=[pfn<<12,off,(pfn<<8)|po,(pfn+po),(po<<12)|pfn,(pfn<<12)+off]}
+ pool=[...new Set(pool.map(v=>v>>>0))].filter(v=>v!==c);
+ while(pool.length<3)pool.push((c+0x1000*(pool.length+1))>>>0);
+ return shuffle(pool).slice(0,3);
+}
+function askChallenge(m,i,x,T){
+ const r=T.res,P=PROCS[i],off=x.off>>>0;
+ const what=m==='paginacao'?`o endereço virtual ${h(off)}`:m==='particoes'?`o offset lógico ${h(off)}`:`o endereço [seg ${x.seg} : ${h(off,4)}]`;
+ let q,opts,right;
+ if(r.phys!=null){q=`Qual será o endereço físico gerado para ${what} (${x.op}) do processo ${P.name}?`;right=h(r.phys);opts=[right,...distractors(m,i,x,r.phys>>>0).map(v=>h(v))].sort((a,b)=>parseInt(a,16)-parseInt(b,16))}
+ else{q=`O que a MMU sinaliza ao tentar acessar ${what} (${x.op}) do processo ${P.name}?`;right=OUT[r.fault];opts=shuffle(Object.values(OUT))}
+ $('#chalBox').innerHTML=`<div class="chal"><div class="qmeta"><span>🎯 Desafio da MMU · acerte para ganhar XP e combo</span><span>Combo ×${G.streak}</span></div><h4>${q}</h4><div class="opts">${opts.map(o=>`<button class="opt mono" data-o="${o}">${o}</button>`).join('')}</div><div id="chalFb"></div><button class="btn-action" id="chalSkip" style="margin-top:8px">Pular desafio e ver a animação</button></div>`;
+ const start=()=>run(m,i,x,T);
+ $('#chalSkip').onclick=()=>{$('#chalBox').innerHTML='';start()};
+ $$('#chalBox .opt').forEach(b=>b.onclick=async()=>{
+  const ok=b.dataset.o===right;$$('#chalBox .opt').forEach(o=>{o.disabled=true;if(o.dataset.o===right)o.classList.add('correct')});if(!ok)b.classList.add('wrong');
+  $('#chalSkip').remove();const gain=judge(ok,10);
+  const why=r.phys!=null?`Cálculo: ${r.eq}.`:`${r.msg}`;
+  $('#chalFb').innerHTML=`<div class="fb ${ok?'ok':'bad'}"><b>${ok?'✔ Correto! +'+gain+' XP':'✘ Não foi dessa vez (o combo recomeça, sem perder nada).'}</b><br>${why}<br>Acompanhe abaixo a animação da MMU confirmando o resultado.</div>`;
+  await wait(900);start();
+ });
+}
+
+/* =========================================================
+   QUIZ DE FIXAÇÃO (opções embaralhadas, textos de tamanho equivalente)
+   ========================================================= */
+const QUIZ=[
+ {q:'Ao "subir" um bloco para a cache L2, o que ocorre?',o:['Gera uma cópia; o original fica nos níveis abaixo','Move o bloco e remove o original dos níveis abaixo','Converte o bloco em instruções executadas na ALU','Comprime o bloco para liberar espaço nas caches'],c:0,e:'Os níveis superiores guardam cópias; o original permanece nos níveis inferiores (por isso as caches são transparentes ao programa).'},
+ {q:'Qual nível da hierarquia tem latência próxima de 10 ns?',fixed:1,o:['Cache L1 (~1 ns)','Cache L2 (~3 ns)','Cache L3 (~10 ns)','Memória RAM (~100 ns)'],c:2,e:'A L3 fica em torno de 30 ciclos (~10 ns); L1 ≈ 4 ciclos, L2 ≈ 10 ciclos e a RAM ≈ 100 ns.'},
+ {q:'O que a MMU faz a cada acesso à memória da CPU?',o:['Traduz o endereço lógico em endereço físico','Escolhe qual processo será executado a seguir','Guarda em cache as instruções mais recentes','Reserva memória física a cada chamada malloc'],c:0,e:'A MMU fica entre a CPU e a RAM, traduz endereços lógicos em físicos e verifica limites e permissões.'},
+ {q:'Em partições, quando ocorre Segmentation Fault na MMU?',o:['Quando o offset é maior ou igual ao limite','Quando a base é maior que o offset gerado','Quando a troca de contexto zera o registrador','Quando a soma resulta em um endereço par'],c:0,e:'O comparador testa Offset < Limit. Se falhar, a MMU levanta exceção e o SO encerra o processo.'},
+ {q:'Qual é a função da TLB na paginação?',o:['Guardar traduções recentes de página para quadro','Armazenar páginas inteiras do processo na RAM','Registrar os endereços dos segmentos do kernel','Controlar a fila de processos prontos do SO'],c:0,e:'A TLB é um cache de traduções (VPN → PFN) dentro da MMU. Um hit resolve em ~1 ciclo, sem consultar a tabela na RAM.'},
+ {q:'Com páginas de 4 KB, como se forma o endereço físico?',o:['PFN concatenado ao offset de 12 bits','VPN somada ao registrador de base','PFN multiplicado pelo limite do segmento','VPN concatenada ao número do segmento'],c:0,e:'Físico = PFN × 4096 + Offset. O offset de 12 bits passa direto da página virtual para o quadro físico.'},
+ {q:'Qual bit indica que a página está na RAM, e não no swap?',o:['Bit de presença/validade (P = 1)','Bit de página suja (Dirty = 1)','Bit de proteção de escrita (R/W)','Bit de uso do endereço lógico'],c:0,e:'Com P = 0 ocorre falta de página: o SO carrega a página do swap e reexecuta a instrução.'},
+ {q:'Qual a principal vantagem da paginação sobre partições?',o:['Elimina a fragmentação externa da memória','Elimina qualquer fragmentação, inclusive interna','Dispensa o uso de tabelas e registradores','Torna a tradução de endereços instantânea'],c:0,e:'Quadros de tamanho fixo eliminam a fragmentação externa; resta apenas a interna, na última página.'},
+ {q:'O que acontece com a TLB numa troca de contexto sem ASID?',o:['É invalidada para evitar traduções alheias','Copia as entradas do processo anterior ao novo','Dobra de tamanho para acomodar o novo processo','Permanece intacta porque o PTBR não muda'],c:0,e:'As entradas pertencem ao espaço de endereçamento do processo anterior; sem ASID, a TLB é descartada (flush).'}];
+const Q={i:0,ok:0,order:[]};
+function quizStart(){Q.i=0;Q.ok=0;Q.order=shuffle(QUIZ.map((_,k)=>k));renderQuiz()}
+function renderQuiz(){
+ const b=$('#quizBody');
+ if(Q.i>=Q.order.length){
+  const pct=Math.round(Q.ok/QUIZ.length*100);if(pct>=80)addXP(20);unlock('quiz');
+  b.innerHTML=`<div class="chal"><h4>🎉 Quiz concluído!</h4><div class="big">${Q.ok} / ${QUIZ.length} acertos (${pct}%)</div><p>${pct>=80?'Excelente! Você domina o caminho do endereço da CPU até a RAM. +20 XP de bônus.':'Bom trabalho! Reveja o painel de Teoria e o laboratório de MMU e tente novamente.'}</p><button class="btn-action primary" id="quizAgain">🔄 Refazer quiz</button></div>`;
+  $('#quizAgain').onclick=quizStart;return;
+ }
+ const q=QUIZ[Q.order[Q.i]],right=q.o[q.c],opts=q.fixed?q.o.slice():shuffle(q.o);
+ b.innerHTML=`<div class="qmeta"><span>Questão ${Q.i+1} de ${QUIZ.length}</span><span>Combo ×${G.streak} · Acertos: ${Q.ok}</span></div><div class="gprog" style="margin-bottom:10px;border-radius:4px;overflow:hidden"><i style="width:${Q.i/QUIZ.length*100}%"></i></div><h4>${q.q}</h4><div class="opts" style="grid-template-columns:1fr">${opts.map(o=>`<button class="opt" data-o="${o}">${o}</button>`).join('')}</div><div id="qFb"></div>`;
+ $$('#quizBody .opt').forEach(btn=>btn.onclick=()=>{
+  const ok=btn.dataset.o===right;$$('#quizBody .opt').forEach(o=>{o.disabled=true;if(o.dataset.o===right)o.classList.add('correct')});if(!ok)btn.classList.add('wrong');
+  const gain=judge(ok,10);if(ok)Q.ok++;
+  $('#qFb').innerHTML=`<div class="fb ${ok?'ok':'bad'}"><b>${ok?'✔ Resposta correta! +'+gain+' XP':'✘ Resposta incorreta. O combo recomeça, sem perder pontos.'}</b><br>${q.e}</div><button class="btn-action primary" id="qNext" style="margin-top:8px">${Q.i+1<QUIZ.length?'Próxima ➜':'Ver resultado ➜'}</button>`;
+  $('#qNext').onclick=()=>{Q.i++;renderQuiz()};
+ });
+}
+
+/* =========================================================
+   INICIALIZAÇÃO E EVENTOS
+   ========================================================= */
+function openInfo(key){$$('#infoTable tbody tr').forEach(r=>r.classList.remove('hl'));if(key&&$('#info-'+key))$('#info-'+key).classList.add('hl');abrirModal('modalInfo')}
+document.addEventListener('DOMContentLoaded',()=>{
+ initTheme();buildHierarchy();renderAllBlocks();updateControls();
+ $('#streakCells').innerHTML='<i></i>'.repeat(5);hud();
+ $('#btnBack').onclick=()=>{if(history.length>1)history.back();else location.reload()};
+ ['btnThemeToggle','btnLabTheme','btnQuizTheme'].forEach(id=>$('#'+id).onclick=toggleTheme);
+ $('#btnMute').onclick=()=>{G.muted=!G.muted;$('#muteIcon').textContent=G.muted?'🔇':'🔊'};
+ $('#btnTheoryToggle').onclick=()=>toggleTheory();$('#btnCloseTheory').onclick=()=>toggleTheory(false);
+ ['btnLabTheory','btnQuizTheory'].forEach(id=>$('#'+id).onclick=()=>toggleTheory(true));
+ $('#btnLoadUp').onclick=copySelectedBlockUp;$('#btnEvictDown').onclick=evictSelectedBlock;
+ $('#btnVirtualMemory').onclick=()=>{abrirModal('modalVirtualMemory');renderLab(true)};
+ $('#btnInfoModal').onclick=()=>openInfo();$('#btnLabInfo').onclick=()=>openInfo(state.activeVmTab);
+ $('#btnQuiz').onclick=()=>{abrirModal('modalQuiz');if(!$('#quizBody').innerHTML)quizStart()};
+ $('#btnBadges').onclick=()=>{renderBadges();abrirModal('modalBadges')};
+ $$('[data-close]').forEach(b=>b.onclick=()=>fecharModal(b.dataset.close));
+ $$('.modal').forEach(m=>m.addEventListener('mousedown',e=>{if(e.target===m)m.classList.remove('open')}));
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const o=$$('.modal.open');if($('#theoryDrawer').classList.contains('open'))toggleTheory(false);else if(o.length)o[o.length-1].classList.remove('open')});
+ $('#procBar').onclick=e=>{const b=e.target.closest('[data-p]');if(b)switchProc(+b.dataset.p)};
+ $('#vmTabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b)switchVmTab(b.dataset.tab)};
+ $('#cScen').onchange=e=>applyScen(+e.target.value);$('#cSeg').onchange=()=>renderBoard();
+ $('#cSpd').onchange=e=>V.speed=+e.target.value;$('#cChal').onchange=e=>V.chal=e.target.value==='1';
+ $('#btnRun').onclick=startTranslate;
+});
+</script>
+</body>
+</html>
