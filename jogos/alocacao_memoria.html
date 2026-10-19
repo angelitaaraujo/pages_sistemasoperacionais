@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Alocação de Memória</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.0.2/dist/basecoat.cdn.min.css">
+  <style>
+/* Skip artifact shell — fixed styles served beside every artifact.
+   Complements basecoat; artifacts override --accent for their own identity. */
+:root {
+  color-scheme: light dark;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+  --accent-text: color-mix(in srgb, var(--accent) 72%, #000);
+  --bg: #f8f9fb;
+  --surface: #ffffff;
+  --text: #14171f;
+  --text-muted: #5b6472;
+  --border: rgba(20, 23, 31, 0.10);
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(20, 23, 31, 0.08);
+  --space: 16px;
+}
+/* Theme resolution. Without data-theme the viewer's system preference decides,
+   as it always did. With it, the artifact's own choice wins in BOTH directions:
+   a page that hardcodes one palette must not be handed the opposite set of
+   tokens by the machine it happens to be opened on. The dark values appear
+   twice because a media query cannot be folded into a selector list.
+   The attribute sits inside :where() so these blocks keep the specificity of a
+   bare :root — the page's own <style> is linked after this file and must go on
+   overriding any token it wants, exactly as it could before. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+    --bg: #101318;
+    --surface: #181c23;
+    --text: #eef1f6;
+    --text-muted: #9aa4b2;
+    --border: rgba(238, 241, 246, 0.12);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+}
+:root:where([data-theme="dark"]) {
+  color-scheme: dark;
+  --accent-text: color-mix(in srgb, var(--accent) 78%, #fff);
+  --bg: #101318;
+  --surface: #181c23;
+  --text: #eef1f6;
+  --text-muted: #9aa4b2;
+  --border: rgba(238, 241, 246, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+:root:where([data-theme="light"]) { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+
+.shell-container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.shell-section { padding: calc(var(--space) * 2) 0; }
+.shell-grid { display: grid; gap: var(--space); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.shell-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: var(--space); }
+.shell-footer { padding: 24px 0 40px; color: var(--text-muted); font-size: 13px; }
+
+.shell-hero { padding: calc(var(--space) * 3) 0 calc(var(--space) * 2); }
+.shell-hero h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.15; margin: 0 0 10px; text-wrap: balance; }
+.shell-hero p { color: var(--text-muted); max-width: 60ch; margin: 0; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space);
+}
+
+.kpi { display: flex; flex-direction: column; gap: 4px; }
+.kpi .kpi-value { font-size: 28px; font-weight: 650; line-height: 1.1; }
+.kpi .kpi-label { font-size: 13px; color: var(--text-muted); }
+.kpi .kpi-delta { font-size: 12.5px; font-weight: 600; }
+.kpi .kpi-delta.up { color: #0a8f3c; }
+.kpi .kpi-delta.down { color: #cf3131; }
+
+table.shell-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.shell-table th {
+  text-align: left; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+table.shell-table th, table.shell-table td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--border); }
+table.shell-table td.num, table.shell-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.shell-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+
+.chart-box { width: 100%; min-height: 220px; }
+.chart-box svg { width: 100%; height: auto; display: block; }
+
+.muted { color: var(--text-muted); }
+.accent { color: var(--accent-text); }
+.shell-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-fade { animation: shell-fade 400ms ease both; }
+  @keyframes shell-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+</style>
+  
+  <style>
+    :root {
+      --accent: #EF692D;
+      --accent-contrast: #FFFFFF;
+      --brand-dark: #1b2621;
+      --brand-mid: #25362e;
+      --brand-primary: #364C41;
+      --brand-surface: #1e2c25;
+      --brand-surface-card: #283a31;
+      --brand-border: #445e51;
+      --brand-neutral: #A3A3A3;
+      --brand-orange: #EF692D;
+      --brand-orange-hover: #d8571e;
+      --frag-hatch: repeating-linear-gradient(45deg, rgba(239,105,45,0.25), rgba(239,105,45,0.25) 6px, rgba(0,0,0,0.3) 6px, rgba(0,0,0,0.3) 12px);
+    }
+
+    [data-theme="light"] {
+      --brand-dark: #f0f4f2;
+      --brand-mid: #e1e9e4;
+      --brand-primary: #364C41;
+      --brand-surface: #ffffff;
+      --brand-surface-card: #f4f8f5;
+      --brand-border: #b8ccbe;
+      --frag-hatch: repeating-linear-gradient(45deg, rgba(239,105,45,0.2), rgba(239,105,45,0.2) 6px, rgba(255,255,255,0.6) 6px, rgba(255,255,255,0.6) 12px);
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--brand-dark);
+      color: var(--text);
+      min-height: 100vh;
+      margin: 0;
+      padding-bottom: 2rem;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    /* Top bar */
+    .app-header {
+      background: linear-gradient(135deg, var(--brand-primary), #202e27);
+      border-bottom: 1px solid var(--brand-border);
+      padding: 0.85rem 1.25rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+    .header-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #FFFFFF;
+      letter-spacing: -0.01em;
+    }
+    .brand-badge {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: var(--brand-orange);
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Custom Button Orange */
+    .btn-orange {
+      background: var(--brand-orange);
+      color: #ffffff;
+      border: 1px solid #d45920;
+      font-weight: 600;
+      padding: 0.5rem 0.95rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+      box-shadow: 0 2px 6px rgba(239, 105, 45, 0.3);
+    }
+    .btn-orange:hover {
+      background: var(--brand-orange-hover);
+      box-shadow: 0 4px 12px rgba(239, 105, 45, 0.45);
+    }
+    .btn-orange:active {
+      transform: scale(0.98);
+    }
+
+    .btn-ghost-icon {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--brand-border);
+      color: inherit;
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: background 0.15s;
+    }
+    .btn-ghost-icon:hover {
+      background: rgba(255,255,255,0.18);
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 0.35rem;
+      border-bottom: 2px solid var(--brand-border);
+      margin: 1.25rem 0 1rem;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 0.65rem 1.1rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      border-radius: 6px 6px 0 0;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+    }
+    .tab-btn.active {
+      color: var(--brand-orange);
+      border-bottom-color: var(--brand-orange);
+      background: rgba(239, 105, 45, 0.08);
+    }
+
+    /* Collapsible Theory Panel */
+    .theory-box {
+      background: var(--brand-surface);
+      border: 1px solid var(--brand-border);
+      border-radius: 8px;
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .theory-toggle {
+      width: 100%;
+      background: var(--brand-surface-card);
+      border: none;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.15s;
+    }
+    .theory-toggle:hover {
+      background: rgba(239, 105, 45, 0.1);
+    }
+    .theory-body {
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      border-top: 1px solid var(--brand-border);
+    }
+    .theory-body.collapsed {
+      display: none;
+    }
+    .theory-card {
+      background: rgba(0,0,0,0.15);
+      border-left: 3px solid var(--brand-orange);
+      padding: 0.6rem 0.8rem;
+      border-radius: 0 6px 6px 0;
+    }
+    [data-theme="light"] .theory-card {
+      background: #eef3f0;
+    }
+    .theory-card strong {
+      display: block;
+      color: var(--brand-orange);
+      margin-bottom: 0.2rem;
+      font-size: 0.88rem;
+    }
+
+    /* Memory Ruler View */
+    .ruler-container {
+      background: var(--brand-surface);
+      border: 1px solid var(--brand-border);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .ruler-ticks {
+      position: relative;
+      height: 22px;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed var(--brand-neutral);
+    }
+    .tick-label {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      font-size: 0.72rem;
+      color: var(--brand-neutral);
+      white-space: nowrap;
+    }
+    .tick-label:first-child { transform: translateX(0); }
+    .tick-label:last-child { transform: translateX(-100%); }
+
+    .memory-bar-wrapper {
+      position: relative;
+      width: 100%;
+      height: 64px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid var(--brand-border);
+      display: flex;
+    }
+    [data-theme="light"] .memory-bar-wrapper {
+      background: #d6e0da;
+    }
+
+    .mem-block {
+      position: relative;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-size: 0.75rem;
+      font-weight: 600;
+      user-select: none;
+      cursor: pointer;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease, filter 0.15s;
+      border-right: 1px solid rgba(0,0,0,0.35);
+    }
+    .mem-block:hover {
+      filter: brightness(1.15);
+      z-index: 5;
+    }
+    .mem-block.free {
+      background: rgba(163, 163, 163, 0.18);
+      color: var(--brand-neutral);
+    }
+    [data-theme="light"] .mem-block.free {
+      background: #e2e8e4;
+      color: #55665d;
+    }
+    .mem-block.free.useless-frag {
+      background: repeating-linear-gradient(135deg, rgba(239, 105, 45, 0.15), rgba(239, 105, 45, 0.15) 8px, rgba(163, 163, 163, 0.12) 8px, rgba(163, 163, 163, 0.12) 16px);
+      border: 1px dashed #ef692d;
+    }
+    .mem-block.allocating-pulse {
+      animation: pulse-alloc 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes pulse-alloc {
+      0% { box-shadow: inset 0 0 0 2px var(--brand-orange), 0 0 10px var(--brand-orange); }
+      100% { box-shadow: inset 0 0 0 4px #ffc107, 0 0 20px #ffc107; }
+    }
+
+    .internal-frag {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      background: var(--frag-hatch);
+      border-left: 1px dashed rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: #fff;
+      text-shadow: 0 1px 2px #000;
+      pointer-events: none;
+      padding: 0 3px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    /* Strategy Selector Cards */
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .strategy-card {
+      background: var(--brand-surface);
+      border: 1px solid var(--brand-border);
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .strategy-card:hover {
+      border-color: var(--brand-orange);
+      transform: translateY(-1px);
+    }
+    .strategy-card.selected {
+      border-color: var(--brand-orange);
+      background: rgba(239, 105, 45, 0.12);
+      box-shadow: 0 0 0 1px var(--brand-orange);
+    }
+    .strategy-card input[type="radio"] {
+      position: absolute;
+      top: 0.8rem;
+      right: 0.8rem;
+      accent-color: var(--brand-orange);
+    }
+    .strategy-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    .strategy-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    /* Creator & Controls Row */
+    .action-panel {
+      background: var(--brand-surface);
+      border: 1px solid var(--brand-border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      min-width: 140px;
+    }
+    .field-group label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .field-group input, .field-group select {
+      background: var(--brand-surface-card);
+      border: 1px solid var(--brand-border);
+      border-radius: 6px;
+      padding: 0.5rem 0.65rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field-group input:focus, .field-group select:focus {
+      border-color: var(--brand-orange);
+      box-shadow: 0 0 0 2px rgba(239, 105, 45, 0.25);
+    }
+
+    /* Active Processes & History */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    @media (max-width: 860px) {
+      .two-col-grid { grid-template-columns: 1fr; }
+    }
+
+    .process-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .process-table th, .process-table td {
+      padding: 0.5rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid var(--brand-border);
+    }
+    .process-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .history-log {
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      background: rgba(0,0,0,0.25);
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--brand-border);
+    }
+    [data-theme="light"] .history-log {
+      background: #eef3f0;
+    }
+    .log-item {
+      padding: 0.15rem 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+    .log-time { color: var(--brand-neutral); margin-right: 0.4rem; }
+    .log-alloc { color: #6ee7b7; }
+    .log-free { color: #fca5a5; }
+    .log-compact { color: #fde047; }
+    .log-warn { color: var(--brand-orange); font-weight: 700; }
+
+    /* Buddy Allocator Styles */
+    .buddy-bar-container {
+      background: var(--brand-surface);
+      border: 1px solid var(--brand-border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .buddy-tree-view {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--brand-border);
+      border-radius: 6px;
+      padding: 1rem;
+      min-height: 240px;
+      overflow-x: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    [data-theme="light"] .buddy-tree-view {
+      background: #f7faf8;
+    }
+    .buddy-tree-level {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .buddy-node {
+      border: 1px solid var(--brand-border);
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      min-width: 70px;
+      background: var(--brand-surface-card);
+      transition: all 0.2s ease;
+    }
+    .buddy-node.allocated {
+      border-color: var(--brand-orange);
+      box-shadow: 0 0 6px rgba(239, 105, 45, 0.3);
+    }
+    .buddy-node.split {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+
+    /* Slab Allocator Styles */
+    .slab-category {
+      background: var(--brand-surface);
+      border: 1px solid var(--brand-border);
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .slab-category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+    .slab-cards-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .slab-card {
+      background: var(--brand-surface-card);
+      border: 1px solid var(--brand-border);
+      border-radius: 6px;
+      padding: 0.5rem;
+      min-width: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .slab-card.cheia { border-color: #ef4444; }
+    .slab-card.parcial { border-color: #f59e0b; }
+    .slab-card.vazia { border-color: #10b981; }
+    .slab-cells-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .slab-cell {
+      height: 24px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s, filter 0.15s;
+    }
+    .slab-cell.free {
+      background: rgba(163, 163, 163, 0.18);
+      color: var(--brand-neutral);
+      border: 1px dashed var(--brand-border);
+    }
+    .slab-cell.free:hover {
+      background: rgba(163, 163, 163, 0.35);
+    }
+    .slab-cell.occupied {
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+    }
+    .slab-cell.occupied:hover {
+      transform: scale(1.08);
+      filter: brightness(1.2);
+    }
+
+    /* Tooltip */
+    .tooltip-bar {
+      position: absolute;
+      bottom: -32px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 20;
+    }
+    .mem-block:hover .tooltip-bar {
+      opacity: 1;
+    }
+
+    /* Print styles */
+    @media print {
+      .app-header, .tab-bar, .action-panel, .btn-orange, .btn-ghost-icon, .top-controls {
+        display: none !important;
+      }
+      body { background: #fff; color: #000; }
+      .theory-body { display: grid !important; }
+      .ruler-container, .panel { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="brand-title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-orange)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+          <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M6 16h12"></path>
+        </svg>
+        <span>Simulador de Alocação de Memória</span>
+        <span class="brand-badge">SO Didático</span>
+      </div>
+      <div class="top-controls">
+        <button id="soundToggle" class="btn-ghost-icon" title="Alternar som WebAudio" aria-label="Alternar som">
+          <span id="soundIcon">🔊</span>
+          <span id="soundLabel" class="mono">Som: ON</span>
+        </button>
+        <button id="themeToggle" class="btn-ghost-icon" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+          <span id="themeIcon">🌙</span>
+          <span id="themeLabel">Escuro</span>
+        </button>
+        <button onclick="window.print()" class="btn-ghost-icon" title="Imprimir / Salvar em PDF">
+          <span>🖨️</span> PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="shell-container" style="padding-top: 1rem;">
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-bar" aria-label="Seções do simulador">
+      <button class="tab-btn active" data-tab="tab-dinamica" onclick="switchTab('tab-dinamica')">
+        🧩 1. Alocação Contígua (Régua)
+      </button>
+      <button class="tab-btn" data-tab="tab-buddy" onclick="switchTab('tab-buddy')">
+        ⚡ 2. Alocador Buddy (2ⁿ)
+      </button>
+      <button class="tab-btn" data-tab="tab-slab" onclick="switchTab('tab-slab')">
+        📦 3. Alocador Slab (Linux)
+      </button>
+    </nav>
+
+    <!-- Resumo Teórico Colapsável (Visível em todas as abas) -->
+    <section class="theory-box" aria-labelledby="theoryHead">
+      <button class="theory-toggle" id="theoryToggleBtn" onclick="toggleTheory()">
+        <span id="theoryHead" style="display:flex; align-items:center; gap:0.5rem;">
+          <strong>📖 Teoria em Resumo</strong>
+          <span class="muted" style="font-size:0.8rem; font-weight:normal;">(clique para expandir/recolher)</span>
+        </span>
+        <span id="theoryChevron">▲</span>
+      </button>
+      <div class="theory-body" id="theoryContent">
+        <div class="theory-card">
+          <strong>Best-Fit (Melhor Ajuste)</strong>
+          Escolher a menor área livre onde o bloco couber. Pode gerar fragmentos pequenos e inúteis espalhados pela memória.
+        </div>
+        <div class="theory-card">
+          <strong>Worst-Fit (Pior Ajuste)</strong>
+          Escolher sempre a maior área livre disponível. Pode gerar escassez prematura de áreas grandes para processos futuros.
+        </div>
+        <div class="theory-card">
+          <strong>First-Fit (Primeiro Ajuste)</strong>
+          Escolher a primeira área livre onde o bloco couber, varrendo do início. Solução rápida e eficiente na prática.
+        </div>
+        <div class="theory-card">
+          <strong>Next-Fit (Próximo Ajuste)</strong>
+          Variante da first-fit que continua a busca a partir do último ponto de alocação, visando distribuir as alocações.
+        </div>
+        <div class="theory-card">
+          <strong>Fragmentação Interna</strong>
+          Desperdício dentro da área alocada quando a granularidade do sistema (ex.: células de 50 KB) excede o pedido do processo.
+        </div>
+        <div class="theory-card">
+          <strong>Fragmentação Externa &amp; Compactação</strong>
+          Espaços livres pequenos e espalhados entre processos que impedem novas alocações contíguas. A <em>Compactação</em> move processos para juntar o espaço livre; a <em>Coalescência</em> apenas funde vizinhos livres.
+        </div>
+        <div class="theory-card">
+          <strong>Alocador Buddy System</strong>
+          Memória dividida recursivamente em potências de 2 (2ⁿ). Na liberação, vizinhos "irmãos" (buddies) livres são fundidos novamente em bloco maior.
+        </div>
+        <div class="theory-card">
+          <strong>Alocador Slab (Kernel Linux)</strong>
+          Objetos de tamanho fixo agrupados em slabs categorizadas em: <em>Vazia</em>, <em>Parcial</em> e <em>Cheia</em>. Reduz fragmentação e melhora cache.
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ABA 1: ALOCAÇÃO DINÂMICA (PRINCIPAL)       -->
+    <!-- ========================================== -->
+    <main id="tab-dinamica" class="tab-pane">
+      
+      <!-- Seletor de Estratégias -->
+      <section class="strategy-grid" aria-label="Estratégias de Alocação">
+        <div class="strategy-card selected" onclick="selectStrategy('best')">
+          <input type="radio" name="strategy" id="strat-best" value="best" checked>
+          <label for="strat-best" class="strategy-name">Best-Fit</label>
+          <div class="strategy-desc">Escolhe a <strong>menor área livre</strong> onde o bloco couber. Tende a preservar blocos grandes, mas cria resíduos minúsculos.</div>
+        </div>
+        <div class="strategy-card" onclick="selectStrategy('worst')">
+          <input type="radio" name="strategy" id="strat-worst" value="worst">
+          <label for="strat-worst" class="strategy-name">Worst-Fit</label>
+          <div class="strategy-desc">Escolhe sempre a <strong>maior área livre</strong>. Deixa fragmentos restantes maiores, mas destrói áreas grandes.</div>
+        </div>
+        <div class="strategy-card" onclick="selectStrategy('first')">
+          <input type="radio" name="strategy" id="strat-first" value="first">
+          <label for="strat-first" class="strategy-name">First-Fit</label>
+          <div class="strategy-desc">Escolhe a <strong>primeira área livre</strong> a partir do endereço zero. Rápido e gera pouca sobrecarga computacional.</div>
+        </div>
+        <div class="strategy-card" onclick="selectStrategy('next')">
+          <input type="radio" name="strategy" id="strat-next" value="next">
+          <label for="strat-next" class="strategy-name">Next-Fit</label>
+          <div class="strategy-desc">Variante da first-fit que <strong>continua a busca</strong> do último endereço alocado, distribuindo os blocos.</div>
+        </div>
+      </section>
+
+      <!-- Painel de Ações e Criação de Processo -->
+      <section class="action-panel">
+        <div class="field-group" style="width: 140px;">
+          <label for="memTotalSelect">Total de Memória</label>
+          <select id="memTotalSelect" onchange="changeTotalMemory(this.value)">
+            <option value="500">500 KB</option>
+            <option value="1000" selected>1000 KB (Padrão)</option>
+            <option value="1500">1500 KB</option>
+            <option value="2000">2000 KB</option>
+          </select>
+        </div>
+
+        <div class="field-group" style="width: 110px;">
+          <label for="procName">Nome</label>
+          <input type="text" id="procName" value="P1" maxlength="6" class="mono">
+        </div>
+
+        <div class="field-group" style="width: 130px;">
+          <label for="procSize">Tamanho (KB)</label>
+          <input type="number" id="procSize" value="100" min="5" max="1000" step="5" class="mono">
+        </div>
+
+        <button type="button" class="btn-ghost-icon" onclick="suggestProcess()" title="Gerar novo nome e tamanho aleatório">
+          🎲 Sugerir
+        </button>
+
+        <button type="button" class="btn-orange" onclick="handleCreateProcess()">
+          ➕ Criar Processo
+        </button>
+
+        <div style="flex-grow: 1;"></div>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn-ghost-icon" onclick="coalesceMemory()" title="Funde blocos livres adjacentes sem mover processos">
+            🔗 Coalescer
+          </button>
+          <button type="button" class="btn-ghost-icon" style="border-color: var(--brand-orange);" onclick="defragmentMemory()" title="Compacta processos no início e junta o espaço livre no final">
+            🧹 Desfragmentar (Compactar)
+          </button>
+          <button type="button" class="btn-ghost-icon" onclick="resetMemorySimulation()" title="Limpar toda a memória">
+            ↺ Reiniciar
+          </button>
+        </div>
+      </section>
+
+      <!-- Régua de Memória Principal -->
+      <section class="ruler-container" aria-label="Visualização contínua da memória física">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <div style="font-weight:700; font-size:0.9rem; display:flex; align-items:center; gap:0.4rem;">
+            <span>Fita Contínua de Memória Física</span>
+            <span class="muted" style="font-size:0.75rem;">(Granularidade: 50 KB/célula)</span>
+          </div>
+          <div id="nextFitPointerLabel" class="mono muted" style="font-size:0.75rem;">Ponteiro Next-Fit: 0 KB</div>
+        </div>
+
+        <!-- Ticks / Escala numérica a cada 50 KB -->
+        <div class="ruler-ticks mono" id="rulerTicks"></div>
+
+        <!-- Barra Horizontal Única Contínua -->
+        <div class="memory-bar-wrapper" id="memoryBar"></div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.6rem; font-size:0.75rem;">
+          <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+            <span style="display:inline-flex; align-items:center; gap:0.3rem;">
+              <span style="width:12px; height:12px; background:rgba(163,163,163,0.3); border:1px solid var(--brand-border); border-radius:2px;"></span> Livre
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:0.3rem;">
+              <span style="width:12px; height:12px; background:repeating-linear-gradient(45deg, #ef692d, #ef692d 3px, #000 3px, #000 6px); border-radius:2px;"></span> Frag. Interna (desperdício na célula)
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:0.3rem;">
+              <span style="width:12px; height:12px; border:1px dashed #ef692d; background:rgba(239,105,45,0.2); border-radius:2px;"></span> Fragmento Inútil (&lt; processo atual)
+            </span>
+          </div>
+          <div class="muted mono">Endereço final: <span id="rulerMaxEnd">1000 KB</span></div>
+        </div>
+      </section>
+
+      <!-- Métricas em Tempo Real -->
+      <section class="shell-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 1.25rem;">
+        <div class="kpi">
+          <div class="kpi-label">Memória Livre</div>
+          <div class="kpi-value mono" id="kpiFree">1000 KB</div>
+          <div class="muted" style="font-size:0.7rem;" id="kpiFreeSub">Total disponível</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Memória Ocupada</div>
+          <div class="kpi-value mono" id="kpiAllocated">0 KB</div>
+          <div class="muted" style="font-size:0.7rem;" id="kpiAllocatedPct">0% de utilização</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Frag. Interna Total</div>
+          <div class="kpi-value mono" style="color:var(--brand-orange);" id="kpiInternalFrag">0 KB</div>
+          <div class="muted" style="font-size:0.7rem;">Sobra dentro das células</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Maior Bloco Livre</div>
+          <div class="kpi-value mono" id="kpiLargestFree">1000 KB</div>
+          <div class="muted" style="font-size:0.7rem;" id="kpiFreeRegionsCount">1 região contígua</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Frag. Externa</div>
+          <div class="kpi-value mono" id="kpiExternalFrag">0%</div>
+          <div class="muted" style="font-size:0.7rem;">(Livre - Maior) / Livre</div>
+        </div>
+      </section>
+
+      <!-- Aviso Dinâmico de Fragmentação Externa -->
+      <div id="fragAlert" class="alert" style="display:none; background:rgba(239,105,45,0.15); border:1px solid var(--brand-orange); color:var(--text); margin-bottom:1.25rem; border-radius:8px; padding:0.75rem 1rem;">
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.2rem;">⚠️</span>
+          <div>
+            <strong style="color:var(--brand-orange);">Memória insuficiente (Fragmentação Externa detectada)!</strong>
+            <div style="font-size:0.82rem; margin-top:0.2rem;" id="fragAlertDesc">
+              A soma de espaço livre é suficiente, porém não há nenhum bloco contíguo que suporte o processo. Utilize <strong>"Desfragmentar (Compactar)"</strong> para consolidar os fragmentos livres.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Processos Ativos e Log de Operações -->
+      <section class="two-col-grid">
+        <div class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <h3 style="margin:0; font-size:1rem; font-weight:700;">Processos Ativos</h3>
+            <span class="shell-badge mono" id="procCountBadge">0 processos</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="process-table mono">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tamanho</th>
+                  <th>Células (50 KB)</th>
+                  <th>Frag. Interna</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="procTableBody">
+                <tr><td colspan="5" class="muted" style="text-align:center; padding:1.5rem;">Nenhum processo em execução</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <h3 style="margin:0; font-size:1rem; font-weight:700;">Histórico de Operações</h3>
+            <button class="btn-ghost-icon" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="clearLog()">Limpar</button>
+          </div>
+          <div class="history-log" id="historyLog">
+            <!-- Itens de log são inseridos aqui -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ========================================== -->
+    <!-- ABA 2: ALOCADOR BUDDY                      -->
+    <!-- ========================================== -->
+    <section id="tab-buddy" class="tab-pane" style="display:none;">
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <h2 style="font-size:1.15rem; margin:0 0 0.25rem 0;">Sistema de Alocação Buddy (1024 KB)</h2>
+            <div class="muted" style="font-size:0.82rem;">Divide recursivamente a memória em metades potências de 2 (1024, 512, 256, 128, 64, 32, 16 KB) e refaz a fusão na liberação.</div>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <button class="btn-ghost-icon" id="buddyViewModeBtn" onclick="toggleBuddyView()">
+              Visual: <strong id="buddyViewModeLabel" style="margin-left:4px;">Barra</strong>
+            </button>
+            <button class="btn-ghost-icon" onclick="resetBuddySimulation()">↺ Reiniciar Buddy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-panel">
+        <div class="field-group" style="width: 110px;">
+          <label for="buddyProcName">Nome</label>
+          <input type="text" id="buddyProcName" value="B1" maxlength="6" class="mono">
+        </div>
+        <div class="field-group" style="width: 140px;">
+          <label for="buddyProcSize">Tamanho (KB)</label>
+          <input type="number" id="buddyProcSize" value="70" min="1" max="1024" class="mono">
+        </div>
+        <button type="button" class="btn-ghost-icon" onclick="suggestBuddyProcess()">🎲 Sugerir</button>
+        <button type="button" class="btn-orange" onclick="handleBuddyAllocate()">⚡ Alocar no Buddy</button>
+        <span class="muted" style="font-size:0.8rem; margin-left:auto;" id="buddyAllocHint">Ex.: 70 KB precisa do bloco potência de 128 KB</span>
+      </div>
+
+      <!-- Visualização em Barra dos Buddies -->
+      <div id="buddyBarSection" class="buddy-bar-container">
+        <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.5rem; display:flex; justify-content:space-between;">
+          <span>Blocos Atuais de Memória (Total 1024 KB)</span>
+          <span class="mono muted" style="font-size:0.75rem;">Divisão recursiva dinâmica</span>
+        </div>
+        <div class="memory-bar-wrapper" id="buddyBar" style="height: 56px;"></div>
+      </div>
+
+      <!-- Visualização em Árvore (Alternável) -->
+      <div id="buddyTreeSection" class="buddy-bar-container" style="display:none;">
+        <div style="font-weight:700; font-size:0.85rem; margin-bottom:0.5rem;">
+          Árvore Binária de Divisão dos Buddies
+        </div>
+        <div class="buddy-tree-view" id="buddyTreeView"></div>
+      </div>
+
+      <!-- Métricas & Processos Buddy -->
+      <div class="two-col-grid">
+        <div class="panel">
+          <h3 style="margin:0 0 0.75rem 0; font-size:1rem; font-weight:700;">Processos Ativos no Buddy</h3>
+          <div style="overflow-x:auto;">
+            <table class="process-table mono">
+              <thead>
+                <tr>
+                  <th>Processo</th>
+                  <th>Tamanho Req.</th>
+                  <th>Bloco Alocado</th>
+                  <th>Frag. Interna</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="buddyTableBody">
+                <tr><td colspan="5" class="muted" style="text-align:center; padding:1rem;">Nenhum processo alocado</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 style="margin:0 0 0.75rem 0; font-size:1rem; font-weight:700;">Blocos Livres por Classe</h3>
+          <div id="buddyClassesList" class="mono" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap:0.5rem; font-size:0.82rem;">
+            <!-- Contagem de blocos por tamanho -->
+          </div>
+          <div class="theory-card" style="margin-top:1rem; font-size:0.78rem;">
+            <strong>Fusão de Buddies (Coalescence)</strong>
+            Dois blocos irmãos de tamanho <em>S</em> em endereços contíguos (buddy = end ⊕ S) fundem-se automaticamente em um bloco <em>2S</em> quando ambos ficam livres.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ABA 3: ALOCADOR SLAB (LINUX)               -->
+    <!-- ========================================== -->
+    <section id="tab-slab" class="tab-pane" style="display:none;">
+      <div class="panel" style="margin-bottom:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <h2 style="font-size:1.15rem; margin:0 0 0.25rem 0;">Alocador Slab do Kernel Linux</h2>
+            <div class="muted" style="font-size:0.82rem;">Elimina fragmentação interna em estruturas de dados frequentes mantendo caches de objetos pré-alocados de tamanho fixo.</div>
+          </div>
+          <button class="btn-ghost-icon" onclick="resetSlabSimulation()">↺ Reiniciar Cache Slab</button>
+        </div>
+      </div>
+
+      <div class="action-panel">
+        <div class="field-group" style="width: 220px;">
+          <label for="slabTypeSelect">Tipo de Cache (Estrutura)</label>
+          <select id="slabTypeSelect" onchange="changeSlabType(this.value)">
+            <option value="task_struct">task_struct (512 B | 4 por slab)</option>
+            <option value="inode">inode (256 B | 8 por slab)</option>
+            <option value="file">file (128 B | 16 por slab)</option>
+            <option value="mm_struct">mm_struct (1024 B | 2 por slab)</option>
+          </select>
+        </div>
+
+        <button type="button" class="btn-orange" onclick="allocateSlabObject()">
+          📥 Alocar Objeto no Slab
+        </button>
+
+        <span class="muted" style="font-size:0.8rem; margin-left:auto;">
+          💡 Clique em qualquer <strong>célula colorida</strong> de uma slab para liberar aquele objeto específico!
+        </span>
+      </div>
+
+      <!-- Categorias de Slabs: Cheias, Parciais, Vazias -->
+      <section class="slab-category" style="border-left: 4px solid #f59e0b;">
+        <div class="slab-category-header">
+          <div>
+            <strong style="color:#f59e0b; font-size:0.95rem;">Slabs PARCIAIS</strong>
+            <span class="muted" style="font-size:0.8rem; margin-left:0.4rem;">(Primeira prioridade para alocação)</span>
+          </div>
+          <span class="shell-badge mono" id="slabPartialCount">0 slabs</span>
+        </div>
+        <div class="slab-cards-container" id="slabPartialContainer">
+          <div class="muted" style="font-size:0.8rem; padding:0.5rem;">Nenhuma slab parcial no momento</div>
+        </div>
+      </section>
+
+      <section class="slab-category" style="border-left: 4px solid #10b981;">
+        <div class="slab-category-header">
+          <div>
+            <strong style="color:#10b981; font-size:0.95rem;">Slabs VAZIAS</strong>
+            <span class="muted" style="font-size:0.8rem; margin-left:0.4rem;">(Acionadas quando as parciais lotam; podem ser devolvidas ao SO)</span>
+          </div>
+          <span class="shell-badge mono" id="slabEmptyCount">0 slabs</span>
+        </div>
+        <div class="slab-cards-container" id="slabEmptyContainer">
+          <!-- Slabs vazias -->
+        </div>
+      </section>
+
+      <section class="slab-category" style="border-left: 4px solid #ef4444;">
+        <div class="slab-category-header">
+          <div>
+            <strong style="color:#ef4444; font-size:0.95rem;">Slabs CHEIAS</strong>
+            <span class="muted" style="font-size:0.8rem; margin-left:0.4rem;">(Sem slots livres; voltam para parcial assim que um objeto é liberado)</span>
+          </div>
+          <span class="shell-badge mono" id="slabFullCount">0 slabs</span>
+        </div>
+        <div class="slab-cards-container" id="slabFullContainer">
+          <!-- Slabs cheias -->
+        </div>
+      </section>
+
+      <!-- Slab KPIs -->
+      <section class="shell-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="kpi">
+          <div class="kpi-label">Objetos Alocados</div>
+          <div class="kpi-value mono" id="slabActiveObjs">0</div>
+          <div class="muted" style="font-size:0.7rem;">Em uso ativo</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Capacidade Total</div>
+          <div class="kpi-value mono" id="slabTotalObjs">0</div>
+          <div class="muted" style="font-size:0.7rem;">Objetos pré-alocados</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Uso de Cache</div>
+          <div class="kpi-value mono" id="slabCacheEfficiency">0%</div>
+          <div class="muted" style="font-size:0.7rem;">Aproveitamento da memória slab</div>
+        </div>
+      </section>
+    </section>
+
+  </div>
+
+  <script>
+    /* ==========================================================================
+       ESTADO GLOBAL, ÁUDIO & PREFERÊNCIAS
+       ========================================================================== */
+    const CELL_SIZE = 50; // Granularidade da barra dinâmica (50 KB)
+    const PALETTE = [
+      '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4',
+      '#f59e0b', '#14b8a6', '#6366f1', '#e11d48', '#84cc16'
+    ];
+
+    let audioEnabled = localStorage.getItem('memSim_audio') !== 'false';
+    let currentTheme = localStorage.getItem('memSim_theme') || 'dark';
+
+    // Configuração inicial de Tema
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateThemeUI();
+    updateSoundUI();
+
+    function updateThemeUI() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      document.getElementById('themeIcon').textContent = isDark ? '🌙' : '☀️';
+      document.getElementById('themeLabel').textContent = isDark ? 'Escuro' : 'Claro';
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', now);
+      localStorage.setItem('memSim_theme', now);
+      updateThemeUI();
+    });
+
+    function updateSoundUI() {
+      document.getElementById('soundIcon').textContent = audioEnabled ? '🔊' : '🔇';
+      document.getElementById('soundLabel').textContent = audioEnabled ? 'Som: ON' : 'Som: OFF';
+    }
+
+    document.getElementById('soundToggle').addEventListener('click', () => {
+      audioEnabled = !audioEnabled;
+      localStorage.setItem('memSim_audio', audioEnabled);
+      updateSoundUI();
+      if (audioEnabled) playTone(440, 0.1, 'triangle');
+    });
+
+    // Web Audio Synthesizer para beeps pedagógicos
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTone(freq, duration = 0.12, type = 'sine', rampTo = null) {
+      if (!audioEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        if (rampTo) {
+          osc.frequency.exponentialRampToValueAtTime(rampTo, ctx.currentTime + duration);
+        }
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {
+        // Áudio bloqueado ou não suportado
+      }
+    }
+
+    function soundAlloc() {
+      playTone(320, 0.18, 'sine', 680); // Tom ascendente
+    }
+    function soundFree() {
+      playTone(620, 0.18, 'sine', 220); // Tom descendente
+    }
+    function soundFail() {
+      playTone(200, 0.25, 'sawtooth', 120);
+    }
+    function soundCompact() {
+      playTone(400, 0.22, 'triangle', 520);
+    }
+
+    // Alternador de Abas
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeTab = document.getElementById(tabId);
+      if (activeTab) activeTab.style.display = 'block';
+      const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    // Teoria Colapsável
+    function toggleTheory() {
+      const content = document.getElementById('theoryContent');
+      const chev = document.getElementById('theoryChevron');
+      content.classList.toggle('collapsed');
+      chev.textContent = content.classList.contains('collapsed') ? '▼' : '▲';
+    }
+
+    /* ==========================================================================
+       ABA 1: ALOCAÇÃO DINÂMICA (ESTADO E LÓGICA)
+       ========================================================================== */
+    let memoryTotal = 1000;
+    let selectedStrategy = 'best';
+    let nextFitPointer = 0; // Índice de célula para Next-Fit
+    let procIdCounter = 1;
+    let processColorMap = {};
+
+    // Estrutura de blocos: array de { type: 'free' | 'proc', name?: string, sizeKB?: number, cells: number }
+    let memoryBlocks = [
+      { type: 'free', cells: memoryTotal / CELL_SIZE }
+    ];
+
+    let activeProcesses = []; // { id, name, sizeKB, cells, color, startCell }
+
+    function logHistory(msg, type = 'normal') {
+      const log = document.getElementById('historyLog');
+      const time = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      let cls = '';
+      if (type === 'alloc') cls = 'log-alloc';
+      else if (type === 'free') cls = 'log-free';
+      else if (type === 'compact') cls = 'log-compact';
+      else if (type === 'warn') cls = 'log-warn';
+
+      item.innerHTML = `<span class="log-time">[${time}]</span> <span class="${cls}">${msg}</span>`;
+      log.prepend(item);
+    }
+    function clearLog() {
+      document.getElementById('historyLog').innerHTML = '';
+      logHistory('Log reiniciado.');
+    }
+
+    function selectStrategy(strat) {
+      selectedStrategy = strat;
+      document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('selected'));
+      const card = document.getElementById(`strat-${strat}`).closest('.strategy-card');
+      if (card) card.classList.add('selected');
+      const radio = document.getElementById(`strat-${strat}`);
+      if (radio) radio.checked = true;
+    }
+
+    function changeTotalMemory(newTotal) {
+      memoryTotal = parseInt(newTotal, 10);
+      document.getElementById('rulerMaxEnd').textContent = `${memoryTotal} KB`;
+      resetMemorySimulation();
+      logHistory(`Memória redimensionada para ${memoryTotal} KB`, 'compact');
+    }
+
+    function resetMemorySimulation() {
+      memoryBlocks = [{ type: 'free', cells: memoryTotal / CELL_SIZE }];
+      activeProcesses = [];
+      procIdCounter = 1;
+      nextFitPointer = 0;
+      suggestProcess();
+      renderMemoryBar();
+      updateMetrics();
+      renderProcessTable();
+      logHistory(`Memória reiniciada (${memoryTotal} KB livres)`);
+    }
+
+    function suggestProcess() {
+      const nameField = document.getElementById('procName');
+      const sizeField = document.getElementById('procSize');
+      nameField.value = `P${procIdCounter}`;
+      
+      // Frequentemente sugere valores abaixo de 50 KB ou valores com sobras para evidenciar fragmentação interna
+      const roll = Math.random();
+      let suggestedSize;
+      if (roll < 0.35) {
+        suggestedSize = [10, 15, 25, 30, 45][Math.floor(Math.random() * 5)];
+      } else if (roll < 0.7) {
+        suggestedSize = [60, 75, 90, 120, 140][Math.floor(Math.random() * 5)];
+      } else {
+        suggestedSize = [160, 180, 210, 240, 260][Math.floor(Math.random() * 5)];
+      }
+      sizeField.value = suggestedSize;
+      renderMemoryBar(); // Para atualizar destaque de fragmentos inúteis em relação ao novo tamanho sugerido
+    }
+
+    function handleCreateProcess() {
+      const name = document.getElementById('procName').value.trim() || `P${procIdCounter}`;
+      const sizeKB = parseInt(document.getElementById('procSize').value, 10);
+
+      if (isNaN(sizeKB) || sizeKB <= 0) {
+        alert('Informe um tamanho válido em KB maior que zero.');
+        return;
+      }
+
+      // Arredonda para cima em múltiplos de 50 KB (granularidade da célula)
+      const neededCells = Math.ceil(sizeKB / CELL_SIZE);
+      const allocatedKB = neededCells * CELL_SIZE;
+      const internalFrag = allocatedKB - sizeKB;
+
+      const allocation = findSlotByStrategy(neededCells);
+
+      if (allocation === null) {
+        soundFail();
+        showFragAlert(sizeKB, neededCells * CELL_SIZE);
+        logHistory(`FALHA ao alocar ${name} (${sizeKB} KB): Sem bloco livre contíguo de ${allocatedKB} KB`, 'warn');
+        renderMemoryBar();
+        return;
+      }
+
+      hideFragAlert();
+
+      // Executa a alocação no bloco selecionado
+      const { blockIndex, startCellInBar } = allocation;
+      const freeBlock = memoryBlocks[blockIndex];
+      const remainingCells = freeBlock.cells - neededCells;
+
+      const procColor = PALETTE[(procIdCounter - 1) % PALETTE.length];
+
+      const newProcBlock = {
+        type: 'proc',
+        name,
+        sizeKB,
+        internalFrag,
+        cells: neededCells,
+        color: procColor,
+        startCell: startCellInBar
+      };
+
+      const newBlocks = [];
+      if (remainingCells > 0) {
+        newBlocks.push(newProcBlock);
+        newBlocks.push({ type: 'free', cells: remainingCells });
+      } else {
+        newBlocks.push(newProcBlock);
+      }
+
+      memoryBlocks.splice(blockIndex, 1, ...newBlocks);
+
+      activeProcesses.push({
+        id: procIdCounter,
+        name,
+        sizeKB,
+        cells: neededCells,
+        allocatedKB,
+        internalFrag,
+        color: procColor
+      });
+
+      // Atualiza ponteiro Next-Fit
+      nextFitPointer = (startCellInBar + neededCells) % (memoryTotal / CELL_SIZE);
+      document.getElementById('nextFitPointerLabel').textContent = `Ponteiro Next-Fit: ${nextFitPointer * CELL_SIZE} KB`;
+
+      soundAlloc();
+      logHistory(`Alocado ${name}: ${sizeKB} KB (${neededCells} células de 50 KB = ${allocatedKB} KB, frag. int: ${internalFrag} KB) via ${selectedStrategy.toUpperCase()}`, 'alloc');
+
+      procIdCounter++;
+      suggestProcess();
+      renderMemoryBar(startCellInBar); // Passa o índice para animar pulse
+      updateMetrics();
+      renderProcessTable();
+    }
+
+    function findSlotByStrategy(neededCells) {
+      let currentCellPos = 0;
+      const freeSlots = [];
+
+      for (let i = 0; i < memoryBlocks.length; i++) {
+        const b = memoryBlocks[i];
+        if (b.type === 'free') {
+          if (b.cells >= neededCells) {
+            freeSlots.push({
+              blockIndex: i,
+              startCellInBar: currentCellPos,
+              cells: b.cells
+            });
+          }
+        }
+        currentCellPos += b.cells;
+      }
+
+      if (freeSlots.length === 0) return null;
+
+      if (selectedStrategy === 'first') {
+        return freeSlots[0];
+      }
+
+      if (selectedStrategy === 'best') {
+        // Menor bloco livre que caiba
+        return freeSlots.reduce((prev, curr) => curr.cells < prev.cells ? curr : prev);
+      }
+
+      if (selectedStrategy === 'worst') {
+        // Maior bloco livre disponível
+        return freeSlots.reduce((prev, curr) => curr.cells > prev.cells ? curr : prev);
+      }
+
+      if (selectedStrategy === 'next') {
+        // Busca a partir de nextFitPointer
+        const sortedByPointer = [...freeSlots].sort((a, b) => {
+          const distA = (a.startCellInBar - nextFitPointer + (memoryTotal / CELL_SIZE)) % (memoryTotal / CELL_SIZE);
+          const distB = (b.startCellInBar - nextFitPointer + (memoryTotal / CELL_SIZE)) % (memoryTotal / CELL_SIZE);
+          return distA - distB;
+        });
+        return sortedByPointer[0];
+      }
+
+      return freeSlots[0];
+    }
+
+    function freeProcess(name) {
+      let freed = false;
+      let freedSize = 0;
+      for (let i = 0; i < memoryBlocks.length; i++) {
+        if (memoryBlocks[i].type === 'proc' && memoryBlocks[i].name === name) {
+          freedSize = memoryBlocks[i].sizeKB;
+          memoryBlocks[i] = {
+            type: 'free',
+            cells: memoryBlocks[i].cells
+          };
+          freed = true;
+          break;
+        }
+      }
+
+      if (freed) {
+        activeProcesses = activeProcesses.filter(p => p.name !== name);
+        soundFree();
+        // Coalesce automático de vizinhos
+        autoCoalesce();
+        hideFragAlert();
+        logHistory(`Liberado ${name} (${freedSize} KB) — áreas vizinhas livres fundidas automaticamente`, 'free');
+        renderMemoryBar();
+        updateMetrics();
+        renderProcessTable();
+      }
+    }
+
+    function autoCoalesce() {
+      const merged = [];
+      for (let i = 0; i < memoryBlocks.length; i++) {
+        const curr = memoryBlocks[i];
+        if (merged.length > 0 && merged[merged.length - 1].type === 'free' && curr.type === 'free') {
+          merged[merged.length - 1].cells += curr.cells;
+        } else {
+          merged.push({ ...curr });
+        }
+      }
+      memoryBlocks = merged;
+    }
+
+    function coalesceMemory() {
+      const prevCount = memoryBlocks.length;
+      autoCoalesce();
+      soundCompact();
+      logHistory('Coalescência executada: blocos livres vizinhos fundidos (processos não foram movidos)');
+      renderMemoryBar();
+      updateMetrics();
+    }
+
+    function defragmentMemory() {
+      // Compactação: desloca todos os processos para o início
+      const procs = memoryBlocks.filter(b => b.type === 'proc');
+      const totalAllocatedCells = procs.reduce((acc, p) => acc + p.cells, 0);
+      const totalCells = memoryTotal / CELL_SIZE;
+      const freeCells = totalCells - totalAllocatedCells;
+
+      const newBlocks = [...procs];
+      if (freeCells > 0) {
+        newBlocks.push({ type: 'free', cells: freeCells });
+      }
+
+      memoryBlocks = newBlocks;
+      nextFitPointer = 0;
+      document.getElementById('nextFitPointerLabel').textContent = `Ponteiro Next-Fit: 0 KB`;
+
+      soundCompact();
+      hideFragAlert();
+      logHistory('Desfragmentação concluída: processos compactados no início. Fragmentação externa eliminada (frag. interna mantida)', 'compact');
+      renderMemoryBar();
+      updateMetrics();
+    }
+
+    function showFragAlert(requestedKB, neededKB) {
+      const alertEl = document.getElementById('fragAlert');
+      const descEl = document.getElementById('fragAlertDesc');
+      const freeKB = memoryBlocks.filter(b => b.type === 'free').reduce((acc, b) => acc + (b.cells * CELL_SIZE), 0);
+      
+      descEl.innerHTML = `O processo precisa de <strong>${neededKB} KB</strong> contíguos (${requestedKB} KB req.), e você tem <strong>${freeKB} KB livres no total</strong>, mas espalhados em fragmentos menores. Use o botão <strong>"Desfragmentar (Compactar)"</strong> para consolidar o espaço.`;
+      alertEl.style.display = 'block';
+    }
+
+    function hideFragAlert() {
+      document.getElementById('fragAlert').style.display = 'none';
+    }
+
+    // Renderiza régua e fita de memória
+    function renderMemoryBar(pulsingCellStart = null) {
+      const bar = document.getElementById('memoryBar');
+      const ticks = document.getElementById('rulerTicks');
+      bar.innerHTML = '';
+      ticks.innerHTML = '';
+
+      const totalCells = memoryTotal / CELL_SIZE;
+
+      // Gera ticks da régua
+      const stepTick = 50;
+      for (let kb = 0; kb <= memoryTotal; kb += stepTick) {
+        const pct = (kb / memoryTotal) * 100;
+        const tick = document.createElement('div');
+        tick.className = 'tick-label';
+        tick.style.left = `${pct}%`;
+        tick.textContent = `${kb}`;
+        ticks.appendChild(tick);
+      }
+
+      // Tamanho atualmente sugerido para destacar fragmentos inúteis
+      const currentSuggestedSize = parseInt(document.getElementById('procSize').value, 10) || 50;
+      const neededCellsForCurrent = Math.ceil(currentSuggestedSize / CELL_SIZE);
+
+      let currentCellPos = 0;
+      memoryBlocks.forEach(b => {
+        const widthPct = (b.cells / totalCells) * 100;
+        const startKB = currentCellPos * CELL_SIZE;
+        const endKB = (currentCellPos + b.cells) * CELL_SIZE;
+
+        const blockEl = document.createElement('div');
+        blockEl.className = 'mem-block';
+        blockEl.style.width = `${widthPct}%`;
+
+        if (b.type === 'free') {
+          blockEl.classList.add('free');
+          // Se for menor do que o processo que o usuário está prestes a alocar, destaca como fragmento inútil
+          if (b.cells < neededCellsForCurrent) {
+            blockEl.classList.add('useless-frag');
+            blockEl.title = `Fragmento Inútil: ${b.cells * CELL_SIZE} KB livres (não cabe processo de ${currentSuggestedSize} KB)`;
+          } else {
+            blockEl.title = `Região Livre: ${b.cells * CELL_SIZE} KB [${startKB}–${endKB} KB]`;
+          }
+
+          blockEl.innerHTML = `
+            <span style="font-size:0.75rem;">livre (${b.cells * CELL_SIZE}k)</span>
+            <div class="tooltip-bar">[${startKB}–${endKB} KB] Livre</div>
+          `;
+        } else {
+          // Processo
+          blockEl.style.backgroundColor = b.color;
+          blockEl.style.color = '#FFFFFF';
+          blockEl.title = `${b.name}: ${b.sizeKB} KB (ocupa ${b.cells * CELL_SIZE} KB) [${startKB}–${endKB} KB]`;
+
+          // Destaque animado pulse se for o recém alocado
+          if (pulsingCellStart !== null && currentCellPos === pulsingCellStart) {
+            blockEl.classList.add('allocating-pulse');
+            setTimeout(() => blockEl.classList.remove('allocating-pulse'), 1200);
+          }
+
+          let innerFragHtml = '';
+          if (b.internalFrag > 0) {
+            const fragPctOfBlock = (b.internalFrag / (b.cells * CELL_SIZE)) * 100;
+            innerFragHtml = `
+              <div class="internal-frag" style="width:${fragPctOfBlock}%;" title="Frag. Interna: ${b.internalFrag} KB desperdiçados">
+                ${fragPctOfBlock > 20 ? `-${b.internalFrag}k frag` : ''}
+              </div>
+            `;
+          }
+
+          blockEl.innerHTML = `
+            <div style="z-index:2; text-align:center; text-shadow:0 1px 3px rgba(0,0,0,0.8); line-height:1.2;">
+              <strong>${b.name}</strong><br>
+              <span style="font-size:0.68rem;">${b.sizeKB} KB</span>
+            </div>
+            ${innerFragHtml}
+            <div class="tooltip-bar">[${startKB}–${endKB} KB] ${b.name} (${b.sizeKB} KB)</div>
+          `;
+        }
+
+        bar.appendChild(blockEl);
+        currentCellPos += b.cells;
+      });
+    }
+
+    function updateMetrics() {
+      const freeCells = memoryBlocks.filter(b => b.type === 'free').reduce((acc, b) => acc + b.cells, 0);
+      const freeKB = freeCells * CELL_SIZE;
+      const allocatedKB = memoryTotal - freeKB;
+      const allocPct = ((allocatedKB / memoryTotal) * 100).toFixed(1);
+
+      // Soma da fragmentação interna dos processos ativos
+      const totalInternalFrag = activeProcesses.reduce((acc, p) => acc + p.internalFrag, 0);
+
+      // Regiões livres e maior região contígua
+      const freeBlocks = memoryBlocks.filter(b => b.type === 'free');
+      const freeRegionsCount = freeBlocks.length;
+      const largestFreeCells = freeBlocks.length > 0 ? Math.max(...freeBlocks.map(b => b.cells)) : 0;
+      const largestFreeKB = largestFreeCells * CELL_SIZE;
+
+      // % Fragmentação externa = (livre - maior região) / livre quando livre > 0
+      let externalFragPct = 0;
+      if (freeKB > 0) {
+        externalFragPct = Math.round(((freeKB - largestFreeKB) / freeKB) * 100);
+      }
+
+      document.getElementById('kpiFree').textContent = `${freeKB} KB`;
+      document.getElementById('kpiFreeSub').textContent = `${freeCells} células livres`;
+      document.getElementById('kpiAllocated').textContent = `${allocatedKB} KB`;
+      document.getElementById('kpiAllocatedPct').textContent = `${allocPct}% de utilização`;
+      document.getElementById('kpiInternalFrag').textContent = `${totalInternalFrag} KB`;
+      document.getElementById('kpiLargestFree').textContent = `${largestFreeKB} KB`;
+      document.getElementById('kpiFreeRegionsCount').textContent = `${freeRegionsCount} ${freeRegionsCount === 1 ? 'região livre' : 'regiões livres'}`;
+      document.getElementById('kpiExternalFrag').textContent = `${externalFragPct}%`;
+
+      document.getElementById('procCountBadge').textContent = `${activeProcesses.length} processos`;
+    }
+
+    function renderProcessTable() {
+      const tbody = document.getElementById('procTableBody');
+      if (activeProcesses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center; padding:1.5rem;">Nenhum processo em execução</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = activeProcesses.map(p => `
+        <tr>
+          <td>
+            <span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:${p.color}; margin-right:6px;"></span>
+            <strong>${p.name}</strong>
+          </td>
+          <td>${p.sizeKB} KB</td>
+          <td>${p.cells} (${p.allocatedKB} KB)</td>
+          <td style="color:${p.internalFrag > 0 ? 'var(--brand-orange)' : 'inherit'};">
+            ${p.internalFrag > 0 ? `${p.internalFrag} KB` : '0 KB'}
+          </td>
+          <td>
+            <button class="btn-ghost-icon" style="padding:0.25rem 0.5rem; color:#ef4444; border-color:rgba(239,68,68,0.4);" onclick="freeProcess('${p.name}')" title="Liberar processo ${p.name}">
+              Finalizar
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    /* ==========================================================================
+       ABA 2: ALOCADOR BUDDY (ESTADO E LÓGICA)
+       ========================================================================== */
+    const BUDDY_TOTAL = 1024;
+    const BUDDY_MIN = 16;
+    let buddyTree = null; // Estrutura em árvore binária
+    let buddyProcCounter = 1;
+    let buddyViewMode = 'bar'; // 'bar' ou 'tree'
+
+    class BuddyNode {
+      constructor(size, start, parent = null) {
+        this.size = size;
+        this.start = start;
+        this.parent = parent;
+        this.left = null;
+        this.right = null;
+        this.allocated = false;
+        this.proc = null; // { name, reqSize, color }
+      }
+
+      isLeaf() {
+        return this.left === null && this.right === null;
+      }
+
+      split() {
+        const half = this.size / 2;
+        this.left = new BuddyNode(half, this.start, this);
+        this.right = new BuddyNode(half, this.start + half, this);
+      }
+
+      merge() {
+        this.left = null;
+        this.right = null;
+        this.allocated = false;
+        this.proc = null;
+      }
+    }
+
+    function initBuddy() {
+      buddyTree = new BuddyNode(BUDDY_TOTAL, 0);
+      renderBuddy();
+    }
+
+    function nextPowerOf2(n) {
+      let p = 16;
+      while (p < n) p *= 2;
+      return p;
+    }
+
+    function suggestBuddyProcess() {
+      const name = document.getElementById('buddyProcName');
+      const size = document.getElementById('buddyProcSize');
+      name.value = `B${buddyProcCounter}`;
+      const sizes = [20, 35, 70, 95, 130, 240, 480];
+      const s = sizes[Math.floor(Math.random() * sizes.length)];
+      size.value = s;
+      document.getElementById('buddyAllocHint').textContent = `Ex.: ${s} KB precisa do bloco potência de ${nextPowerOf2(s)} KB`;
+    }
+
+    function findBuddyBlock(node, targetSize) {
+      if (!node.isLeaf()) {
+        const leftFind = findBuddyBlock(node.left, targetSize);
+        if (leftFind) return leftFind;
+        return findBuddyBlock(node.right, targetSize);
+      }
+
+      if (node.allocated) return null;
+      if (node.size < targetSize) return null;
+
+      // Se o tamanho bate exatamente com o menor bloco potência de 2
+      if (node.size === targetSize) return node;
+
+      // Se for maior, subdivide (split) recursivamente
+      if (node.size / 2 >= targetSize) {
+        node.split();
+        return findBuddyBlock(node.left, targetSize);
+      }
+
+      return node;
+    }
+
+    function handleBuddyAllocate() {
+      const name = document.getElementById('buddyProcName').value.trim() || `B${buddyProcCounter}`;
+      const reqSize = parseInt(document.getElementById('buddyProcSize').value, 10);
+
+      if (isNaN(reqSize) || reqSize <= 0 || reqSize > BUDDY_TOTAL) {
+        alert(`Informe um tamanho entre 1 e ${BUDDY_TOTAL} KB.`);
+        return;
+      }
+
+      const targetBlockSize = nextPowerOf2(reqSize);
+      const targetNode = findBuddyBlock(buddyTree, targetBlockSize);
+
+      if (!targetNode) {
+        soundFail();
+        alert(`Não há bloco potência de 2 disponível para comportar ${reqSize} KB (${targetBlockSize} KB necessários).`);
+        return;
+      }
+
+      const color = PALETTE[(buddyProcCounter - 1) % PALETTE.length];
+      targetNode.allocated = true;
+      targetNode.proc = {
+        name,
+        reqSize,
+        blockSize: targetNode.size,
+        internalFrag: targetNode.size - reqSize,
+        color
+      };
+
+      soundAlloc();
+      buddyProcCounter++;
+      suggestBuddyProcess();
+      renderBuddy();
+    }
+
+    function freeBuddyProc(procName) {
+      function searchAndFree(node) {
+        if (!node) return false;
+        if (node.isLeaf()) {
+          if (node.allocated && node.proc && node.proc.name === procName) {
+            node.allocated = false;
+            node.proc = null;
+            return true;
+          }
+          return false;
+        }
+        return searchAndFree(node.left) || searchAndFree(node.right);
+      }
+
+      const found = searchAndFree(buddyTree);
+      if (found) {
+        soundFree();
+        mergeBuddies(buddyTree);
+        renderBuddy();
+      }
+    }
+
+    function mergeBuddies(node) {
+      if (!node || node.isLeaf()) return;
+
+      mergeBuddies(node.left);
+      mergeBuddies(node.right);
+
+      if (node.left && node.right &&
+          node.left.isLeaf() && !node.left.allocated &&
+          node.right.isLeaf() && !node.right.allocated) {
+        node.merge();
+      }
+    }
+
+    function getBuddyLeaves(node, leaves = []) {
+      if (!node) return leaves;
+      if (node.isLeaf()) {
+        leaves.push(node);
+      } else {
+        getBuddyLeaves(node.left, leaves);
+        getBuddyLeaves(node.right, leaves);
+      }
+      return leaves;
+    }
+
+    function renderBuddy() {
+      renderBuddyBar();
+      renderBuddyTreeGraph();
+      renderBuddyTableAndStats();
+    }
+
+    function renderBuddyBar() {
+      const bar = document.getElementById('buddyBar');
+      bar.innerHTML = '';
+      const leaves = getBuddyLeaves(buddyTree);
+
+      leaves.forEach(leaf => {
+        const widthPct = (leaf.size / BUDDY_TOTAL) * 100;
+        const el = document.createElement('div');
+        el.className = 'mem-block';
+        el.style.width = `${widthPct}%`;
+
+        if (leaf.allocated && leaf.proc) {
+          el.style.backgroundColor = leaf.proc.color;
+          el.style.color = '#fff';
+          el.title = `${leaf.proc.name}: ${leaf.proc.reqSize} KB no bloco de ${leaf.size} KB (frag: ${leaf.proc.internalFrag} KB)`;
+          el.innerHTML = `
+            <div style="text-align:center; line-height:1.2; font-size:0.75rem;">
+              <strong>${leaf.proc.name}</strong><br>
+              <span>${leaf.size} KB</span>
+            </div>
+          `;
+        } else {
+          el.classList.add('free');
+          el.title = `Livre: ${leaf.size} KB [${leaf.start}–${leaf.start + leaf.size} KB]`;
+          el.innerHTML = `<span style="font-size:0.75rem;">${leaf.size} KB</span>`;
+        }
+
+        bar.appendChild(el);
+      });
+    }
+
+    function renderBuddyTreeGraph() {
+      const container = document.getElementById('buddyTreeView');
+      container.innerHTML = '';
+
+      const levels = {};
+      function traverse(node, depth) {
+        if (!node) return;
+        if (!levels[depth]) levels[depth] = [];
+        levels[depth].push(node);
+        if (!node.isLeaf()) {
+          traverse(node.left, depth + 1);
+          traverse(node.right, depth + 1);
+        }
+      }
+      traverse(buddyTree, 0);
+
+      Object.keys(levels).forEach(d => {
+        const row = document.createElement('div');
+        row.className = 'buddy-tree-level';
+        levels[d].forEach(node => {
+          const el = document.createElement('div');
+          el.className = 'buddy-node mono';
+          if (node.isLeaf()) {
+            if (node.allocated) {
+              el.classList.add('allocated');
+              el.style.borderColor = node.proc.color;
+              el.innerHTML = `<span style="color:${node.proc.color}; font-weight:700;">${node.proc.name}</span><br>${node.size} KB`;
+            } else {
+              el.innerHTML = `<span class="muted">${node.size} KB</span><br><span style="color:#10b981; font-size:0.7rem;">LIVRE</span>`;
+            }
+          } else {
+            el.classList.add('split');
+            el.innerHTML = `<span>${node.size} KB</span><br><span class="muted" style="font-size:0.65rem;">DIVIDIDO</span>`;
+          }
+          row.appendChild(el);
+        });
+        container.appendChild(row);
+      });
+    }
+
+    function renderBuddyTableAndStats() {
+      const tbody = document.getElementById('buddyTableBody');
+      const leaves = getBuddyLeaves(buddyTree);
+      const allocatedLeaves = leaves.filter(l => l.allocated && l.proc);
+
+      if (allocatedLeaves.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center; padding:1rem;">Nenhum processo alocado</td></tr>';
+      } else {
+        tbody.innerHTML = allocatedLeaves.map(l => `
+          <tr>
+            <td>
+              <span style="display:inline-block; width:10px; height:10px; background:${l.proc.color}; border-radius:2px; margin-right:4px;"></span>
+              <strong>${l.proc.name}</strong>
+            </td>
+            <td>${l.proc.reqSize} KB</td>
+            <td>${l.proc.blockSize} KB</td>
+            <td style="color:var(--brand-orange);">${l.proc.internalFrag} KB</td>
+            <td>
+              <button class="btn-ghost-icon" style="padding:0.2rem 0.5rem; color:#ef4444;" onclick="freeBuddyProc('${l.proc.name}')">Finalizar</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Estatísticas de blocos livres por tamanho
+      const classes = [1024, 512, 256, 128, 64, 32, 16];
+      const counts = {};
+      classes.forEach(c => counts[c] = 0);
+      leaves.forEach(l => {
+        if (!l.allocated) {
+          counts[l.size] = (counts[l.size] || 0) + 1;
+        }
+      });
+
+      const classesEl = document.getElementById('buddyClassesList');
+      classesEl.innerHTML = classes.map(c => `
+        <div style="background:var(--brand-surface-card); border:1px solid var(--brand-border); padding:0.4rem; border-radius:4px; text-align:center;">
+          <strong style="color:var(--brand-orange);">${c} KB</strong><br>
+          <span style="font-size:0.75rem;">${counts[c]} livre(s)</span>
+        </div>
+      `).join('');
+    }
+
+    function toggleBuddyView() {
+      buddyViewMode = buddyViewMode === 'bar' ? 'tree' : 'bar';
+      document.getElementById('buddyViewModeLabel').textContent = buddyViewMode === 'bar' ? 'Barra' : 'Árvore';
+      document.getElementById('buddyBarSection').style.display = buddyViewMode === 'bar' ? 'block' : 'none';
+      document.getElementById('buddyTreeSection').style.display = buddyViewMode === 'tree' ? 'block' : 'none';
+    }
+
+    function resetBuddySimulation() {
+      initBuddy();
+      buddyProcCounter = 1;
+      suggestBuddyProcess();
+    }
+
+    /* ==========================================================================
+       ABA 3: ALOCADOR SLAB (LINUX)
+       ========================================================================== */
+    const SLAB_TYPES = {
+      task_struct: { objSize: 512, objsPerSlab: 4, color: '#3b82f6', label: 'task_struct' },
+      inode: { objSize: 256, objsPerSlab: 8, color: '#10b981', label: 'inode' },
+      file: { objSize: 128, objsPerSlab: 16, color: '#ec4899', label: 'file' },
+      mm_struct: { objSize: 1024, objsPerSlab: 2, color: '#8b5cf6', label: 'mm_struct' }
+    };
+
+    let currentSlabType = 'task_struct';
+    let slabIdSeq = 1;
+    let slabs = []; // { id, total, objs: [ { id, allocated } ] }
+
+    function initSlabs() {
+      slabIdSeq = 1;
+      const cfg = SLAB_TYPES[currentSlabType];
+      slabs = [];
+      // Cria uma slab vazia inicial
+      createEmptySlab(cfg.objsPerSlab);
+      renderSlabs();
+    }
+
+    function createEmptySlab(count) {
+      const s = {
+        id: slabIdSeq++,
+        total: count,
+        objs: []
+      };
+      for (let i = 0; i < count; i++) {
+        s.objs.push({ id: `${s.id}-${i + 1}`, allocated: false });
+      }
+      slabs.push(s);
+      return s;
+    }
+
+    function changeSlabType(val) {
+      currentSlabType = val;
+      initSlabs();
+    }
+
+    function getSlabState(s) {
+      const allocCount = s.objs.filter(o => o.allocated).length;
+      if (allocCount === 0) return 'vazia';
+      if (allocCount === s.total) return 'cheia';
+      return 'parcial';
+    }
+
+    function allocateSlabObject() {
+      const cfg = SLAB_TYPES[currentSlabType];
+
+      // 1. Procura em slabs parciais
+      let targetSlab = slabs.find(s => getSlabState(s) === 'parcial');
+
+      // 2. Se não houver parcial, procura em vazia
+      if (!targetSlab) {
+        targetSlab = slabs.find(s => getSlabState(s) === 'vazia');
+      }
+
+      // 3. Se não houver vazia, cria nova slab vazia
+      if (!targetSlab) {
+        targetSlab = createEmptySlab(cfg.objsPerSlab);
+      }
+
+      // Aloca o primeiro slot livre da slab
+      const freeObj = targetSlab.objs.find(o => !o.allocated);
+      if (freeObj) {
+        freeObj.allocated = true;
+        soundAlloc();
+        renderSlabs();
+      }
+    }
+
+    function freeSlabObject(objId) {
+      for (const s of slabs) {
+        const obj = s.objs.find(o => o.id === objId);
+        if (obj && obj.allocated) {
+          obj.allocated = false;
+          soundFree();
+          renderSlabs();
+          break;
+        }
+      }
+    }
+
+    function renderSlabs() {
+      const cfg = SLAB_TYPES[currentSlabType];
+
+      const partContainer = document.getElementById('slabPartialContainer');
+      const emptyContainer = document.getElementById('slabEmptyContainer');
+      const fullContainer = document.getElementById('slabFullContainer');
+
+      partContainer.innerHTML = '';
+      emptyContainer.innerHTML = '';
+      fullContainer.innerHTML = '';
+
+      let partialCount = 0;
+      let emptyCount = 0;
+      let fullCount = 0;
+      let totalAllocatedObjs = 0;
+      let totalCapacityObjs = 0;
+
+      slabs.forEach(s => {
+        const state = getSlabState(s);
+        const allocInSlab = s.objs.filter(o => o.allocated).length;
+        totalAllocatedObjs += allocInSlab;
+        totalCapacityObjs += s.total;
+
+        if (state === 'parcial') partialCount++;
+        else if (state === 'vazia') emptyCount++;
+        else if (state === 'cheia') fullCount++;
+
+        const card = document.createElement('div');
+        card.className = `slab-card ${state}`;
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700;">
+            <span class="mono">Slab #${s.id}</span>
+            <span class="muted">${allocInSlab}/${s.total}</span>
+          </div>
+          <div class="slab-cells-grid">
+            ${s.objs.map(o => `
+              <div 
+                class="slab-cell ${o.allocated ? 'occupied' : 'free'}" 
+                style="${o.allocated ? `background:${cfg.color};` : ''}"
+                title="${o.allocated ? `Clique para liberar #${o.id}` : `Slot livre #${o.id}`}"
+                onclick="freeSlabObject('${o.id}')"
+              >
+                ${o.allocated ? '●' : '○'}
+              </div>
+            `).join('')}
+          </div>
+        `;
+
+        if (state === 'parcial') partContainer.appendChild(card);
+        else if (state === 'vazia') emptyContainer.appendChild(card);
+        else fullContainer.appendChild(card);
+      });
+
+      if (partialCount === 0) partContainer.innerHTML = '<div class="muted" style="font-size:0.8rem; padding:0.5rem;">Nenhuma slab parcial</div>';
+      if (emptyCount === 0) emptyContainer.innerHTML = '<div class="muted" style="font-size:0.8rem; padding:0.5rem;">Nenhuma slab vazia</div>';
+      if (fullCount === 0) fullContainer.innerHTML = '<div class="muted" style="font-size:0.8rem; padding:0.5rem;">Nenhuma slab cheia</div>';
+
+      document.getElementById('slabPartialCount').textContent = `${partialCount} slabs`;
+      document.getElementById('slabEmptyCount').textContent = `${emptyCount} slabs`;
+      document.getElementById('slabFullCount').textContent = `${fullCount} slabs`;
+
+      document.getElementById('slabActiveObjs').textContent = totalAllocatedObjs;
+      document.getElementById('slabTotalObjs').textContent = totalCapacityObjs;
+
+      const eff = totalCapacityObjs > 0 ? Math.round((totalAllocatedObjs / totalCapacityObjs) * 100) : 0;
+      document.getElementById('slabCacheEfficiency').textContent = `${eff}%`;
+    }
+
+    function resetSlabSimulation() {
+      initSlabs();
+    }
+
+    /* ==========================================================================
+       INICIALIZAÇÃO AO CARREGAR A PÁGINA
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      // 1. Inicia Alocação Contígua com processos didáticos pré-alocados para o aluno entender de imediato
+      renderMemoryBar();
+      updateMetrics();
+      renderProcessTable();
+      logHistory('Simulador iniciado com 1000 KB contínuos livres.');
+
+      // Pré-popula P1 e P2 para demonstrar o visual logo de início
+      document.getElementById('procName').value = 'P1';
+      document.getElementById('procSize').value = '100';
+      handleCreateProcess();
+
+      document.getElementById('procName').value = 'P2';
+      document.getElementById('procSize').value = '30'; // Mostra 20 KB de fragmentação interna
+      handleCreateProcess();
+
+      // 2. Inicia Buddy System
+      initBuddy();
+      suggestBuddyProcess();
+
+      // 3. Inicia Slab Linux
+      initSlabs();
+    });
+  </script>
+<script>
+/* Skip artifact shell — fixed helpers served beside every artifact. */
+(function () {
+  "use strict";
+
+  var fmt = {
+    num: function (v, opts) { return new Intl.NumberFormat("pt-BR", opts || {}).format(v); },
+    brl: function (v) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v); },
+    pct: function (v) { return new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 }).format(v); }
+  };
+
+  // axisFmt keeps axis tick labels short (compact notation) so long values
+  // (e.g. full BRL amounts) never clip against the plot edge.
+  function axisFmt(v) {
+    return fmt.num(v, { notation: "compact", maximumFractionDigits: 1 });
+  }
+
+  // format accepts a function OR one of the fmt names ("num" | "brl" | "pct").
+  function coerceFormat(spec) {
+    if (typeof spec === "function") return spec;
+    if (typeof spec === "string" && fmt[spec]) return fmt[spec];
+    return function (v) { return fmt.num(v); };
+  }
+
+  function accent() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2563eb";
+  }
+  function mutedColor() {
+    return getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#5b6472";
+  }
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function frame(el, w, h) {
+    var svg = svgEl("svg", { viewBox: "0 0 " + w + " " + h, role: "img" });
+    el.innerHTML = "";
+    el.appendChild(svg);
+    return svg;
+  }
+
+  // maxOf guards the axis scale: empty values would give -Infinity (truthy,
+  // so "|| 1" can't catch it) and a non-positive max would flip the chart.
+  function maxOf(values) {
+    var m = values.length ? Math.max.apply(null, values) : 0;
+    return m > 0 ? m : 1;
+  }
+
+  // bar(el, {labels:[], values:[], color?, format?}) — vertical bar chart.
+  function bar(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 12, plotH = H - padT - padB;
+    var step = plotW / n, bw = Math.min(step * 0.62, 64);
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 12, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    cfg.values.forEach(function (v, i) {
+      var bh = Math.max(0, (v / max) * plotH);
+      var x = padL + i * step + (step - bw) / 2;
+      var y = padT + plotH - bh;
+      var r = svgEl("rect", { x: x, y: y, width: bw, height: bh, rx: 4, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(v);
+      r.appendChild(t);
+      svg.appendChild(r);
+      var tx = svgEl("text", { x: x + bw / 2, y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // line(el, {labels:[], values:[], color?, format?}) — single-series line.
+  function line(el, cfg) {
+    var W = 640, H = 280, padL = 46, padB = 30, padT = 12;
+    var svg = frame(el, W, H);
+    var max = maxOf(cfg.values);
+    var n = cfg.values.length;
+    var plotW = W - padL - 16, plotH = H - padT - padB;
+    var color = cfg.color || accent();
+    var f = coerceFormat(cfg.format);
+    for (var g = 0; g <= 4; g++) {
+      var gy = padT + plotH - (plotH * g) / 4;
+      svg.appendChild(svgEl("line", { x1: padL, y1: gy, x2: W - 16, y2: gy, stroke: "currentColor", "stroke-opacity": 0.08 }));
+      var lbl = svgEl("text", { x: padL - 8, y: gy + 4, "text-anchor": "end", "font-size": 10, fill: mutedColor() });
+      lbl.textContent = axisFmt((max * g) / 4);
+      svg.appendChild(lbl);
+    }
+    var pts = cfg.values.map(function (v, i) {
+      var x = padL + (n === 1 ? plotW / 2 : (plotW * i) / (n - 1));
+      var y = padT + plotH - (v / max) * plotH;
+      return [x, y];
+    });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    svg.appendChild(svgEl("path", { d: d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round" }));
+    pts.forEach(function (p, i) {
+      var c = svgEl("circle", { cx: p[0], cy: p[1], r: 3.5, fill: color });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + f(cfg.values[i]);
+      c.appendChild(t);
+      svg.appendChild(c);
+      var tx = svgEl("text", { x: p[0], y: H - 10, "text-anchor": "middle", "font-size": 11, fill: mutedColor() });
+      tx.textContent = cfg.labels[i];
+      svg.appendChild(tx);
+    });
+  }
+
+  // donut(el, {labels:[], values:[], colors?}) — donut with center total.
+  function donut(el, cfg) {
+    var W = 320, H = 280, cx = W / 2, cy = H / 2, R = 92, r = 58;
+    var svg = frame(el, W, H);
+    var total = cfg.values.reduce(function (a, b) { return a + b; }, 0) || 1;
+    var palette = cfg.colors || [accent(), "#1baf7a", "#eda100", "#e34948", "#4a3aa7", "#e87ba4"];
+    var a0 = -Math.PI / 2;
+    cfg.values.forEach(function (v, i) {
+      var a1 = a0 + (v / total) * Math.PI * 2;
+      var large = a1 - a0 > Math.PI ? 1 : 0;
+      var p = ["M", cx + R * Math.cos(a0), cy + R * Math.sin(a0),
+        "A", R, R, 0, large, 1, cx + R * Math.cos(a1), cy + R * Math.sin(a1),
+        "L", cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+        "A", r, r, 0, large, 0, cx + r * Math.cos(a0), cy + r * Math.sin(a0), "Z"].join(" ");
+      var path = svgEl("path", { d: p, fill: palette[i % palette.length] });
+      var t = svgEl("title", {});
+      t.textContent = cfg.labels[i] + ": " + fmt.num(v) + " (" + fmt.pct(v / total) + ")";
+      path.appendChild(t);
+      svg.appendChild(path);
+      a0 = a1;
+    });
+    var center = svgEl("text", { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 20, "font-weight": 650, fill: "currentColor" });
+    center.textContent = fmt.num(total);
+    svg.appendChild(center);
+  }
+
+  window.skipShell = { fmt: fmt };
+  window.skipChart = { bar: bar, line: line, donut: donut };
+})();
+
+</script>
+</body>
+</html>

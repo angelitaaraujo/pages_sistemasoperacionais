@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Caminho da Memória — Jogo de Consolidação</title>
+<title>Caminho da Memória</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --accent:#EF692D;--green:#364C41;--gray:#A3A3A3;--ok:#3FAE7A;--bad:#E5484D;--warn:#E0A030;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -185,8 +185,10 @@ h1{margin:0;font-size:1.25rem;letter-spacing:.02em}h1 span{color:var(--accent);f
     <div class="modal-body">
       <div class="chips" id="procBar" role="tablist" aria-label="Processos"></div>
       <div class="tabs-bar" id="vmTabs">
-        <button class="tab-btn active" data-tab="paginacao">1. Paginação Pura</button><button class="tab-btn" data-tab="segmentacao">2. Segmentação</button>
-        <button class="tab-btn" data-tab="particoes">3. Partições Dinâmicas</button><button class="tab-btn" data-tab="segpag">4. Segmentos com Páginas</button></div>
+        <button class="tab-btn active" data-tab="particoes">1. Partições</button>
+        <button class="tab-btn " data-tab="paginacao">2. Paginação Pura</button>
+        <button class="tab-btn" data-tab="segmentacao">3. Segmentação</button>        
+        <button class="tab-btn" data-tab="segpag">4. Segmentos com Páginas</button></div>
       <div class="vm-ctrl">
         <label>Cenário<select id="cScen"></select></label>
         <label id="lSeg">Segmento<select id="cSeg"></select></label>
