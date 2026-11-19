@@ -1,0 +1,3088 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tradução de Endereços — Paginação</title>
+  <link rel="stylesheet" href="../css/layer.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/esc_styles.css">
+  <style>
+    /* ------------------------------------------------------------------
+       CSS novo desta página. Conflitos com o CSS compartilhado são
+       corrigidos aqui, nunca em css/.
+       ------------------------------------------------------------------ */
+    .app-main { width: 100%; }
+    .modal-backdrop[hidden] { display: none; }
+
+    /* Navegação por abas (mesmo padrão visual do alocacao_memoria.html) */
+    .tab-bar { display: flex; gap: 0.35rem; border-bottom: 2px solid var(--surface-border); overflow-x: auto; padding-bottom: 2px; }
+    .tab-btn { background: transparent; border: none; border-bottom: 3px solid transparent; padding: 0.65rem 1.1rem; font-size: 0.92rem; font-weight: 600; color: var(--text-sub); cursor: pointer; white-space: nowrap; transition: color 0.15s, background-color 0.15s; border-radius: 6px 6px 0 0; }
+    .tab-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.04); }
+    .tab-btn.active { color: var(--accent-orange); border-bottom-color: var(--accent-orange); background: rgba(239, 105, 45, 0.08); }
+    .tab-pane { display: flex; flex-direction: column; gap: 1.25rem; }
+    .tab-pane[hidden] { display: none; }
+    .pg-sub { display: flex; flex-direction: column; gap: 1.25rem; }
+    .pg-sub[hidden] { display: none; }
+
+    /* Aba por páginas: MMU com PTBR, Page, Offset e Frame; sem losango; IRq ao lado da tabela */
+    .mode-page #mmuBase, .mode-page .part-diamond-wrap { display: none; }
+    .mode-page #mmuLimit { grid-column: 3; grid-row: 2; }
+    .mode-page #mmuAddress { grid-column: 2; grid-row: 4; }
+    .mode-page .part-mmu { grid-template-rows: auto auto 84px auto; }
+    .mode-page .part-irq-cell { grid-column: 3; grid-row: 1; align-self: end; }
+    .proc-bar.pages { height: auto; }
+    .mode-page .part-table-cols, .mode-page .part-row { grid-template-columns: 2.8rem 1fr 1fr; }
+    .ram-bar.ram-frames { background-image: repeating-linear-gradient(to top, transparent 0, transparent calc(3.125% - 1px), rgba(255, 255, 255, 0.1) calc(3.125% - 1px), rgba(255, 255, 255, 0.1) 3.125%); }
+    .part-row.is-fault { border-left: 4px solid #ff4757; background: rgba(255, 71, 87, 0.15); }
+
+    /* ------------------------------------------------------------------
+       Aba "por Partição" (cap. 14, seção 14.5, Fig. 14.5)
+       ------------------------------------------------------------------ */
+    .part-scroll { overflow-x: auto; padding: 0.5rem 0; }
+    .part-stage { position: relative; display: grid; grid-template-columns: 170px minmax(440px, 1fr) 150px 130px; grid-template-rows: auto auto auto; column-gap: 3rem; row-gap: 1.4rem; min-width: 1010px; padding: 1rem 0.5rem; }
+    .part-arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; overflow: visible; }
+    .arr { fill: none; stroke: #9fb3c8; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+    .arr.now { stroke: #EF692D; stroke-width: 3.6; filter: drop-shadow(0 0 4px rgba(239, 105, 45, 0.9)); }
+    .arr.bad { stroke: #ff4757; stroke-width: 3.6; filter: drop-shadow(0 0 4px rgba(255, 71, 87, 0.9)); }
+    .arr.dash { stroke-dasharray: 7 5; }
+    .arr-label { font-size: 15px; font-weight: 800; fill: var(--text-main); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; stroke: var(--surface-card); stroke-width: 4px; paint-order: stroke; }
+    .dim { opacity: 0.4; }
+    .now-hl { outline: 3px solid var(--accent-orange); outline-offset: 2px; box-shadow: 0 0 14px var(--accent-orange-glow); }
+    .part-controls { margin: 0.9rem 0 0.6rem; }
+    .part-step-box { margin: 0 0 0.5rem; padding: 0.6rem 0.9rem; background: var(--surface-elevated); border-left: 4px solid var(--accent-orange); border-radius: 4px; font-size: 0.92rem; line-height: 1.5; }
+    .part-step-title { display: block; color: var(--accent-orange); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 2px; }
+    .part-step-text { color: var(--text-main); }
+
+    .part-table-cell { grid-column: 2; grid-row: 1; }
+    .part-proc-cell { grid-column: 1; grid-row: 1; display: flex; justify-content: center; align-items: flex-end; }
+    .proc-box { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+    .proc-title { font-size: 0.72rem; font-weight: 800; color: var(--text-sub); }
+    .proc-out { width: 104px; height: 34px; display: flex; align-items: flex-start; justify-content: flex-start; padding: 2px 4px; font-size: 0.62rem; color: var(--text-sub); border: 2px dashed var(--surface-border); border-bottom: none; cursor: crosshair; user-select: none; }
+    .proc-out:hover { border-color: #ff4757; color: #ff4757; }
+    .proc-bar { cursor: crosshair; position: relative; width: 104px; height: 190px; display: flex; flex-direction: column-reverse; border: 2px solid var(--surface-border); background: var(--surface-elevated); }
+    .proc-seg { position: relative; min-height: 36px; display: flex; flex-direction: column; justify-content: center; padding: 1px 4px; font-size: 0.6rem; line-height: 1.25; color: var(--text-sub); background: rgba(90, 169, 255, 0.14); border-top: 1px solid rgba(90, 169, 255, 0.6); font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .proc-seg:first-child { border-top: none; }
+    .proc-seg.is-target { background: rgba(239, 105, 45, 0.25); }
+    .proc-seg strong { color: var(--text-main); }
+    .proc-ends { position: absolute; left: 4px; right: 4px; display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text-sub); font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .proc-mark { position: absolute; left: -7px; right: -7px; height: 3px; margin-bottom: -1px; background: #2ed573; box-shadow: 0 0 6px #2ed573; z-index: 2; }
+    .proc-mark.bad { background: #ff4757; box-shadow: 0 0 6px #ff4757; }
+    .proc-mark-label { position: absolute; right: 2px; bottom: 4px; padding: 0 3px; font-size: 0.62rem; font-weight: 800; color: var(--text-main); background: var(--surface-card); border-radius: 3px; white-space: nowrap; }
+    .part-cpu-cell { grid-column: 1; grid-row: 2; align-self: end; display: flex; justify-content: center; padding-bottom: 0.5rem; }
+    .part-phys-cell { grid-column: 3; grid-row: 2; align-self: center; }
+    .part-ram-cell { grid-column: 4; grid-row: 1 / span 3; display: flex; flex-direction: column; }
+
+    .part-irq-cell { grid-column: 2; grid-row: 3; justify-self: center; }
+    .part-table-box { max-width: 380px; margin: 0 auto; background: var(--queue-bg); border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.5rem; }
+    .part-table-head { font-size: 0.78rem; font-weight: 700; color: var(--text-sub); padding: 0 0.25rem 0.35rem; }
+    .part-table-cols, .part-row { display: grid; grid-template-columns: 1.6rem 1fr 1fr; gap: 0.25rem; align-items: center; }
+    .part-table-cols { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--text-sub); padding: 0 0.4rem; }
+    .part-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 3px; }
+    .part-row { width: 100%; text-align: left; padding: 0.3rem 0.4rem; font-size: 0.85rem; color: var(--text-main); background: var(--surface-elevated); border: 1px solid var(--surface-border); border-radius: 4px; cursor: pointer; font-family: ui-monospace, Menlo, Consolas, monospace; transition: background-color 0.2s, border-color 0.2s; }
+    .part-row:hover { border-color: var(--accent-orange); }
+    .part-row.is-work { border-left: 4px solid #2ed573; }
+    .part-row.is-sel { background: rgba(239, 105, 45, 0.25); border-color: var(--accent-orange); font-weight: 800; }
+    .pr-idx { color: var(--text-sub); font-weight: 700; }
+    .pr-tag { font-size: 0.62rem; color: var(--text-sub); font-weight: 400; font-family: system-ui, sans-serif; line-height: 1.15; }
+
+    .part-mmu { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(3, minmax(110px, 1fr)); grid-template-rows: auto auto 104px auto; gap: 0.7rem 1.6rem; padding: 0.6rem 1rem 1rem; background: rgba(90, 169, 255, 0.1); border: 2px dashed #5aa9ff; border-radius: 10px; }
+    .part-mmu-title { grid-column: 1 / -1; grid-row: 1; font-size: 0.85rem; font-weight: 800; color: #5aa9ff; letter-spacing: 0.15em; }
+    .mmu-a1 { grid-column: 1; grid-row: 2; } .mmu-a2 { grid-column: 2; grid-row: 2; } .mmu-a3 { grid-column: 3; grid-row: 2; }
+    .mmu-b1 { grid-column: 1; grid-row: 3; align-self: center; } .mmu-b2 { grid-column: 2; grid-row: 3; } .mmu-b3 { grid-column: 3; grid-row: 3; }
+    .mmu-c1 { grid-column: 1; grid-row: 4; } .mmu-c3 { grid-column: 3; grid-row: 4; }
+    .part-field { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0.35rem 0.5rem; min-height: 2.6rem; justify-content: center; background: var(--surface-card); border: 2px solid var(--surface-border); border-radius: 6px; text-align: center; }
+    .pf-label { font-size: 0.68rem; font-weight: 700; text-transform: none; color: var(--text-sub); }
+    .pf-value { font-size: 1rem; font-weight: 800; color: var(--text-main); }
+    .part-field.work-hl { border-color: #2ed573; }
+    .part-diamond-wrap, .part-adder-wrap { display: flex; align-items: center; justify-content: center; }
+    .part-diamond { width: 60px; height: 60px; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; background: var(--surface-card); border: 2px solid var(--accent-orange); }
+    .part-diamond span { transform: rotate(-45deg); font-weight: 800; font-size: 0.8rem; }
+    .part-adder { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; background: var(--surface-card); border: 2px solid var(--accent-orange); }
+    .part-adder.off, .part-phys.off { opacity: 0.35; }
+    .part-irq { text-align: center; padding: 0.4rem 0.7rem; font-size: 0.72rem; font-weight: 700; color: var(--text-sub); border: 2px solid var(--surface-border); border-radius: 6px; background: var(--surface-card); }
+    .part-irq.fire { color: #fff; background: #ff4757; border-color: #ff4757; }
+    .part-sum { text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--text-main); align-self: start; padding-top: 0.2rem; }
+    .part-phys.live { border-color: #2ed573; box-shadow: 0 0 10px rgba(46, 213, 115, 0.45); }
+
+    .ram-title { text-align: left; font-size: 0.85rem; font-weight: 800; color: var(--text-sub); margin-bottom: 0.3rem; }
+    .ram-bar { position: relative; flex: 1; min-height: 500px; width: 64px; border: 2px solid var(--surface-border); background: var(--surface-elevated); }
+    .ram-zero { font-size: 0.75rem; color: var(--text-sub); margin-top: 0.2rem; }
+    .ram-kernel { position: absolute; left: 0; right: 0; top: 0; height: 10%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.6rem; font-weight: 700; text-align: center; color: var(--text-sub); background: repeating-linear-gradient(135deg, rgba(255, 71, 87, 0.18) 0 6px, rgba(255, 71, 87, 0.06) 6px 12px); border-bottom: 2px solid var(--surface-border); }
+    .ram-table-strip { width: 90%; padding: 1px 2px; font-size: 0.55rem; background: rgba(90, 169, 255, 0.3); border: 1px solid #5aa9ff; border-radius: 3px; color: var(--text-main); }
+    .ram-part { position: absolute; left: 0; right: 0; background: rgba(90, 169, 255, 0.16); border-top: 1px solid rgba(90, 169, 255, 0.6); border-bottom: 1px solid rgba(90, 169, 255, 0.6); font-size: 0.6rem; color: var(--text-sub); padding-left: 3px; font-family: ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
+    .ram-part.sel { background: rgba(239, 105, 45, 0.5); border: 2px solid var(--accent-orange); color: var(--text-main); font-weight: 800; z-index: 1; }
+    .ram-result-mark { position: absolute; left: -6px; right: -6px; height: 4px; margin-top: -2px; background: #2ed573; box-shadow: 0 0 8px #2ed573; z-index: 2; }
+    .ram-result-mark[hidden] { display: none; }
+    .ram-tick { position: absolute; left: 100%; margin-left: 8px; transform: translateY(-50%); white-space: nowrap; font-size: 0.66rem; font-weight: 700; font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--text-main); }
+    .ram-tick::before { content: ""; position: absolute; right: 100%; top: 50%; width: 8px; border-top: 1px solid currentColor; }
+    .ram-tick.res { color: #2ed573; font-size: 0.78rem; }
+    .ram-tick.edge { color: var(--accent-orange); }
+
+    /* Tipografia dentro das classes (o preflight zera h2, h3, p, ul). */
+    .panel-title { margin: 0 0 0.6rem 0; font-size: 1rem; font-weight: 700; color: var(--text-main); display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+    .panel-sub { margin: 0; font-size: 0.8rem; font-weight: 400; color: var(--text-sub); }
+    .text-block { margin: 0 0 0.5rem 0; font-size: 0.86rem; line-height: 1.5; color: var(--text-main); }
+    .text-sub { color: var(--text-sub); }
+    .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    .section-title { margin: 0 0 0.6rem 0; font-size: 0.95rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; }
+
+    :focus-visible { outline: 2px solid var(--accent-orange); outline-offset: 2px; }
+
+    /* Controles */
+    .controls-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem 1.5rem; align-items: stretch; }
+    .controls-col { display: flex; flex-direction: column; gap: 0.9rem; justify-content: center; min-width: 0; }
+    .cpu-col { align-items: center; }
+    a.btn-icon { text-decoration: none; }
+
+    /* CPU ilustrativa: placa com pinos nas quatro bordas */
+    .info-line { margin: 0; font-size: 0.86rem; font-weight: 400; color: var(--text-sub); }
+    .cpu-chip { position: relative; width: min(100%, 130px); aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; padding: 0.4rem; text-align: center; background: var(--surface-elevated); border: 2px solid var(--accent-orange); border-radius: 8px; box-shadow: inset 0 0 9px var(--accent-orange-glow); margin: 7px; }
+    .cpu-chip::before, .cpu-chip::after { content: ""; position: absolute; pointer-events: none; }
+    .cpu-chip::before { inset: 9px -7px; background: repeating-linear-gradient(to bottom, transparent 0 4px, var(--neutral-gray) 4px 7px) left / 7px 100% no-repeat, repeating-linear-gradient(to bottom, transparent 0 4px, var(--neutral-gray) 4px 7px) right / 7px 100% no-repeat; }
+    .cpu-chip::after { inset: -7px 9px; background: repeating-linear-gradient(to right, transparent 0 4px, var(--neutral-gray) 4px 7px) top / 100% 7px no-repeat, repeating-linear-gradient(to right, transparent 0 4px, var(--neutral-gray) 4px 7px) bottom / 100% 7px no-repeat; }
+    .cpu-chip-label { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.2em; color: var(--accent-orange); }
+    .cpu-chip-caption { font-size: 0.5rem; text-transform: uppercase; color: var(--text-sub); line-height: 1.1; }
+    .cpu-chip-addr { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.02em; color: var(--text-main); }
+    .field { display: flex; flex-direction: column; gap: 3px; }
+    .field input[type="text"] { width: 16ch; min-width: 16ch; }
+    .addr-input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+    .quick-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--surface-border); }
+    .check-label { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .msg-line { min-height: 1.3em; margin: 0.5rem 0 0 0; font-size: 0.8rem; color: var(--accent-orange); }
+    .note-fixed { margin: 0.75rem 0 0 0; padding: 0.55rem 0.8rem; font-size: 0.84rem; line-height: 1.45; background: var(--surface-elevated); border-left: 4px solid var(--accent-orange); border-radius: 4px; }
+    .status-line { margin: 0.6rem 0 0 0; font-size: 0.84rem; color: var(--text-sub); }
+    .status-line strong { color: var(--accent-orange); }
+    .btn-futuristic:disabled, .btn-secondary-futuristic:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Área de execução */
+    .exec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .panel-box { background: var(--queue-bg); border: 1px dashed var(--surface-border); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+    .panel-box.active { border-style: solid; border-color: var(--accent-orange); box-shadow: inset 0 0 14px var(--accent-orange-glow); }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--surface-border); font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: var(--text-sub); }
+
+    .addr-display { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.04em; margin: 0.25rem 0; }
+    .part-page { color: var(--accent-orange); }
+    .part-offset { color: #5aa9ff; }
+    .part-frame { color: #2ed573; }
+    .src-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--surface-elevated); color: var(--text-sub); border: 1px solid var(--surface-border); vertical-align: middle; }
+    .src-tag.calc { color: #ffa502; border-color: #ffa502; }
+
+    /* Bits */
+    .bits-box { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end; padding: 0.5rem 0; touch-action: pan-y; user-select: none; }
+    .nibble { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .nibble-hex { font-size: 0.72rem; font-weight: 700; color: var(--text-sub); }
+    .nibble-bits { display: flex; align-items: stretch; }
+    .bit-cell { width: 1.55rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; border: 1px solid var(--surface-border); background: var(--surface-elevated); color: var(--text-main); transition: background-color 0.25s, border-color 0.25s; }
+    .bit-cell.side-page { background: rgba(239, 105, 45, 0.2); border-color: var(--accent-orange); }
+    .bit-cell.side-offset { background: rgba(90, 169, 255, 0.2); border-color: #5aa9ff; }
+    .bit-divider { width: 0.9rem; min-height: 2rem; padding: 0; border: none; background: transparent; cursor: ew-resize; position: relative; color: #fff; }
+    .bit-divider::before { content: ""; position: absolute; left: 50%; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; border-radius: 2px; background: #2ed573; box-shadow: 0 0 8px #2ed573; }
+    .bit-divider:disabled { cursor: default; }
+    .bit-divider:disabled::before { background: var(--neutral-gray); box-shadow: none; }
+    .split-caption { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-size: 0.8rem; font-weight: 700; }
+    .split-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+    .split-feedback { margin: 0.5rem 0 0 0; min-height: 1.3em; font-size: 0.84rem; line-height: 1.45; }
+    .split-feedback.bad { color: #ff6b78; }
+    .split-feedback.good { color: #2ed573; }
+
+    /* Passos da MMU */
+    .step-row { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.4rem 0.55rem; font-size: 0.82rem; line-height: 1.4; background: var(--surface-elevated); border-left: 4px solid var(--neutral-gray); border-radius: 4px; opacity: 0.6; transition: opacity 0.25s, border-color 0.25s; }
+    .step-row.active { opacity: 1; border-left-color: var(--accent-orange); }
+    .step-row.done { opacity: 1; border-left-color: #2ed573; }
+    .step-row.failed { opacity: 1; border-left-color: #ff4757; }
+    .step-num { font-weight: 800; color: var(--accent-orange); }
+    .kv { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.84rem; padding: 2px 0; }
+    .kv-key { color: var(--text-sub); }
+
+    /* Tabela de páginas */
+    .pt-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .pt-table th { text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-sub); padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--surface-border); }
+    .pt-table td { padding: 0.4rem; border-bottom: 1px solid var(--surface-border); }
+    .pt-row { transition: background-color 0.25s; }
+    .pt-row.hit { background: rgba(239, 105, 45, 0.22); outline: 2px solid var(--accent-orange); outline-offset: -2px; }
+    .pt-row.fault { background: rgba(255, 71, 87, 0.2); outline: 2px solid #ff4757; outline-offset: -2px; }
+    .pt-empty { color: var(--text-sub); font-style: italic; }
+
+    /* RAM e barramento */
+    .frame-row { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0.55rem; font-size: 0.84rem; background: var(--surface-elevated); border: 1px solid var(--surface-border); border-radius: 4px; transition: background-color 0.25s, border-color 0.25s; }
+    .frame-row.hit { background: rgba(46, 213, 115, 0.2); border-color: #2ed573; }
+    .frame-row.kernel { color: var(--text-sub); font-style: italic; }
+    .offset-chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 800; background: rgba(90, 169, 255, 0.2); border: 1px solid #5aa9ff; color: #5aa9ff; transition: transform 0.5s ease, opacity 0.5s ease; }
+    .offset-flow { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 3.4rem; font-size: 0.78rem; color: var(--text-sub); }
+    .offset-flow .offset-chip.pending { opacity: 0.25; transform: translateY(-16px); }
+    .offset-flow .offset-chip.arrived { opacity: 1; transform: translateY(0); }
+    .bus-box { text-align: center; padding: 0.5rem; border: 2px solid var(--surface-border); border-radius: 8px; background: var(--surface-elevated); }
+    .bus-box.live { border-color: #2ed573; box-shadow: 0 0 12px rgba(46, 213, 115, 0.45); }
+    .bus-value { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.04em; }
+
+    /* Resultado */
+    .result-area { min-height: 4.5rem; }
+    .result-main { margin: 0 0 0.35rem 0; font-size: 1.05rem; font-weight: 700; }
+    .result-note { margin: 0; font-size: 0.82rem; color: var(--text-sub); line-height: 1.45; }
+    .kernel-card { margin-top: 0.75rem; padding: 0.7rem 0.9rem; background: rgba(255, 71, 87, 0.12); border-left: 4px solid #ff4757; border-radius: 4px; font-size: 0.86rem; line-height: 1.5; }
+    .predict-panel { margin-top: 0.75rem; padding: 0.7rem 0.9rem; background: var(--surface-elevated); border-left: 4px solid #5aa9ff; border-radius: 4px; }
+    .predict-panel[hidden], .kernel-card[hidden] { display: none; }
+    .predict-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.4rem; }
+    .predict-row input[type="text"] { width: 16ch; }
+    .predict-hint { margin: 0.6rem 0 0 0; padding: 0.5rem 0.8rem; font-size: 0.86rem; line-height: 1.5; background: rgba(255, 165, 2, 0.12); border-left: 4px solid #ffa502; border-radius: 4px; }
+    .predict-hint:empty { display: none; }
+    .predict-feedback { margin: 0.5rem 0 0 0; font-size: 0.84rem; line-height: 1.5; }
+
+    /* Grade auto-fit para métricas + log */
+    .duo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+
+    /* Selos (botões) e missão atual */
+    .quick-row[hidden], .note-fixed[hidden] { display: none; }
+    .badges-row .badge-item { font: inherit; font-size: 0.88rem; padding: 6px 14px; color: var(--text-sub); cursor: not-allowed; }
+    .badges-row .badge-item.unlocked { cursor: pointer; color: var(--text-main); }
+    .badges-row .badge-item.unlocked.is-open { outline: 2px solid var(--accent-orange); outline-offset: 2px; }
+    .badge-detail { margin-top: 0.75rem; padding: 0.65rem 0.9rem; background: var(--surface-elevated); border-left: 4px solid var(--accent-orange); border-radius: 4px; font-size: 0.88rem; line-height: 1.55; }
+    .badge-detail[hidden], #missionActive[hidden], .mission-done[hidden] { display: none; }
+    .badge-detail-title { display: block; color: var(--accent-orange); margin-bottom: 2px; }
+    .mission-dots { display: flex; gap: 0.4rem; margin: 0.1rem 0 0.9rem; }
+    .mission-dots span { width: 2.2rem; height: 0.45rem; border-radius: 3px; background: var(--surface-border); }
+    .mission-dots span.done { background: #2ed573; }
+    .mission-dots span.current { background: var(--accent-orange); }
+    .mission-title { margin: 0 0 0.35rem 0; font-size: 1.12rem; font-weight: 800; color: var(--text-main); }
+    .mission-goal { margin: 0 0 0.85rem 0; font-size: 0.92rem; line-height: 1.55; color: var(--text-main); }
+    .mission-block { margin: 0 0 0.8rem 0; padding: 0.65rem 0.95rem; background: var(--surface-elevated); border-radius: 6px; font-size: 0.88rem; line-height: 1.55; }
+    .mission-block > strong { display: block; margin-bottom: 0.25rem; color: var(--accent-orange); font-size: 0.78rem; text-transform: uppercase; }
+    .mission-steps { margin: 0; padding-left: 1.3rem; list-style: decimal; }
+    .mission-steps li { margin: 0.2rem 0; }
+    .mission-hint summary { cursor: pointer; font-weight: 700; font-size: 0.88rem; color: var(--text-sub); }
+    .mission-progress { margin: 0.7rem 0 0 0; font-size: 0.88rem; font-weight: 700; color: var(--accent-orange); }
+    .mission-done { padding: 0.85rem 1rem; background: rgba(46, 213, 115, 0.1); border-left: 4px solid #2ed573; border-radius: 6px; }
+    .mission-done-title { display: block; margin-bottom: 0.3rem; font-size: 1rem; color: #2ed573; }
+
+    .modal-box .text-block { color: var(--text-main); }
+    .kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--surface-border); border-radius: 4px; background: var(--surface-elevated); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8rem; }
+    .help-list { margin: 0 0 0.5rem 0; padding: 0; list-style: none; font-size: 0.86rem; line-height: 1.7; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ====================================================================
+       CABEÇALHO
+       ==================================================================== -->
+  <header class="futuristic-header">
+    <div class="top-bar-flex">
+      <div class="brand-title">
+        <span>🧭 Tradução de Endereços</span>
+        <span class="brand-badge">Paginação</span>
+      </div>
+
+      <div class="top-stats-strip">
+        <div class="stat-pill" title="Previsões do endereço físico: certas / feitas">
+          <span>🎯 Previsões</span>
+          <span id="statPredict">0 / 0</span>
+        </div>
+        <div class="stat-pill" title="Previsões certas seguidas">
+          <span>🔥 Sequência</span>
+          <span id="statStreak">0x</span>
+        </div>
+        <div class="stat-pill" title="Selos conquistados">
+          <span>🎖️ Selos</span>
+          <span id="statBadges">0 / 5</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <a id="linkBack" class="btn-icon" href="index.html" aria-label="Voltar para a página inicial dos jogos">← Voltar</a>
+        <button id="btnSoundToggle" class="btn-icon" type="button" aria-label="Alternar som" aria-pressed="true" title="Ativar/Desativar som">
+          <span id="soundIcon">🔊 Som Ativo</span>
+        </button>
+        <button id="btnOpenHelp" class="btn-secondary-futuristic" type="button" aria-haspopup="dialog">⌨️ Como usar</button>
+        <button id="btnThemeToggle" class="btn-icon" type="button" aria-label="Alternar tema claro e escuro">🌓 Tema</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ==================================================================
+         NAVEGAÇÃO ENTRE SEÇÕES (acima da teoria, como no alocacao_memoria.html)
+         ================================================================== -->
+    <nav class="tab-bar" role="tablist" aria-label="Seções da página">
+      <button id="tabBtnPart" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="paneMemPart" data-pane="paneMemPart">🧱 1. Memória virtual por partições</button>
+      <button id="tabBtnSeg" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="paneMemSeg" data-pane="paneMemSeg" tabindex="-1">🧩 2. Memória virtual por segmentos</button>
+      <button id="tabBtnPages" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="paneMemPages" data-pane="paneMemPages" tabindex="-1">📄 3. Memória virtual por páginas</button>
+    </nav>
+
+    <!-- ==================================================================
+         1. TEORIA (cap. 14)
+         ================================================================== -->
+    <details class="theory-details">
+      <summary class="theory-summary">
+        <span>📖 Teoria em Resumo (cap. 14)</span>
+        <span class="text-sub" aria-hidden="true">▼</span>
+      </summary>
+      <div class="theory-grid">
+        <div class="theory-card">
+          <strong>Endereços físicos e lógicos (14.4)</strong>
+          Físicos são os endereços dos bytes da memória física. Lógicos (virtuais) são os usados pelos processos e pelo sistema operacional; o processador gera endereços lógicos e eles precisam ser traduzidos.
+        </div>
+        <div class="theory-card">
+          <strong>MMU (14.4)</strong>
+          Componente de hardware que intercepta os endereços lógicos emitidos pelo processador e envia os endereços físicos correspondentes ao barramento de endereços. Se o acesso não for possível, gera uma interrupção de hardware.
+        </div>
+        <div class="theory-card">
+          <strong>Páginas e quadros (14.7)</strong>
+          O espaço lógico é dividido em blocos de mesmo tamanho, as páginas (geralmente 4 KBytes, 4.096 bytes). A memória física é dividida em quadros do mesmo tamanho. Uma página pode estar em qualquer quadro.
+        </div>
+        <div class="theory-card">
+          <strong>Tabela de páginas e PTBR (14.7.1)</strong>
+          Cada entrada corresponde a uma página e contém o número do quadro. Cada processo tem sua tabela; a tabela ativa é referenciada pelo registrador PTBR (Page Table Base Register).
+        </div>
+        <div class="theory-card">
+          <strong>Intel 80386 (14.7.1)</strong>
+          Endereço lógico de 32 bits = offset de 12 bits (de 0 a 4.095) + número de página de 20 bits. Assim, podem ser endereçadas 2<sup>20</sup> páginas com 2<sup>12</sup> bytes cada (1.048.576 páginas com 4.096 bytes cada).
+        </div>
+        <div class="theory-card">
+          <strong>Falta de página e flag Valid (14.7.1, 14.7.2)</strong>
+          Páginas não usadas são entradas vazias, sem quadro. Acessá-las (ou usar uma página com Valid = 0) gera uma falta de página (page fault): desvio para o núcleo, que deve tratá-la, abortando o processo ou tomando outra medida.
+        </div>
+      </div>
+    </details>
+
+    <!-- ==================================================================
+         ABA 2: MEMÓRIA VIRTUAL POR PARTIÇÕES (cap. 14, seção 14.5, Fig. 14.5)
+         Textos da figura em inglês, como no livro.
+         ================================================================== -->
+    <div id="paneMemPart" class="tab-pane" role="tabpanel" aria-labelledby="tabBtnPart">
+      <section class="glass-card" aria-labelledby="titlePartAddr">
+        <h2 id="titlePartAddr" class="panel-title">🎯 Endereço de trabalho</h2>
+        <p class="info-line">Gerar endereço solicitado pela CPU.</p>
+        <div class="field" style="margin-top:0.6rem;">
+          <label class="control-label" for="partAddrInput">Endereço lógico (decimal)</label>
+          <div class="control-group">
+            <input type="text" id="partAddrInput" class="addr-input" inputmode="numeric" maxlength="6" autocomplete="off" spellcheck="false" aria-describedby="partAddrMsg" value="14257">
+            <button id="btnPartLoad" class="btn-secondary-futuristic" type="button">Carregar</button>
+            <button id="btnPartNew" class="btn-secondary-futuristic" type="button" title="Sorteia um novo endereço lógico e a partição do processo">🎲 Gerar novo endereço</button>
+          </div>
+          <p id="partAddrMsg" class="msg-line" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <div id="partFigureHost">
+      <section id="figureSection" class="glass-card" aria-labelledby="titlePart">
+        <h2 id="titlePart" class="panel-title"><span id="titlePartText">🧱 Memória virtual por partições</span></h2>
+        <p id="partIntro" class="text-block text-sub" style="margin-top:1rem;">A MMU tem um registrador base (B) e um registrador limite (L). Se o endereço lógico A for menor que L, o endereço físico é A + B; caso contrário, a MMU gera uma interrupção (cap. 14, seção 14.5). Clique em uma linha da tabela para destacar a partição na RAM.</p>
+
+        <div class="control-group part-controls">
+          <button id="btnPartBack" class="btn-secondary-futuristic" type="button" title="Voltar um passo (tecla ←)" aria-label="Passo anterior">&lt;&lt; Passo</button>
+          <button id="btnPartPlay" class="btn-futuristic" type="button" title="Executar os passos automaticamente (tecla Espaço)">▶ Play</button>
+          <button id="btnPartForward" class="btn-secondary-futuristic" type="button" title="Avançar um passo (tecla →)" aria-label="Próximo passo">Passo &gt;&gt;</button>
+          <button id="btnPartReset" class="btn-secondary-futuristic" type="button" title="Voltar ao passo 0 (tecla R)">🔄 Reiniciar</button>
+          <label class="control-label" for="partSpeedSelect">Velocidade</label>
+          <select id="partSpeedSelect">
+            <option value="2000">Lenta (2 s)</option>
+            <option value="1300" selected>Média (1,3 s)</option>
+            <option value="700">Rápida (0,7 s)</option>
+          </select>
+        </div>
+
+        <div id="partStepBox" class="part-step-box" role="status" aria-live="polite">
+          <strong id="partStepTitle" class="part-step-title"></strong>
+          <span id="partStepText" class="part-step-text"></span>
+        </div>
+
+        <div class="part-scroll">
+          <div id="partStage" class="part-stage">
+            <svg id="partArrows" class="part-arrows" aria-hidden="true" focusable="false">
+              <defs>
+                <marker id="mkDone" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#9fb3c8"></path></marker>
+                <marker id="mkNow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#EF692D"></path></marker>
+                <marker id="mkBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#ff4757"></path></marker>
+              </defs>
+              <g id="partArrowsG"></g>
+            </svg>
+
+            <!-- Tabela de partições (centro, acima da MMU) -->
+            <div class="part-table-cell">
+              <div id="partTableBox" class="part-table-box">
+                <div id="partTableHead" class="part-table-head mono">Partition Table</div>
+                <div class="part-table-cols mono" aria-hidden="true"><span id="tblCol1"></span><span id="tblCol2">Limit</span><span id="tblCol3">Base</span></div>
+                <div id="partRows" class="part-rows" role="group" aria-label="Linhas da tabela de partições"></div>
+              </div>
+            </div>
+
+            <!-- Processo ativo (esquerda, acima da CPU) -->
+            <div class="part-proc-cell">
+              <div id="procBox" class="proc-box">
+                <div class="proc-title mono">Active process</div>
+                <div id="procOut" class="proc-out mono" title="Clique aqui para escolher um endereço fora do processo (violação)">outside</div>
+                <div id="procBar" class="proc-bar" role="slider" tabindex="0" aria-label="Processo ativo: clique para definir o endereço lógico (setas para cima e para baixo ajustam)" aria-valuemin="0" aria-valuenow="0" title="Clique para definir o endereço lógico"></div>
+              </div>
+            </div>
+
+            <!-- CPU (esquerda) -->
+            <div class="part-cpu-cell">
+              <div id="partCpu" class="cpu-chip" role="img" aria-label="CPU">
+                <span class="cpu-chip-label">CPU</span>
+                <span class="cpu-chip-caption">logical address</span>
+                <span id="partCpuAddr" class="cpu-chip-addr mono">—</span>
+              </div>
+            </div>
+
+            <!-- MMU (centro, abaixo da tabela) -->
+            <div id="partMmu" class="part-mmu">
+              <div class="part-mmu-title mono">MMU</div>
+
+              <div id="mmuPtbr" class="part-field mmu-a1"><span class="pf-label mono">PTBR</span></div>
+              <div id="mmuLimit" class="part-field mmu-a2"><span class="pf-label mono">Limit</span><span id="mmuLimitVal" class="pf-value mono">—</span></div>
+              <div id="mmuBase" class="part-field mmu-a3"><span class="pf-label mono">Base</span><span id="mmuBaseVal" class="pf-value mono">—</span></div>
+
+              <div id="mmuPartition" class="part-field mmu-b1"><span class="pf-label mono">Partition</span><span id="mmuPartitionVal" class="pf-value mono">—</span></div>
+              <div class="part-diamond-wrap mmu-b2"><div id="mmuDiamond" class="part-diamond"><span class="mono">A&lt;L</span></div></div>
+              <div class="part-adder-wrap mmu-b3"><div id="mmuAdder" class="part-adder mono">+</div></div>
+
+              <div id="mmuAddress" class="part-field mmu-c1"><span class="pf-label mono">Address</span><span id="mmuAddressVal" class="pf-value mono">—</span></div>
+                            <div id="mmuSum" class="part-sum mono mmu-c3">—</div>
+            </div>
+
+            <!-- IRq (fora da MMU, abaixo) -->
+            <div class="part-irq-cell">
+              <div id="mmuIrq" class="part-irq mono">IRq: partition violation</div>
+            </div>
+
+            <!-- Endereço físico (fora da MMU) -->
+            <div class="part-phys-cell">
+              <div id="partPhys" class="part-field part-phys"><span class="pf-label mono">physical address</span><span id="partPhysVal" class="pf-value mono">—</span></div>
+            </div>
+
+            <!-- RAM (direita), base = 0 e kernel area no topo -->
+            <div class="part-ram-cell">
+              <div class="ram-title mono">RAM</div>
+              <div id="ramBar" class="ram-bar">
+                <div id="ramKernel" class="ram-kernel mono">kernel area<div id="ramTableStrip" class="ram-table-strip">Partition Table</div></div>
+                <div id="ramParts"></div>
+                <div id="ramResultMark" class="ram-result-mark"></div>
+                <div id="ramTicks"></div>
+              </div>
+              <div class="ram-zero mono">0</div>
+            </div>
+          </div>
+        </div>
+
+        <p id="partNote" class="text-sub" style="font-size:0.78rem; margin:0.5rem 0 0 0;">
+          Do livro (Fig. 14.5): as linhas iniciais 10000|6000, 11000|70000 e 15000|41000 e o exemplo 14257 → 55257. Valores sorteados são didáticos. A escala da RAM é ilustrativa. B+L−1 e A+B são calculados.
+        </p>
+      </section>
+      </div><!-- /partFigureHost -->
+    </div><!-- /paneMemPart -->
+
+    <!-- ==================================================================
+         ABA 3: MEMÓRIA VIRTUAL POR SEGMENTOS (cap. 14, seção 14.6, Figs. 14.6 e 14.7)
+         A ilustração (seção "figureSection") é a mesma da aba 2 e é movida para cá.
+         ================================================================== -->
+    <div id="paneMemSeg" class="tab-pane" role="tabpanel" aria-labelledby="tabBtnSeg" hidden>
+      <section class="glass-card" aria-labelledby="titleSegAddr">
+        <h2 id="titleSegAddr" class="panel-title">🎯 Endereço de trabalho</h2>
+        <p class="info-line">Gerar endereço solicitado pela CPU.</p>
+        <div class="field" style="margin-top:0.6rem;">
+          <label class="control-label" for="segAddrInput">Endereço lógico [segmento : offset]</label>
+          <div class="control-group">
+            <input type="text" id="segAddrInput" class="addr-input" inputmode="numeric" maxlength="14" autocomplete="off" spellcheck="false" aria-describedby="segAddrMsg" value="3:6914" placeholder="3:6914">
+            <button id="btnSegLoad" class="btn-secondary-futuristic" type="button">Carregar</button>
+            <button id="btnSegNew" class="btn-secondary-futuristic" type="button" title="Sorteia um novo endereço lógico dentro de um dos segmentos do processo">🎲 Gerar novo endereço</button>
+          </div>
+          <p id="segAddrMsg" class="msg-line" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+      <div id="segFigureHost"></div>
+    </div><!-- /paneMemSeg -->
+
+    <!-- ==================================================================
+         ABA 3: MEMÓRIA VIRTUAL POR PÁGINAS (cap. 14, seção 14.7, Fig. 14.9)
+         Sub-abas: "Memória virtual" (ilustração) e "Tradução de endereços" (a antiga tela 1).
+         ================================================================== -->
+    <div id="paneMemPages" class="tab-pane" role="tabpanel" aria-labelledby="tabBtnPages" hidden>
+      <nav class="tab-bar" role="tablist" aria-label="Seções da memória virtual por páginas">
+        <button id="subTabPgMem" class="tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="panePgMem" data-pgpane="panePgMem">🧱 Memória virtual</button>
+        <button id="subTabPgTrans" class="tab-btn" type="button" role="tab" aria-selected="false" aria-controls="paneSim" data-pgpane="paneSim" tabindex="-1">🧭 Tradução de endereços</button>
+      </nav>
+
+      <div id="panePgMem" class="pg-sub" role="tabpanel" aria-labelledby="subTabPgMem">
+        <section class="glass-card" aria-labelledby="titlePgAddr">
+          <h2 id="titlePgAddr" class="panel-title">🎯 Endereço de trabalho</h2>
+          <p class="info-line">Gerar endereço solicitado pela CPU.</p>
+          <div class="field" style="margin-top:0.6rem;">
+            <label class="control-label" for="pgAddrInput">Endereço lógico (decimal)</label>
+            <div class="control-group">
+              <input type="text" id="pgAddrInput" class="addr-input" inputmode="numeric" maxlength="6" autocomplete="off" spellcheck="false" aria-describedby="pgAddrMsg" value="3738">
+              <button id="btnPgLoad" class="btn-secondary-futuristic" type="button">Carregar</button>
+              <button id="btnPgNew" class="btn-secondary-futuristic" type="button" title="Sorteia um novo endereço lógico dentro do processo">🎲 Gerar novo endereço</button>
+            </div>
+            <p id="pgAddrMsg" class="msg-line" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+        <div id="pgFigureHost"></div>
+      </div><!-- /panePgMem -->
+
+    <div id="paneSim" class="pg-sub" role="tabpanel" aria-labelledby="subTabPgTrans" hidden>
+
+    <!-- ==================================================================
+         SELOS (botões liberados conforme as missões são concluídas)
+         ================================================================== -->
+    <section class="glass-card" aria-labelledby="titleBadges">
+      <h2 id="titleBadges" class="panel-title">🎖️ Selos</h2>
+      <p class="text-block text-sub">Cada selo é liberado quando você conclui uma missão. Clique em um selo conquistado para rever o que você aprendeu.</p>
+      <div class="badges-row">
+        <button id="badge-divisor" class="badge-item" type="button" disabled></button>
+        <button id="badge-previsao" class="badge-item" type="button" disabled></button>
+        <button id="badge-offset" class="badge-item" type="button" disabled></button>
+        <button id="badge-falta" class="badge-item" type="button" disabled></button>
+        <button id="badge-mestre" class="badge-item" type="button" disabled></button>
+      </div>
+      <div id="badgeDetail" class="badge-detail" role="status" aria-live="polite" hidden>
+        <strong id="badgeDetailTitle" class="badge-detail-title"></strong>
+        <span id="badgeDetailText"></span>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         MISSÃO ATUAL (só uma por vez; a próxima é liberada ao concluir a anterior)
+         ================================================================== -->
+    <section class="glass-card" aria-labelledby="titleMissions">
+      <h2 id="titleMissions" class="panel-title">
+        <span>🎯 Missões de aprendizagem</span>
+        <span id="missionCounter" class="panel-sub"></span>
+      </h2>
+      <div id="missionDots" class="mission-dots" aria-hidden="true"></div>
+
+      <div id="missionActive">
+        <h3 id="missionTitle" class="mission-title"></h3>
+        <p id="missionGoal" class="mission-goal"></p>
+        <div class="mission-block">
+          <strong>Como fazer</strong>
+          <ol id="missionSteps" class="mission-steps"></ol>
+        </div>
+        <div class="mission-block">
+          <strong>Pense assim</strong>
+          <p id="missionThink" class="text-block" style="margin:0;"></p>
+        </div>
+        <details class="mission-hint">
+          <summary>💡 Preciso de uma dica</summary>
+          <p id="missionHint" class="text-block" style="margin:0.5rem 0 0 0;"></p>
+        </details>
+        <p id="missionProgress" class="mission-progress" role="status" aria-live="polite"></p>
+      </div>
+
+      <div id="missionDone" class="mission-done" role="status" aria-live="polite" hidden>
+        <strong id="missionDoneTitle" class="mission-done-title"></strong>
+        <p id="missionLearned" class="text-block"></p>
+        <button id="btnNextMission" class="btn-futuristic" type="button"></button>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         2. CONTROLES
+         ================================================================== -->
+    <section class="glass-card" aria-labelledby="titleControls">
+      <h2 id="titleControls" class="panel-title">🎯 Endereço de trabalho</h2>
+
+      <div class="controls-layout">
+        <!-- Coluna 1: endereço lógico -->
+        <div class="controls-col">
+          <p class="info-line">Gerar endereço solicitado pela CPU.</p>
+          <div class="field">
+            <label class="control-label" for="addrInput">Endereço lógico (8 dígitos hex)</label>
+            <div class="control-group">
+              <input type="text" id="addrInput" class="addr-input" maxlength="12" autocomplete="off" spellcheck="false" aria-describedby="addrMsg" value="01803E9A">
+              <button id="btnLoadAddr" class="btn-secondary-futuristic" type="button">Carregar</button>
+              <button id="btnNewAddr" class="btn-secondary-futuristic" type="button" title="Sorteia um novo endereço lógico para traduzir em endereço físico">🎲 Gerar novo endereço</button>
+            </div>
+            <p id="addrMsg" class="msg-line" role="status" aria-live="polite"></p>
+          </div>
+
+          <label class="check-label" for="predictToggle">
+            <input type="checkbox" id="predictToggle">
+            <span>Modo prever (digitar o endereço físico antes do passo 3)</span>
+          </label>
+        </div>
+
+        <!-- Coluna 2: CPU (ilustrativa) com o endereço lógico gerado -->
+        <div class="controls-col cpu-col">
+          <div id="cpuChip" class="cpu-chip" role="img" aria-label="CPU gerando o endereço lógico">
+            <span class="cpu-chip-label">CPU</span>
+            <span class="cpu-chip-caption">endereço lógico gerado</span>
+            <span id="cpuChipAddr" class="cpu-chip-addr mono">—</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         3. MEMÓRIA VIRTUAL (divisor de bits)
+         ================================================================== -->
+    <section class="glass-card" aria-labelledby="titleExec">
+      <h2 id="titleExec" class="panel-title">
+        <span>🖥️ Memória Virtual</span>
+      </h2>
+
+      <!-- Divisor de bits -->
+      <div class="panel-box" id="panelBits">
+        <div class="panel-head">
+          <span>1 · Endereço lógico gerado pela CPU (32 bits)</span>
+          <span id="bitsSource" class="src-tag">livro, 14.7.1</span>
+        </div>
+        <p class="text-block text-sub">Mova o divisor (arraste, use os botões ◀ ▶ ou as setas com o divisor focado) até separar o número da página do offset e confirme.</p>
+        <div id="bitsBox" class="bits-box" role="group" aria-label="32 bits do endereço lógico, agrupados de 4 em 4"></div>
+        <div class="split-caption" aria-hidden="true">
+          <span class="part-page" id="capPage"></span>
+          <span class="part-offset" id="capOffset"></span>
+        </div>
+        <div class="split-actions">
+          <button id="btnSplitLeft" class="btn-secondary-futuristic" type="button" aria-label="Mover o divisor um bit para a esquerda">◀ Divisor</button>
+          <button id="btnSplitRight" class="btn-secondary-futuristic" type="button" aria-label="Mover o divisor um bit para a direita">Divisor ▶</button>
+          <button id="btnConfirmSplit" class="btn-futuristic" type="button">✔ Confirmar divisor</button>
+        </div>
+        <p id="splitFeedback" class="split-feedback" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         4. EXECUÇÃO: CPU, MMU, tabela de páginas e RAM (Fig. 14.9)
+         ================================================================== -->
+    <section class="glass-card" aria-labelledby="titleExecPages">
+      <h2 id="titleExecPages" class="panel-title">
+        <span>🖥️ CPU, MMU, tabela de páginas e RAM</span>
+        <span class="panel-sub">Fig. 14.9 — MMU com paginação</span>
+      </h2>
+
+      <div class="controls-row" style="margin-bottom:0.25rem;">
+        <div class="control-group">
+          <button id="btnPlayPause" class="btn-futuristic" type="button">▶ Play</button>
+          <button id="btnStep" class="btn-secondary-futuristic" type="button" title="Executar o próximo passo (tecla →)">⏭ Passo</button>
+          <button id="btnReset" class="btn-secondary-futuristic" type="button" title="Voltar ao estado inicial (tecla R)">🔄 Reiniciar</button>
+          <label class="control-label" for="speedSelect">Velocidade</label>
+          <select id="speedSelect">
+            <option value="1500">Lenta (1,5 s)</option>
+            <option value="900" selected>Média (0,9 s)</option>
+            <option value="400">Rápida (0,4 s)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="quickRow" class="quick-row" hidden>
+        <span class="control-label">Endereços prontos:</span>
+        <button id="btnQuickExample" class="btn-secondary-futuristic" type="button" data-addr="01803E9A">Exemplo do livro 01803E9Ah</button>
+        <button id="btnQuickMin" class="btn-secondary-futuristic" type="button" data-addr="01803000">Offset 000h</button>
+        <button id="btnQuickMax" class="btn-secondary-futuristic" type="button" data-addr="01803FFF">Offset FFFh</button>
+        <button id="btnQuickZero" class="btn-secondary-futuristic" type="button" data-addr="00000E9A">Página 00000h</button>
+        <button id="btnQuickEmpty" class="btn-secondary-futuristic" type="button" data-addr="00001E9A">Página 00001h (vazia)</button>
+      </div>
+
+      <p class="note-fixed" id="noteGrafia" hidden>página = 20 bits, 5 dígitos hexadecimais (01803h); offset = 12 bits, 3 dígitos (E9Ah)</p>
+      <p id="stageStatus" class="status-line"></p>
+
+
+      <div class="exec-grid">
+        <!-- CPU -->
+        <div class="panel-box" id="panelCpu">
+          <div class="panel-head"><span>⚙️ CPU</span><span class="src-tag">endereço lógico</span></div>
+          <div id="cpuAddr" class="addr-display mono">—</div>
+          <div class="kv"><span class="kv-key">Página</span><span><span id="cpuPage" class="mono part-page">?</span></span></div>
+          <div class="kv"><span class="kv-key">Offset</span><span><span id="cpuOffset" class="mono part-offset">?</span></span></div>
+          <div class="kv"><span class="kv-key">Origem</span><span><span id="cpuSrc" class="src-tag"></span></span></div>
+        </div>
+
+        <!-- MMU -->
+        <div class="panel-box" id="panelMmu">
+          <div class="panel-head"><span>🧮 MMU</span><span class="src-tag">PTBR → tabela ativa</span></div>
+          <div id="stepRow1" class="step-row"><span class="step-num">1</span><span>decompor o endereço lógico em número de página e offset</span></div>
+          <div id="stepRow2" class="step-row"><span class="step-num">2</span><span>obter o número do quadro onde se encontra a página</span></div>
+          <div id="stepRow3" class="step-row"><span class="step-num">3</span><span>compor o número do quadro com o offset; o offset é preservado</span></div>
+          <div class="kv"><span class="kv-key">Quadro obtido</span><span id="mmuFrame" class="mono part-frame">?</span></div>
+          <div class="offset-flow" aria-hidden="true">
+            <span id="offsetChip" class="offset-chip mono pending">—</span>
+            <span>↓ o offset desce intacto</span>
+          </div>
+        </div>
+
+        <!-- Tabela de páginas -->
+        <div class="panel-box" id="panelTable">
+          <div class="panel-head"><span>📑 Tabela de páginas</span><span class="src-tag">Fig. 14.9</span></div>
+          <table class="pt-table">
+            <caption class="text-sub" style="text-align:left; font-size:0.75rem; padding-bottom:0.3rem;">Linhas iniciais da Fig. 14.9 (00000h, 00001h, 01803h) e sorteadas (didático); novos endereços gerados entram aqui.</caption>
+            <thead><tr><th scope="col">Página</th><th scope="col">Quadro</th><th scope="col">Valid <span class="src-tag calc">calculado</span></th></tr></thead>
+            <tbody id="ptBody"></tbody>
+          </table>
+        </div>
+
+        <!-- RAM + barramento -->
+        <div class="panel-box" id="panelRam">
+          <div class="panel-head"><span>🧱 RAM</span><span class="src-tag">quadros</span></div>
+          <div id="ramFrames" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+          <div id="busBox" class="bus-box">
+            <div class="control-label">Barramento de endereços</div>
+            <div id="busValue" class="bus-value mono">—</div>
+            <div id="busSrc" class="src-tag"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resultado -->
+      <div class="panel-box" style="margin-top:1rem;" id="panelResult">
+        <div class="panel-head"><span>📍 Resultado</span><span class="src-tag" id="resultSrcTag"></span></div>
+        <div id="resultArea" class="result-area" role="status" aria-live="polite">
+          <p id="resultMain" class="result-main"></p>
+          <p id="resultNote" class="result-note"></p>
+        </div>
+
+        <div id="kernelCard" class="kernel-card" hidden>
+          <strong>Falta de página (page fault).</strong>
+          A MMU gera uma interrupção e a execução é desviada para o núcleo do sistema operacional, que deve tratar a falta de página, abortando o processo ou tomando outra medida. O tratamento não é simulado aqui.
+        </div>
+
+        <div id="predictPanel" class="predict-panel" hidden>
+          <strong>Modo prever.</strong> A MMU já obteve o quadro. Qual será o endereço físico? (8 dígitos hexadecimais)
+          <div class="predict-row">
+            <label class="control-label" for="predictInput">Endereço físico</label>
+            <input type="text" id="predictInput" class="addr-input" maxlength="12" autocomplete="off" spellcheck="false">
+            <button id="btnCheckPredict" class="btn-futuristic" type="button">Conferir previsão</button>
+            <button id="btnPredictHint" class="btn-secondary-futuristic" type="button" title="Mostra uma dica por vez, sem entregar a resposta">💡 Dica</button>
+            <button id="btnPredictAuto" class="btn-secondary-futuristic" type="button" title="Mostra a resposta certa só para você aprender; não conclui a missão">🪄 Prever automaticamente</button>
+          </div>
+          <p id="predictHint" class="predict-hint" role="status" aria-live="polite"></p>
+          <p id="predictFeedback" class="predict-feedback" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==================================================================
+         4. MÉTRICAS E LOG
+         ================================================================== -->
+    <div class="duo-grid">
+      <section class="glass-card" aria-labelledby="titleMetrics">
+        <h2 id="titleMetrics" class="section-title">📈 Métricas ao vivo</h2>
+        <div class="metrics-grid">
+          <div class="metric-card"><div id="metricSteps" class="metric-num">0 / 3</div><div class="metric-lbl">Passos da MMU</div></div>
+          <div class="metric-card"><div id="metricDone" class="metric-num">0</div><div class="metric-lbl">Traduções completas</div></div>
+          <div class="metric-card"><div id="metricFaults" class="metric-num">0</div><div class="metric-lbl">Faltas de página</div></div>
+          <div class="metric-card"><div id="metricPredict" class="metric-num">0 / 0</div><div class="metric-lbl">Previsões certas</div></div>
+          <div class="metric-card"><div id="metricSplitMiss" class="metric-num">0</div><div class="metric-lbl">Divisores errados</div></div>
+        </div>
+      </section>
+
+      <section class="glass-card" aria-labelledby="titleLog">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <h2 id="titleLog" class="section-title" style="margin:0;">📜 Registro de eventos</h2>
+          <button id="btnClearLog" class="btn-secondary-futuristic" type="button" style="font-size:0.72rem; padding:2px 8px;">Limpar</button>
+        </div>
+        <div id="eventLogBox" class="log-box" role="log" aria-live="polite" aria-label="Registro de eventos da MMU" tabindex="0"></div>
+      </section>
+    </div>
+
+    </div><!-- /paneSim -->
+    </div><!-- /paneMemPages -->
+  </main>
+
+  <!-- ====================================================================
+       MODAL: COMO USAR
+       ==================================================================== -->
+  <div id="modalHelp" class="modal-backdrop" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalHelpTitle">
+      <div class="modal-title">
+        <span id="modalHelpTitle">⌨️ Como usar e atalhos</span>
+        <button id="btnCloseHelp" class="close-modal-btn" type="button" aria-label="Fechar">×</button>
+      </div>
+      <p class="text-block" style="margin-top:1rem;">Objetivo: decompor um endereço lógico de 32 bits em página e offset e prever o endereço físico.</p>
+      <ul class="help-list">
+        <li><span class="kbd">Espaço</span> play / pausa</li>
+        <li><span class="kbd">→</span> próximo passo (com o divisor focado, move o divisor)</li>
+        <li><span class="kbd">R</span> reiniciar</li>
+        <li><span class="kbd">Esc</span> fecha esta janela e devolve o foco ao botão que a abriu</li>
+      </ul>
+      <p class="text-block">Sequência: separe a página do offset e confirme; depois use Passo (ou Play) para ver os passos 1, 2 e 3 da MMU e o endereço no barramento.</p>
+      <p class="text-block text-sub">Valores marcados como “calculado” foram obtidos por conta a partir do texto do capítulo 14; os marcados como “livro” aparecem no próprio capítulo.</p>
+      <p class="text-block text-sub">Com “reduzir movimento” ativo no sistema, as transições são desligadas e o Play executa um passo por clique.</p>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ====================================================================
+       cap. 14, seção 14.7.1 — constantes do exemplo (Intel 80386)
+       ==================================================================== */
+    const EXAMPLE_ADDR = '01803E9A';
+    const DEFAULT_SPLIT = 16;
+    const PAGE_BITS = 20;
+    const OFFSET_BITS = 12;
+    const DEFAULT_SPEED = '900';
+
+    /* cap. 14, Figura 14.9 — só as entradas numeradas pela figura (linhas iniciais da tabela) */
+    const PAGE_TABLE_BOOK = [
+      { page: '00000', frame: '13' },
+      { page: '00001', frame: null },
+      { page: '01803', frame: '2F' }
+    ];
+    const PT_ROWS = 5;   // 3 do livro + 2 sorteadas
+
+    const STEP_LABELS = [
+      '',
+      'Passo 1 — decompor o endereço em página e offset',
+      'Passo 2 — consultar a tabela de páginas',
+      'Passo 3 — compor quadro + offset',
+      'Enviar o endereço físico ao barramento'
+    ];
+
+    /* ====================================================================
+       ESTADO
+       ==================================================================== */
+    const state = {
+      /* execução (recriada por initRun) */
+      addr: EXAMPLE_ADDR,
+      split: DEFAULT_SPLIT,
+      stage: 0,            // 0 divisor pendente; 1 divisor confirmado; 2, 3, 4 passos 1–3; 5 barramento
+      outcome: null,       // null | 'fault' | 'done'
+      running: false,
+      timer: null,
+      speedMs: Number(DEFAULT_SPEED),
+      predictMode: false,
+      prediction: null,    // { value, ok }
+      splitFeedback: { text: '', kind: '' },
+      predictFeedback: '',
+      predictHint: '',
+      hintIdx: 0,
+      log: [],
+      /* progresso da sessão (não é zerado pelo Reiniciar) */
+      metrics: { done: 0, faults: 0, predictOk: 0, predictTotal: 0, splitMiss: 0 },
+      streak: 0,
+      offsetsDone: new Set(),
+      predictedAddrs: new Set(),
+      missions: { 1: false, 2: false, 3: false, 4: false, 5: false },
+      mission: { current: 1, awaitingNext: false, finished: false, note: '' },   // missão atual e se espera o clique em "Próxima"
+      badgeShown: null,
+      badges: new Set(),
+      /* interface */
+      reduced: false,
+      soundOn: true,
+      pt: [],              // tabela de páginas da tradução (ver initPageTable)
+      part: null,          // aba "por Partição" (ver initPartition)
+      seg: null,           // aba "por Segmentos" (ver initSegment)
+      page: null,          // aba "por Páginas" (ver initPage)
+      mode: 'part',        // 'part' | 'seg' | 'page': qual aba usa a ilustração
+      partTimer: null,
+      lastFocus: null,
+      renderedLogCount: 0
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    /* ====================================================================
+       FUNÇÕES AUXILIARES
+       ==================================================================== */
+    const hex = (n, digits) => n.toString(16).toUpperCase().padStart(digits, '0');
+    const fmtNum = (n) => n.toLocaleString('pt-BR');
+
+    function setText(el, text) {
+      if (el.textContent !== text) el.textContent = text;
+    }
+
+    function bitsOf(addr) {
+      return parseInt(addr, 16).toString(2).padStart(32, '0');
+    }
+
+    /* cap. 14, seção 14.7.1 — decomposição do endereço em página e offset */
+    function decompose(addr) {
+      return { page: addr.slice(0, 5), offset: addr.slice(5) };
+    }
+
+    /* Entrada sorteada (didático): página de 5 dígitos hex ainda ausente da tabela; quadro de 2 dígitos
+       (como 13h e 2Fh do livro) ou vazia (falta de página). */
+    function randomPageEntry(rows, skipIdx) {
+      let page;
+      do {
+        page = hex(Math.floor(Math.random() * 0x100000), 5);
+      } while (rows.some((r, i) => i !== skipIdx && r && r.page === page));
+      let frame = null;
+      if (Math.random() < 0.65) {
+        do {
+          frame = hex(1 + Math.floor(Math.random() * 0xFE), 2);
+        } while (rows.some((r, i) => i !== skipIdx && r && r.frame === frame));
+      }
+      return { page: page, frame: frame };
+    }
+
+    function initPageTable() {
+      const rows = PAGE_TABLE_BOOK.map((e, i) => ({ page: e.page, frame: e.frame, src: 'livro', kind: 'initial', seq: i }));
+      while (rows.length < PT_ROWS) {
+        const e = randomPageEntry(rows, -1);
+        rows.push({ page: e.page, frame: e.frame, src: 'sorteado', kind: 'initial', seq: rows.length });
+      }
+      state.pt = rows;
+      state.ptSeq = rows.length;
+    }
+
+    /* Novo endereço entra na tabela: substitui primeiro uma linha inicial (sorteada entre elas),
+       depois a mais antiga; nunca a linha da página que está em uso. A entrada pode ter quadro ou ser vazia. */
+    function addPageTableEntry() {
+      const cur = state.addr.slice(0, 5);
+      const candidates = [];
+      state.pt.forEach((r, i) => { if (r.kind === 'initial' && r.page !== cur) candidates.push(i); });
+      let victim = -1;
+      if (candidates.length) {
+        victim = candidates[Math.floor(Math.random() * candidates.length)];
+      } else {
+        state.pt.forEach((r, i) => { if (r.page !== cur && (victim < 0 || r.seq < state.pt[victim].seq)) victim = i; });
+      }
+      const e = randomPageEntry(state.pt, victim);
+      state.ptSeq++;
+      state.pt[victim] = { page: e.page, frame: e.frame, src: 'sorteado', kind: 'trabalho', seq: state.ptSeq };
+      return state.pt[victim];
+    }
+
+    /* cap. 14, seção 14.7.1 — consulta à tabela de páginas */
+    function lookup(page) {
+      const entry = state.pt.find((e) => e.page === page);
+      return entry && entry.frame ? entry.frame : null;
+    }
+
+    /* cap. 14, seção 14.7.1 — composição do quadro com o offset */
+    function compose(frame, offset) {
+      return frame.padStart(5, '0') + offset;
+    }
+
+    function isBookExample() {
+      return state.addr === EXAMPLE_ADDR;
+    }
+
+    function sanitizeHex(raw) {
+      let s = raw.replace(/\s+/g, '');
+      const msgs = [];
+      if (/[hH]$/.test(s)) {
+        s = s.slice(0, -1);
+        msgs.push('O sufixo h é só notação; não precisa ser digitado.');
+      }
+      const bad = s.replace(/[0-9a-fA-F]/g, '');
+      if (bad) {
+        s = s.replace(/[^0-9a-fA-F]/g, '');
+        msgs.push('Caractere não hexadecimal recusado (' + Array.from(new Set(bad.split(''))).join(' ') + '). Use só 0–9 e A–F.');
+      }
+      if (s.length > 8) {
+        s = s.slice(0, 8);
+        msgs.push('O endereço de 32 bits tem no máximo 8 dígitos hexadecimais; os dígitos extras foram recusados.');
+      }
+      return { clean: s.toUpperCase(), msg: msgs.join(' ') };
+    }
+
+    /* ====================================================================
+       SOM (Web Audio sintetizado, sem arquivos externos; padrão do escalonamento.html)
+       ==================================================================== */
+    let audioCtx = null;
+
+    const AUDIO_KEY = 'traducaoEnderecos_audio';
+
+    function loadSoundPref() {
+      try { return localStorage.getItem(AUDIO_KEY) !== 'false'; } catch (e) { return true; }
+    }
+
+    function saveSoundPref(on) {
+      try { localStorage.setItem(AUDIO_KEY, String(on)); } catch (e) { /* sem armazenamento: vale só nesta sessão */ }
+    }
+
+    /* Tom com glissando exponencial de `freq` até `rampTo` (se informado). */
+    function playTone(freq, duration, type, rampTo) {
+      if (!state.soundOn) return;
+      try {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (Ctx) audioCtx = new Ctx();
+        }
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        if (rampTo) osc.frequency.exponentialRampToValueAtTime(rampTo, t + duration);
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(t + duration);
+      } catch (e) { /* áudio bloqueado ou não suportado: a página segue sem som */ }
+    }
+
+    /* Cada evento pedagógico tem um som próprio:
+       subida = acerto/sucesso; descida curta = erro; grave serrilhado = falta de página. */
+    const sound = {
+      toggleOn: () => playTone(440, 0.1, 'triangle'),
+      tick: () => playTone(380, 0.1, 'triangle', 460),       // passo da MMU avançou
+      correct: () => playTone(320, 0.18, 'sine', 680),      // divisor, previsão, endereço no barramento
+      wrong: () => playTone(300, 0.2, 'triangle', 180),     // divisor ou previsão errados
+      fault: () => playTone(200, 0.25, 'sawtooth', 120),    // falta de página
+      mission: () => setTimeout(() => playTone(400, 0.22, 'triangle', 520), 220)
+    };
+
+    /* ====================================================================
+       LOG
+       ==================================================================== */
+    function logMessage(text, type) {
+      state.log.push({ text: text, type: type || '' });
+    }
+
+    function renderLog() {
+      const box = $('eventLogBox');
+      if (state.log.length < state.renderedLogCount) {
+        box.textContent = '';
+        state.renderedLogCount = 0;
+      }
+      for (let i = state.renderedLogCount; i < state.log.length; i++) {
+        const entry = state.log[i];
+        const el = document.createElement('div');
+        el.className = 'log-entry' + (entry.type ? ' log-' + entry.type : '');
+        el.textContent = entry.text;
+        box.appendChild(el);
+      }
+      if (state.renderedLogCount !== state.log.length) box.scrollTop = box.scrollHeight;
+      state.renderedLogCount = state.log.length;
+    }
+
+    /* ====================================================================
+       ESTADO INICIAL (usado no carregamento, no Reiniciar e ao trocar o endereço)
+       ==================================================================== */
+    /* Nas missões 2, 3 e 4 o divisor já vem em 20 | 12 e confirmado (o aluno aprendeu isso na missão 1). */
+    function splitAutoConfirmed() {
+      const m = state.mission;
+      return !m.finished && !m.awaitingNext && m.current >= 2 && m.current <= 4 && !!state.missions[1];
+    }
+
+    function initRun(opts) {
+      const o = opts || {};
+      state.mission.note = '';
+      stopTimer();
+      state.running = false;
+      state.addr = o.addr || EXAMPLE_ADDR;
+      const auto = splitAutoConfirmed();
+      state.split = auto ? PAGE_BITS : (typeof o.split === 'number' ? o.split : DEFAULT_SPLIT);
+      state.stage = auto ? 1 : 0;
+      state.outcome = null;
+      state.prediction = null;
+      state.predictHint = '';
+      state.hintIdx = 0;
+      state.predictFeedback = '';
+      state.splitFeedback = { text: '', kind: '' };
+      if (o.full) {
+        state.predictMode = false;
+        state.speedMs = Number(DEFAULT_SPEED);
+        $('speedSelect').value = DEFAULT_SPEED;
+        $('predictToggle').checked = false;
+        $('addrInput').value = EXAMPLE_ADDR;
+        $('addrMsg').textContent = '';
+        $('predictInput').value = '';
+        state.log = [];
+        state.renderedLogCount = Infinity;
+        initPartition();
+        initSegment();
+        initPage();
+        initPageTable();
+        logMessage('Simulação iniciada. Endereço lógico ' + state.addr + 'h carregado' + (auto ? '; divisor 20 | 12 já confirmado.' : '; confirme o divisor.'));
+      } else {
+        $('predictInput').value = '';
+        logMessage('Endereço lógico ' + state.addr + 'h carregado' + (auto ? '; divisor 20 | 12 já confirmado.' : '; confirme o divisor.'));
+      }
+    }
+
+    /* ====================================================================
+       DIVISOR DE BITS
+       ==================================================================== */
+    function setSplit(value) {
+      if (state.stage !== 0) return;
+      const v = Math.max(1, Math.min(31, value));
+      if (v !== state.split) {
+        state.split = v;
+        state.splitFeedback = { text: '', kind: '' };
+        renderAll();
+      }
+    }
+
+    function confirmSplit() {
+      if (state.stage !== 0) return;
+      if (state.split === PAGE_BITS) {
+        state.stage = 1;
+        state.splitFeedback = {
+          text: 'Correto: 20 bits de página | 12 bits de offset (cap. 14, seção 14.7.1).',
+          kind: 'good'
+        };
+        logMessage('Divisor confirmado em 20 | 12 (cap. 14, seção 14.7.1).', 'success');
+        sound.correct();
+        completeMission(1);
+      } else {
+        state.metrics.splitMiss++;
+        const L = state.split;
+        const R = 32 - L;
+        const n = parseInt(state.addr, 16);
+        const left = Math.floor(n / Math.pow(2, R));
+        const right = n % Math.pow(2, R);
+        state.splitFeedback = {
+          text: 'Com ' + L + ' | ' + R + ' (calculado): o lado esquerdo teria ' + L + ' bits (valor ' + hex(left, 1) + 'h) e daria ' +
+            fmtNum(Math.pow(2, L)) + ' páginas; o direito teria ' + R + ' bits (valor ' + hex(right, 1) + 'h) e as páginas teriam ' +
+            fmtNum(Math.pow(2, R)) + ' bytes. Compare com o tamanho da página.',
+          kind: 'bad'
+        };
+        logMessage('Divisor em ' + L + ' | ' + R + ' recusado: revise o tamanho da página e a quantidade de bits do offset.', 'warn');
+        sound.wrong();
+        state.streak = 0;
+      }
+      renderAll();
+    }
+
+    function nearestSplitFromPointer(ev) {
+      const cells = $('bitsBox').querySelectorAll('.bit-cell');
+      let best = 0;
+      let bestDist = Infinity;
+      let after = false;
+      cells.forEach((cell, i) => {
+        const r = cell.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const d = Math.pow(ev.clientX - cx, 2) + Math.pow((ev.clientY - cy) * 3, 2);
+        if (d < bestDist) { bestDist = d; best = i; after = ev.clientX > cx; }
+      });
+      return after ? best + 1 : best;
+    }
+
+    /* ====================================================================
+       PASSOS DA MMU
+       ==================================================================== */
+    function stopTimer() {
+      if (state.timer) { clearInterval(state.timer); state.timer = null; }
+    }
+
+    function pause() {
+      state.running = false;
+      stopTimer();
+    }
+
+    function step() {
+      const before = state.stage;
+      const ok = stepCore();
+      if (ok && state.stage !== before) {
+        if (state.outcome === 'fault') sound.fault();
+        else if (state.outcome === 'done') sound.correct();
+        else sound.tick();
+      } else if (!ok) {
+        sound.wrong();
+      }
+      return ok;
+    }
+
+    function stepCore() {
+      if (state.stage === 0) {
+        logMessage('Confirme o divisor antes de avançar.', 'warn');
+        pause();
+        renderAll();
+        return false;
+      }
+      if (state.outcome) {
+        logMessage('A tradução terminou. Use Reiniciar ou carregue outro endereço.', 'warn');
+        pause();
+        renderAll();
+        return false;
+      }
+      if (state.stage === 3 && state.predictMode && !state.prediction) {
+        logMessage('Modo prever: confira sua previsão (ou use Dica ou Prever automaticamente) antes do passo 3.', 'warn');
+        pause();
+        renderAll();
+        $('predictInput').focus();
+        return false;
+      }
+
+      const d = decompose(state.addr);
+      if (state.stage === 1) {
+        state.stage = 2;
+        logMessage('Passo 1: ' + state.addr + 'h → página ' + d.page + 'h, offset ' + d.offset + 'h (cap. 14, seção 14.7.1).');
+      } else if (state.stage === 2) {
+        const frame = lookup(d.page);
+        state.stage = 3;
+        if (frame === null) {
+          state.outcome = 'fault';
+          state.metrics.faults++;
+          state.streak = 0;
+          logMessage('Passo 2: a página ' + d.page + 'h não tem entrada na tabela. A MMU gera falta de página (page fault) e a execução desvia para o núcleo, que deve tratá-la, abortando o processo ou tomando outra medida.', 'alert');
+          completeMission(4);
+          if (state.mission.current === 3 && !state.mission.awaitingNext) {
+            state.mission.note = 'O último teste terminou em falta de página: essa página não tem quadro na tabela, então a tradução não foi concluída. Escolha uma página que tenha quadro.';
+          }
+          pause();
+        } else {
+          logMessage('Passo 2: entrada ' + d.page + 'h da tabela de páginas → quadro ' + frame + 'h.');
+        }
+      } else if (state.stage === 3) {
+        const frame = lookup(d.page);
+        state.stage = 4;
+        logMessage('Passo 3: quadro ' + frame.padStart(5, '0') + 'h + offset ' + d.offset + 'h; o offset é preservado, pois páginas e quadros têm o mesmo tamanho.');
+      } else if (state.stage === 4) {
+        const frame = lookup(d.page);
+        state.stage = 5;
+        state.outcome = 'done';
+        state.metrics.done++;
+        logMessage('Endereço físico ' + compose(frame, d.offset) + 'h enviado ao barramento de endereços.', 'success');
+        if (state.mission.current === 3 && !state.mission.awaitingNext) {
+          if (d.offset === '000' || d.offset === 'FFF') {
+            const had = state.offsetsDone.has(d.offset);
+            state.offsetsDone.add(d.offset);
+            state.mission.note = had ? 'Esse extremo já tinha sido contado: teste o outro.' : '';
+          } else {
+            state.mission.note = 'A tradução foi concluída, mas o offset ' + d.offset + 'h não é nenhum dos extremos da página.';
+          }
+          if (state.offsetsDone.has('000') && state.offsetsDone.has('FFF')) completeMission(3);
+        }
+        pause();
+      }
+      renderAll();
+      return true;
+    }
+
+    function togglePlay() {
+      if (state.reduced) {
+        logMessage('Movimento reduzido ativo: o Play executa um passo por clique.');
+        step();
+        return;
+      }
+      if (state.running) {
+        pause();
+        renderAll();
+        return;
+      }
+      if (state.stage === 0 || state.outcome) {
+        step();
+        return;
+      }
+      state.running = true;
+      stopTimer();
+      state.timer = setInterval(() => {
+        if (!step()) pause();
+        renderAll();
+      }, state.speedMs);
+      renderAll();
+    }
+
+    /* ====================================================================
+       MODO PREVER
+       ==================================================================== */
+    function checkPrediction() {
+      if (state.prediction || state.stage !== 3 || state.outcome) return;
+      const field = $('predictInput');
+      const s = sanitizeHex(field.value);
+      field.value = s.clean;
+      if (s.clean.length !== 8) {
+        state.predictFeedback = 'Digite os 8 dígitos hexadecimais do endereço físico (faltam ' + (8 - s.clean.length) + ').';
+        renderAll();
+        return;
+      }
+      const d = decompose(state.addr);
+      const frame = lookup(d.page);
+      const expected = compose(frame, d.offset);
+      const ok = s.clean === expected;
+      state.metrics.predictTotal++;
+      if (ok) {
+        state.prediction = { value: s.clean, ok: true };       // só o acerto trava o campo
+        state.predictHint = '';
+        const low = s.clean.slice(5);
+        state.metrics.predictOk++;
+        state.streak++;
+        state.predictFeedback = 'Correto: ' + expected + 'h. Seus 12 bits de baixo: ' + low + 'h; offset do endereço lógico: ' + d.offset + 'h — iguais: o offset é preservado.';
+        logMessage('Previsão correta: ' + expected + 'h.', 'success');
+        sound.correct();
+        completeMission(2);
+        if (state.mission.current === 5 && !state.mission.awaitingNext) {
+          state.predictedAddrs.add(state.addr);
+          if (state.predictedAddrs.size >= 2) completeMission(5);
+        }
+      } else {
+        state.streak = 0;                                       // errou: pode tentar de novo, sem ver a resposta
+        state.predictFeedback = 'Previsão incorreta.';
+        logMessage('Previsão incorreta.', 'warn');
+        sound.wrong();
+      }
+      renderAll();
+    }
+
+    /* Dicas progressivas do modo prever: uma por clique, a anterior some. Nenhuma entrega o endereço inteiro. */
+    function predictHintsFor(d, frame) {
+      return [
+        'Pense nos dois ingredientes do endereço físico: o número do quadro (que a MMU lê na tabela de páginas) e o offset (que vem do endereço lógico).',
+        'Olhe a tabela de páginas e o resultado do passo 2: qual quadro a tabela devolveu para a página deste endereço? Anote esse valor.',
+        'O offset não muda na tradução: são os mesmos 3 últimos dígitos hexadecimais do endereço lógico.',
+        'O endereço físico também tem 8 dígitos hexadecimais: 5 para o quadro e 3 para o offset. Escreva o quadro com 5 dígitos, completando com zeros à esquerda.',
+        'Neste endereço, o offset é ' + d.offset + 'h e o quadro devolvido é ' + frame + 'h. Monte o resultado: primeiro o quadro (5 dígitos), depois o offset.'
+      ];
+    }
+
+    function predictHint() {
+      if (state.prediction || state.stage !== 3 || state.outcome) return;
+      const d = decompose(state.addr);
+      const hints = predictHintsFor(d, lookup(d.page));
+      const i = state.hintIdx % hints.length;
+      state.predictHint = 'Dica ' + (i + 1) + ' de ' + hints.length + ': ' + hints[i];
+      state.hintIdx++;
+      sound.tick();
+      renderAll();
+    }
+
+    /* Prever automaticamente: mostra a resposta só para aprender; não conta nem conclui missão. */
+    function predictAuto() {
+      if (state.prediction || state.stage !== 3 || state.outcome) return;
+      const d = decompose(state.addr);
+      const frame = lookup(d.page);
+      const expected = compose(frame, d.offset);
+      state.prediction = { value: expected, ok: false, revealed: true };
+      state.predictHint = '';
+      $('predictInput').value = expected;
+      state.predictFeedback = 'O esperado é ' + expected + 'h (quadro ' + frame.padStart(5, '0') + 'h + offset ' + d.offset + 'h). Os 12 bits de baixo (' + d.offset + 'h) são o offset do endereço lógico: ele não muda na tradução. Esta previsão automática não conta para a missão.';
+      logMessage('Previsão automática mostrada (não conta para a missão).', 'warn');
+      sound.tick();
+      renderAll();
+    }
+
+    /* ====================================================================
+       MISSÕES E SELOS
+       ==================================================================== */
+    const MISSION_BADGE = { 1: 'divisor', 2: 'previsao', 3: 'offset', 4: 'falta', 5: 'mestre' };
+
+    /* Selos: nome, ícone e o que o aluno aprendeu (só aparece depois de conquistado). */
+    const BADGES = [
+      { id: 'divisor', icon: '✂️', name: 'Divisor',
+        text: 'Você separou o endereço de 32 bits em 20 bits de página e 12 bits de offset. Como uma página tem 4.096 bytes (2¹²), 12 bits bastam para numerar cada byte dentro dela; os 20 bits restantes numeram a página (cap. 14, seção 14.7.1).' },
+      { id: 'previsao', icon: '🎯', name: 'Previsão certa',
+        text: 'Você previu o endereço físico: o número do quadro, lido na tabela de páginas, ocupa o lugar do número da página, e o offset continua igual (cap. 14, seção 14.7.1).' },
+      { id: 'offset', icon: '📏', name: 'Offset',
+        text: 'Você traduziu o menor (000h) e o maior (FFFh) offset de uma página. A MMU nunca altera o offset: ele é preservado porque páginas e quadros têm o mesmo tamanho.' },
+      { id: 'falta', icon: '🚨', name: 'Falta de página',
+        text: 'Você provocou uma falta de página: sem entrada na tabela, a MMU não consegue obter o quadro e interrompe o processador. O núcleo então trata o problema, abortando o processo ou tomando outra medida (cap. 14, seção 14.7.1).' },
+      { id: 'mestre', icon: '🧠', name: 'Mestre da MMU',
+        text: 'Você concluiu todas as missões: sabe decompor um endereço lógico, consultar a tabela de páginas, compor o endereço físico e reconhecer uma falta de página.' }
+    ];
+
+    /* Missões: o texto explica o que fazer, sem entregar a resposta. O campo "learned" só aparece ao concluir. */
+    const MISSIONS = [
+      {
+        title: 'Missão 1 — Separe a página do offset',
+        goal: 'Um endereço lógico de 32 bits é formado por duas partes coladas: o número da página e o offset (a posição do byte dentro da página). Sua tarefa é descobrir onde termina uma parte e começa a outra.',
+        steps: [
+          'Abra a “Teoria em Resumo” (no topo da página) e descubra o tamanho de uma página, em bytes.',
+          'Lembre-se de que n bits formam 2ⁿ valores diferentes. O offset precisa de bits suficientes para numerar todos os bytes de uma página.',
+          'Em “1 · Endereço lógico gerado pela CPU (32 bits)”, mova o divisor (arrastando, com ◀ ▶ ou com as setas) até separar os bits da página (laranja) dos bits do offset (azul).',
+          'Clique em “Confirmar divisor”.'
+        ],
+        think: 'Quantos bits o offset precisa ter para numerar todos os bytes de uma página? O que sobra dos 32 bits é o número da página. Se errar, a tela mostra o que cada lado do divisor representaria: use essa pista para corrigir.',
+        hint: 'Descubra a potência de 2 que é igual ao tamanho da página. O expoente é o número de bits do offset.',
+        learned: 'O divisor fica em 20 | 12: o offset tem 12 bits porque 2¹² = 4.096 bytes, o tamanho da página, e os outros 20 bits numeram a página. Essa divisão vale para todos os endereços, e é por isso que a página aparece com 5 dígitos hexadecimais e o offset com 3.',
+        progress: () => 'Falta confirmar o divisor na posição correta.'
+      },
+      {
+        title: 'Missão 2 — Preveja o endereço físico',
+        goal: 'Antes de a MMU mostrar o resultado, tente descobrir sozinho o endereço físico. Para isso, você precisa ler o que a tabela de páginas devolve e juntar essa informação com o offset.',
+        steps: [
+          'Em “Endereço de trabalho”, confira se o “Modo prever” está marcado (nesta missão ele já vem marcado; se desmarcar, marque de novo).',
+          'Em “CPU, MMU, tabela de páginas e RAM”, use “Passo” para executar o passo 1 (decomposição) e o passo 2 (consulta à tabela).',
+          'Observe qual quadro a tabela devolveu para a página e qual é o offset do endereço lógico.',
+          'Monte o endereço físico de 8 dígitos hexadecimais, digite-o no campo que aparece e clique em “Conferir previsão”. Se errar, tente de novo; o botão “Dica” ajuda sem entregar a resposta.'
+        ],
+        think: 'A MMU troca o número da página pelo número do quadro. E o offset? Pense no que acontece com a posição do byte quando a página é copiada para um quadro do mesmo tamanho. Lembre-se de escrever o quadro com a mesma quantidade de dígitos que a página tinha.',
+        hint: 'Se você já fez a missão 1, relembre quantos dígitos hexadecimais formam a página e quantos formam o offset. O endereço físico segue o mesmo molde, com o quadro no lugar da página.',
+        learned: 'O quadro vindo da tabela ocupa o lugar do número da página, e o offset é copiado sem alteração. Por exemplo, página 01803h com quadro 2Fh e offset E9Ah resultam em 0002FE9Ah (Fig. 14.9).',
+        progress: () => 'Falta acertar uma previsão do endereço físico (use o modo prever).'
+      },
+      {
+        title: 'Missão 3 — Teste os limites do offset',
+        goal: 'Os extremos costumam revelar se uma regra realmente vale sempre. Aqui você vai testar a primeira e a última posição de uma página.',
+        steps: [
+          'Deixe o “Modo prever” desmarcado nesta missão (ele já foi desmarcado para você). Se ficar marcado, a tradução não passa do passo 3.',
+          'Pense: dentro de uma página, qual é o menor offset possível e qual é o maior? Escreva-os em hexadecimal, com 3 dígitos.',
+          'Em “Endereço de trabalho”, digite um endereço lógico cuja página tenha entrada na tabela (veja a tabela de páginas) e cujo offset seja o menor possível. Clique em “Carregar”.',
+          'Avance com “Passo” (ou Play) até o endereço físico chegar ao barramento. O divisor 20 | 12 já vem confirmado.',
+          'Repita o processo com o maior offset possível.'
+        ],
+        think: 'Compare, nos dois casos, o offset do endereço lógico com os três últimos dígitos do endereço físico. O que você percebe?',
+        hint: 'Um offset de 12 bits vai de “todos os bits em 0” até “todos os bits em 1”. Cada dígito hexadecimal representa 4 bits.',
+        learned: 'Os offsets extremos, 000h (primeiro byte) e FFFh (último byte da página), foram traduzidos normalmente: o offset do endereço físico é sempre igual ao do endereço lógico.',
+        progress: () => 'Extremos já traduzidos: ' + state.offsetsDone.size + ' de 2.' +
+          (state.predictMode ? ' O “Modo prever” está marcado e trava o passo 3: desmarque-o para concluir as traduções.' : '') +
+          (state.mission.note ? ' ' + state.mission.note : '')
+      },
+      {
+        title: 'Missão 4 — Provoque uma falta de página',
+        goal: 'Nem toda página do espaço de endereçamento tem um quadro na memória. Descubra o que a MMU faz quando o processo tenta acessar uma página sem entrada na tabela.',
+        steps: [
+          'Observe a tabela de páginas, em “CPU, MMU, tabela de páginas e RAM”: quais páginas têm um quadro e quais estão vazias ou ausentes?',
+          'Em “Endereço de trabalho”, digite um endereço lógico cuja página não tenha entrada na tabela e clique em “Carregar”.',
+          'Avance com “Passo” até acontecer algo diferente do normal. O divisor 20 | 12 já vem confirmado.',
+          'Leia a mensagem do resultado e do registro de eventos.'
+        ],
+        think: 'A tabela de páginas só sabe o quadro das páginas que têm entrada. O que a MMU pode fazer se não houver quadro para compor o endereço físico?',
+        hint: 'Qualquer página que não apareça com um quadro na tabela serve. Lembre que a página são os 5 primeiros dígitos hexadecimais do endereço.',
+        learned: 'Sem entrada na tabela, a MMU não tem quadro para compor o endereço físico e gera uma falta de página (page fault): a execução desvia para o núcleo, que pode abortar o processo ou tomar outra medida.',
+        progress: () => 'Falta provocar uma falta de página.'
+      },
+      {
+        title: 'Missão 5 — Confirme a regra em dois casos',
+        goal: 'Chegou a hora de usar tudo o que aprendeu sem dicas do jogo. Preveja o endereço físico de dois endereços lógicos diferentes e perceba o que se repete em todos os casos.',
+        steps: [
+          'Deixe o “Modo prever” marcado (ele volta marcado nesta missão; se desmarcar, marque de novo).',
+          'Use “Gerar novo endereço” (ou digite um) até conseguir um endereço cuja página tenha entrada na tabela.',
+          'Confirme o divisor, avance até o passo 2, faça a previsão e confira.',
+          'Repita com outro endereço lógico diferente do primeiro.'
+        ],
+        think: 'Em cada caso, compare os três últimos dígitos do endereço lógico com os do físico. Compare também os cinco primeiros dígitos: de onde vem o novo valor?',
+        hint: 'Se o sorteio cair em uma página sem entrada, não há previsão possível: gere outro endereço.',
+        learned: 'Em todos os endereços, os 12 bits de baixo (o offset) não mudam, e os 20 bits de cima trocam o número da página pelo número do quadro vindo da tabela. Essa é toda a tradução por paginação.',
+        progress: () => 'Endereços diferentes previstos corretamente: ' + state.predictedAddrs.size + ' de 2.'
+      }
+    ];
+
+    /* Só a missão atual pode ser concluída; os demais eventos são ignorados. */
+    function completeMission(id) {
+      const m = state.mission;
+      if (id !== m.current || m.awaitingNext || m.finished || state.missions[id]) return;
+      state.missions[id] = true;
+      state.badges.add(MISSION_BADGE[id]);
+      m.awaitingNext = true;
+      logMessage('Missão ' + id + ' concluída: selo “' + BADGES.find((b) => b.id === MISSION_BADGE[id]).name + '” conquistado.', 'success');
+      sound.mission();
+    }
+
+    function setPredictMode(on) {
+      state.predictMode = on;
+      $('predictToggle').checked = on;
+      logMessage('Modo prever ' + (on ? 'ativado' : 'desativado') + ' para esta missão.');
+    }
+
+    function nextMission() {
+      const m = state.mission;
+      if (!m.awaitingNext) return;
+      m.awaitingNext = false;
+      state.offsetsDone.clear();
+      state.predictedAddrs.clear();
+      if (m.current >= MISSIONS.length) m.finished = true;
+      else m.current++;
+      m.note = '';
+      /* modo prever: ligado nas missões 2 e 5; desligado na 3 (ele trava o passo 3 da tradução) */
+      if (m.current === 2 || m.current === 5) setPredictMode(true);
+      else if (m.current === 3) setPredictMode(false);
+      if (state.stage === 0 && splitAutoConfirmed()) {
+        state.split = PAGE_BITS;
+        state.stage = 1;
+        state.splitFeedback = { text: '', kind: '' };
+        logMessage('Divisor 20 | 12 já confirmado nesta missão.');
+      }
+      renderAll();
+    }
+
+    function renderMissions() {
+      const m = state.mission;
+      const total = MISSIONS.length;
+
+      /* selos: botões liberados conforme as missões */
+      BADGES.forEach((b) => {
+        const el = $('badge-' + b.id);
+        const on = state.badges.has(b.id);
+        el.classList.toggle('unlocked', on);
+        el.classList.toggle('is-open', on && state.badgeShown === b.id);
+        el.disabled = !on;
+        setText(el, (on ? b.icon : '🔒') + ' ' + b.name);
+        el.setAttribute('aria-label', 'Selo ' + b.name + (on ? ', conquistado. Clique para rever o que você aprendeu.' : ', bloqueado. Conclua a missão correspondente.'));
+      });
+      const shown = BADGES.find((b) => b.id === state.badgeShown && state.badges.has(b.id));
+      $('badgeDetail').hidden = !shown;
+      if (shown) {
+        setText($('badgeDetailTitle'), shown.icon + ' ' + shown.name);
+        setText($('badgeDetailText'), shown.text);
+      }
+
+      /* progresso */
+      const dots = $('missionDots');
+      if (dots.children.length !== total) {
+        dots.textContent = '';
+        for (let i = 0; i < total; i++) dots.appendChild(document.createElement('span'));
+      }
+      Array.prototype.forEach.call(dots.children, (d, i) => {
+        d.className = state.missions[i + 1] ? 'done' : (!m.finished && i + 1 === m.current ? 'current' : '');
+      });
+
+      if (m.finished) {
+        $('missionActive').hidden = true;
+        $('missionDone').hidden = false;
+        $('btnNextMission').hidden = true;
+        setText($('missionCounter'), 'Todas concluídas');
+        setText($('missionDoneTitle'), '🏆 Parabéns! Você concluiu as ' + total + ' missões.');
+        setText($('missionLearned'), 'Agora você domina a tradução de endereços por paginação. Use os “Endereços prontos” e o modo prever para continuar praticando, ou explore as outras abas para ver a mesma ideia em partições e segmentos.');
+      } else {
+        const def = MISSIONS[m.current - 1];
+        setText($('missionCounter'), 'Missão ' + m.current + ' de ' + total);
+        $('missionActive').hidden = m.awaitingNext;
+        $('missionDone').hidden = !m.awaitingNext;
+        $('btnNextMission').hidden = false;
+        if (m.awaitingNext) {
+          setText($('missionDoneTitle'), '✅ Missão ' + m.current + ' concluída!');
+          setText($('missionLearned'), def.learned);
+          setText($('btnNextMission'), m.current >= total ? 'Concluir ➜' : 'Próxima missão ➜');
+        } else {
+          setText($('missionTitle'), def.title);
+          setText($('missionGoal'), def.goal);
+          const ol = $('missionSteps');
+          if (ol.getAttribute('data-m') !== String(m.current)) {
+            ol.textContent = '';
+            def.steps.forEach((t) => { const li = document.createElement('li'); li.textContent = t; ol.appendChild(li); });
+            ol.setAttribute('data-m', String(m.current));
+            $('missionActive').querySelector('details').open = false;
+          }
+          setText($('missionThink'), def.think);
+          setText($('missionHint'), def.hint);
+          setText($('missionProgress'), def.progress());
+        }
+      }
+
+      /* a bancada só entrega o que já foi aprendido: a nota de grafia depois da missão 1; os endereços prontos no fim */
+      $('noteGrafia').hidden = !state.missions[1];
+      $('quickRow').hidden = !m.finished;
+    }
+
+    /* ====================================================================
+       RENDERIZAÇÃO
+       ==================================================================== */
+    function srcTag(el, kind, text) {
+      el.className = 'src-tag' + (kind === 'calc' ? ' calc' : '');
+      setText(el, text);
+    }
+
+    function renderBits() {
+      const box = $('bitsBox');
+      const hadFocus = document.activeElement && document.activeElement.id === 'btnDivider';
+      const bits = bitsOf(state.addr);
+      const addrHex = state.addr;
+      const locked = state.stage !== 0;
+      const frag = document.createDocumentFragment();
+
+      for (let g = 0; g < 8; g++) {
+        const nib = document.createElement('div');
+        nib.className = 'nibble';
+        const lab = document.createElement('span');
+        lab.className = 'nibble-hex mono';
+        lab.textContent = addrHex[g];
+        nib.appendChild(lab);
+        const row = document.createElement('div');
+        row.className = 'nibble-bits';
+        for (let k = 0; k < 4; k++) {
+          const idx = g * 4 + k;
+          if (idx === state.split) row.appendChild(makeDivider(locked));
+          const cell = document.createElement('span');
+          cell.className = 'bit-cell mono ' + (idx < state.split ? 'side-page' : 'side-offset');
+          cell.textContent = bits[idx];
+          row.appendChild(cell);
+        }
+        nib.appendChild(row);
+        frag.appendChild(nib);
+      }
+      box.textContent = '';
+      box.appendChild(frag);
+      if (hadFocus) {
+        const b = $('btnDivider');
+        if (b) b.focus();
+      }
+    }
+
+    function makeDivider(locked) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.id = 'btnDivider';
+      b.className = 'bit-divider';
+      b.disabled = locked;
+      b.setAttribute('aria-label', 'Divisor de bits: ' + state.split + ' bits à esquerda, ' + (32 - state.split) + ' à direita. Use as setas esquerda e direita.');
+      return b;
+    }
+
+    function renderTable() {
+      const d = decompose(state.addr);
+      const body = $('ptBody');
+      body.textContent = '';
+      const looked = state.stage >= 3;
+      const rows = state.pt.map((e) => ({ page: e.page, frame: e.frame, extra: false }));
+      const known = state.pt.some((e) => e.page === d.page);
+      if (!known && looked) rows.push({ page: d.page, frame: null, extra: true });
+
+      rows.forEach((e) => {
+        const tr = document.createElement('tr');
+        tr.className = 'pt-row';
+        if (looked && e.page === d.page) tr.classList.add(e.frame ? 'hit' : 'fault');
+        const tdP = document.createElement('td');
+        tdP.className = 'mono';
+        tdP.textContent = e.page + 'h';
+        const tdF = document.createElement('td');
+        tdF.className = 'mono';
+        if (e.frame) tdF.textContent = e.frame + 'h';
+        else { tdF.textContent = e.extra ? 'sem entrada' : 'vazia'; tdF.classList.add('pt-empty'); }
+        const tdV = document.createElement('td');
+        tdV.className = 'mono';
+        tdV.textContent = e.frame ? '1' : '0';
+        tr.appendChild(tdP); tr.appendChild(tdF); tr.appendChild(tdV);
+        body.appendChild(tr);
+      });
+      const note = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 3;
+      td.className = 'pt-empty';
+      td.textContent = 'Demais páginas: sem entrada (falta de página).';
+      note.appendChild(td);
+      body.appendChild(note);
+    }
+
+    function renderRam() {
+      const d = decompose(state.addr);
+      const frame = lookup(d.page);
+      const hit = state.stage >= 3 && frame;
+      const box = $('ramFrames');
+      box.textContent = '';
+      state.pt.filter((e) => e.frame).forEach((e) => {
+        const row = document.createElement('div');
+        row.className = 'frame-row' + (hit && e.frame === frame ? ' hit' : '');
+        const a = document.createElement('span');
+        a.textContent = 'quadro ' + e.frame + 'h';
+        const b = document.createElement('span');
+        b.className = 'text-sub';
+        b.textContent = 'página ' + e.page + 'h';
+        row.appendChild(a); row.appendChild(b);
+        box.appendChild(row);
+      });
+      const k = document.createElement('div');
+      k.className = 'frame-row kernel';
+      k.textContent = 'área do núcleo (Fig. 14.9)';
+      box.appendChild(k);
+    }
+
+    function renderResult() {
+      const d = decompose(state.addr);
+      const frame = lookup(d.page);
+      const book = isBookExample();
+      const tagKind = book ? 'book' : 'calc';
+      const tagText = book ? 'livro, Fig. 14.9' : 'calculado';
+      let main = 'Aguardando a decomposição do endereço.';
+      let note = 'Confirme o divisor e use Passo ou Play.';
+
+      if (state.stage >= 1 && state.stage < 2) {
+        main = 'Divisor 20 | 12 confirmado.';
+        note = 'Próximo: passo 1, decompor o endereço em página e offset.';
+      } else if (state.stage === 2) {
+        main = 'Página ' + d.page + 'h · offset ' + d.offset + 'h';
+        note = 'Passo 1: os 20 bits de cima são a página; os 12 bits de baixo, o offset.';
+      } else if (state.outcome === 'fault') {
+        main = 'Falta de página: a página ' + d.page + 'h não tem entrada.';
+        note = 'Não há quadro para compor um endereço físico. A MMU interrompe e o núcleo assume.';
+      } else if (state.stage === 3) {
+        main = 'A entrada ' + d.page + 'h devolve o quadro ' + frame + 'h.';
+        note = 'Passo 2: a página está no quadro ' + frame + 'h. Falta compor com o offset ' + d.offset + 'h.';
+      } else if (state.stage === 4) {
+        main = 'Quadro ' + frame.padStart(5, '0') + 'h + offset ' + d.offset + 'h';
+        note = 'Passo 3: o offset desce intacto; o quadro ' + frame + 'h é escrito com 5 dígitos (zeros à esquerda). Falta enviar ao barramento.';
+      } else if (state.stage === 5) {
+        main = 'Endereço físico: ' + compose(frame, d.offset) + 'h';
+        note = state.addr + 'h → ' + compose(frame, d.offset) + 'h. Os 12 bits de baixo (' + d.offset + 'h) não mudaram.';
+      }
+      setText($('resultMain'), main);
+      setText($('resultNote'), note);
+      srcTag($('resultSrcTag'), tagKind, state.stage >= 2 ? tagText : '');
+      $('kernelCard').hidden = state.outcome !== 'fault';
+
+      const showPredict = state.predictMode && state.stage === 3 && !state.outcome || (state.predictMode && state.prediction !== null && state.stage >= 3);
+      $('predictPanel').hidden = !showPredict;
+      const locked = state.prediction !== null;
+      $('predictInput').disabled = locked;
+      $('btnCheckPredict').disabled = locked;
+      $('btnPredictHint').disabled = locked;
+      $('btnPredictAuto').disabled = locked;
+      setText($('predictHint'), state.predictHint);
+      setText($('predictFeedback'), state.predictFeedback);
+    }
+
+    function nextActionLabel() {
+      if (state.stage === 0) return 'Confirme o divisor.';
+      if (state.outcome === 'fault') return 'Falta de página: a tradução parou no passo 2.';
+      if (state.outcome === 'done') return 'Tradução concluída.';
+      if (state.stage === 3 && state.predictMode && !state.prediction) return 'Digite a previsão do endereço físico e confira (a Dica ajuda).';
+      return STEP_LABELS[state.stage];
+    }
+
+    function renderAll() {
+      const d = decompose(state.addr);
+      const frame = lookup(d.page);
+      const book = isBookExample();
+      const stage = state.stage;
+
+      /* cabeçalho */
+      setText($('statPredict'), state.metrics.predictOk + ' / ' + state.metrics.predictTotal);
+      setText($('statStreak'), state.streak + 'x');
+      setText($('statBadges'), state.badges.size + ' / 5');
+
+      /* controles */
+      const playLabel = state.reduced ? '▶ Play (passo a passo)' : (state.running ? '⏸ Pausar' : '▶ Play');
+      setText($('btnPlayPause'), playLabel);
+      setText($('stageStatus'), 'Próximo: ' + nextActionLabel());
+      $('stageStatus').innerHTML = 'Próximo: <strong></strong>';
+      $('stageStatus').querySelector('strong').textContent = nextActionLabel();
+      $('btnSplitLeft').disabled = stage !== 0;
+      $('btnSplitRight').disabled = stage !== 0;
+      $('btnConfirmSplit').disabled = stage !== 0;
+
+      /* bits e divisor */
+      renderBits();
+      setText($('capPage'), '◀ ' + state.split + ' bits: número da página');
+      setText($('capOffset'), (32 - state.split) + ' bits: offset ▶');
+      const sf = $('splitFeedback');
+      setText(sf, state.splitFeedback.text);
+      sf.className = 'split-feedback' + (state.splitFeedback.kind ? ' ' + state.splitFeedback.kind : '');
+      srcTag($('bitsSource'), book ? 'book' : 'calc', book ? 'livro, 14.7.1' : 'binário: calculado');
+
+      /* CPU ilustrativa dos controles: sempre mostra o endereço lógico carregado */
+      setText($('cpuChipAddr'), state.addr + 'h');
+      $('cpuChip').setAttribute('aria-label', 'CPU gerando o endereço lógico ' + state.addr + 'h');
+      setText($('soundIcon'), state.soundOn ? '🔊 Som Ativo' : '🔇 Mudo');
+      $('btnSoundToggle').setAttribute('aria-pressed', String(state.soundOn));
+
+      /* CPU */
+      const cpuAddr = $('cpuAddr');
+      if (stage >= 2) {
+        cpuAddr.innerHTML = '<span class="part-page"></span><span class="part-offset"></span><span>h</span>';
+        cpuAddr.children[0].textContent = d.page;
+        cpuAddr.children[1].textContent = d.offset;
+      } else {
+        setText(cpuAddr, state.addr + 'h');
+      }
+      setText($('cpuPage'), stage >= 2 ? d.page + 'h' : '?');
+      setText($('cpuOffset'), stage >= 2 ? d.offset + 'h' : '?');
+      srcTag($('cpuSrc'), book ? 'book' : 'calc', book ? 'livro, 14.7.1' : 'calculado');
+      $('panelCpu').classList.toggle('active', stage === 2);
+
+      /* MMU */
+      const stepState = (n) => {
+        if (n === 2 && state.outcome === 'fault') return 'failed';
+        if (stage >= n + 1) return 'done';
+        if (stage === n) return 'active';
+        return '';
+      };
+      [1, 2, 3].forEach((n) => {
+        $('stepRow' + n).className = 'step-row ' + stepState(n);
+      });
+      $('stepRow1').classList.toggle('active', stage === 1);
+      $('stepRow2').classList.toggle('active', stage === 2);
+      $('stepRow3').classList.toggle('active', stage === 3 && !state.outcome);
+      setText($('mmuFrame'), stage >= 3 && frame ? frame + 'h' : (state.outcome === 'fault' ? 'sem entrada' : '?'));
+      const chip = $('offsetChip');
+      setText(chip, stage >= 4 ? d.offset + 'h' : '—');
+      chip.className = 'offset-chip mono ' + (stage >= 4 ? 'arrived' : 'pending');
+      $('panelMmu').classList.toggle('active', stage >= 2 && stage <= 4 && !state.outcome);
+
+      /* tabela e RAM */
+      renderTable();
+      $('panelTable').classList.toggle('active', stage === 3);
+      renderRam();
+      $('panelRam').classList.toggle('active', stage === 5);
+
+      /* barramento */
+      const bus = $('busBox');
+      const done = state.outcome === 'done';
+      setText($('busValue'), done ? compose(frame, d.offset) + 'h' : '—');
+      srcTag($('busSrc'), book ? 'book' : 'calc', done ? (book ? 'livro, Fig. 14.9' : 'calculado') : '');
+      bus.classList.toggle('live', done);
+
+      /* resultado e previsão */
+      renderResult();
+
+      /* métricas */
+      setText($('metricSteps'), Math.max(0, Math.min(3, stage - 1)) + ' / 3');
+      setText($('metricDone'), String(state.metrics.done));
+      setText($('metricFaults'), String(state.metrics.faults));
+      setText($('metricPredict'), state.metrics.predictOk + ' / ' + state.metrics.predictTotal);
+      setText($('metricSplitMiss'), String(state.metrics.splitMiss));
+
+      /* missões e selos */
+      renderMissions();
+
+      renderPartition();
+      renderLog();
+    }
+
+    /* ====================================================================
+       ENDEREÇO LÓGICO (campo)
+       ==================================================================== */
+    function applyAddress(raw) {
+      const s = sanitizeHex(raw);
+      $('addrInput').value = s.clean;
+      if (s.clean.length !== 8) {
+        $('addrMsg').textContent = (s.msg ? s.msg + ' ' : '') + 'Digite exatamente 8 dígitos hexadecimais (faltam ' + (8 - s.clean.length) + ').';
+        return;
+      }
+      $('addrMsg').textContent = s.msg;
+      initRun({ addr: s.clean, split: state.split });
+      renderAll();
+    }
+
+    function switchPane(paneId) {
+      document.querySelectorAll('.tab-pane').forEach((p) => { p.hidden = p.id !== paneId; });
+      document.querySelectorAll('.tab-btn[data-pane]').forEach((b) => {
+        const on = b.getAttribute('data-pane') === paneId;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
+      pause();
+      stopPartTimer();
+      const modes = { paneMemPart: 'part', paneMemSeg: 'seg', paneMemPages: 'page' };
+      const hosts = { part: 'partFigureHost', seg: 'segFigureHost', page: 'pgFigureHost' };
+      state.mode = modes[paneId] || state.mode;
+      $(hosts[state.mode]).appendChild($('figureSection'));
+      renderAll();
+    }
+
+    /* Sub-abas da aba "por Páginas": Memória virtual | Tradução de endereços */
+    function switchPgPane(paneId) {
+      document.querySelectorAll('.pg-sub').forEach((p) => { p.hidden = p.id !== paneId; });
+      document.querySelectorAll('.tab-btn[data-pgpane]').forEach((b) => {
+        const on = b.getAttribute('data-pgpane') === paneId;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+        b.tabIndex = on ? 0 : -1;
+      });
+      pause();
+      stopPartTimer();
+      renderAll();
+    }
+
+    /* ====================================================================
+       cap. 14, seção 14.5 — memória virtual por partições (Fig. 14.5)
+       ==================================================================== */
+    const RAM_TOP = 100000;       // escala ilustrativa da RAM
+    const KERNEL_FROM = 90000;    // a kernel area ocupa o topo (ilustrativo)
+    const BOOK_ROWS = [           // Fig. 14.5: 10000|6000, 11000|70000, 15000|41000
+      { limit: 10000, base: 6000 },
+      { limit: 11000, base: 70000 },
+      { limit: 15000, base: 41000 }
+    ];
+    const BOOK_ADDR = 14257;      // Fig. 14.5: endereço lógico 14.257 (→ físico 55.257)
+    const BOOK_WORK_IDX = 2;
+
+    const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+    function overlaps(base, limit, rows, skipIdx) {
+      return rows.some((o, i) => i !== skipIdx && o && base < o.base + o.limit && o.base < base + limit);
+    }
+
+    /* Partição sorteada (didático): múltiplos de 1.000, sem sobreposição e abaixo da kernel area. */
+    function randomPartition(rows, skipIdx) {
+      for (let t = 0; t < 300; t++) {
+        const limit = randInt(5, 15) * 1000;
+        const base = randInt(0, Math.floor((KERNEL_FROM - limit) / 1000)) * 1000;
+        if (!overlaps(base, limit, rows, skipIdx)) return { limit: limit, base: base };
+      }
+      return { limit: 5000, base: 0 };
+    }
+
+    function initPartition() {
+      const rows = BOOK_ROWS.map((r, i) => ({ limit: r.limit, base: r.base, src: 'livro', kind: 'initial', seq: i }));
+      [3, 4].forEach((i) => {
+        const p = randomPartition(rows, -1);
+        rows[i] = { limit: p.limit, base: p.base, src: 'sorteado', kind: 'initial', seq: i };
+      });
+      stopPartTimer();
+      state.part = { rows: rows, workIdx: BOOK_WORK_IDX, addr: BOOK_ADDR, selected: BOOK_WORK_IDX, seq: 4, step: 0, userSel: false };
+    }
+
+    /* Novo endereço de trabalho: substitui primeiro as linhas iniciais (sorteio), depois a mais antiga. */
+    function newPartitionWork() {
+      const p = state.part;
+      const initial = [];
+      p.rows.forEach((r, i) => { if (r.kind === 'initial' && i !== p.workIdx) initial.push(i); });
+      let victim;
+      if (initial.length) {
+        victim = initial[randInt(0, initial.length - 1)];
+      } else {
+        victim = -1;
+        p.rows.forEach((r, i) => { if (i !== p.workIdx && (victim < 0 || r.seq < p.rows[victim].seq)) victim = i; });
+      }
+      const part = randomPartition(p.rows, victim);
+      p.seq++;
+      p.rows[victim] = { limit: part.limit, base: part.base, src: 'sorteado', kind: 'trabalho', seq: p.seq };
+      p.workIdx = victim;
+      p.selected = victim;
+      p.addr = randInt(1000, Math.round(part.limit * 1.3));
+      p.step = 0;
+      p.userSel = false;
+      stopPartTimer();
+      logMessage('Partição: endereço lógico ' + p.addr + ' na linha ' + victim + ' (Limit ' + part.limit + ', Base ' + part.base + ').');
+    }
+
+    /* Estado da aba ativa (partição ou segmentos): mesma forma nos dois. */
+    function PS() { return state.mode === 'seg' ? state.seg : (state.mode === 'page' ? state.page : state.part); }
+
+    /* cap. 14, seção 14.7 e Fig. 14.9 — paginação (processo pequeno, didático)
+       8 páginas de 4096 bytes; RAM de 32 quadros (os 4 do topo são a kernel area). */
+    const PG_N = 8;
+    const PG_SIZE = 4096;
+    const PG_FRAMES = 32;
+    const PG_KERNEL = 4;
+    const PG_RAM_TOP = PG_FRAMES * PG_SIZE;
+    const PG_BOOK = { page0Frame: 19, offset: 3738 };   // Fig. 14.9: 00000h → 13h (19); E9Ah = 3738 (calculado)
+
+    function pageLogical(p) { return p.workIdx * PG_SIZE + p.addr; }
+
+    function initPage() {
+      stopPartTimer();
+      const used = [PG_BOOK.page0Frame];
+      const rows = [{ frame: PG_BOOK.page0Frame, valid: true, src: 'livro' }, { frame: null, valid: false, src: 'livro' }];
+      while (rows.length < PG_N) {
+        const f = randInt(0, PG_FRAMES - PG_KERNEL - 1);
+        if (used.indexOf(f) >= 0) continue;
+        used.push(f);
+        rows.push({ frame: f, valid: true, src: 'sorteado' });
+      }
+      state.page = { rows: rows, workIdx: 0, addr: PG_BOOK.offset, selected: 0, step: 0, userSel: false };
+    }
+
+    function setPageAddress(A) {
+      const p = state.page;
+      p.workIdx = Math.floor(A / PG_SIZE);
+      p.addr = A % PG_SIZE;
+      p.selected = Math.min(p.workIdx, PG_N - 1);
+      p.step = 0;
+      p.userSel = false;
+      stopPartTimer();
+    }
+
+    function newPageWork() {
+      const p = state.page;
+      let A;
+      do { A = randInt(0, PG_N * PG_SIZE - 1); } while (A === pageLogical(p));
+      setPageAddress(A);
+    }
+
+    function pgLoadAddress() {
+      const field = $('pgAddrInput');
+      const digits = field.value.replace(/\s+/g, '');
+      if (!/^[0-9]{1,6}$/.test(digits)) {
+        $('pgAddrMsg').textContent = 'Digite só dígitos decimais (0–9), de 1 a 6.';
+        field.value = digits.replace(/[^0-9]/g, '').slice(0, 6);
+        return;
+      }
+      setPageAddress(parseInt(digits, 10));
+      const p = state.page;
+      $('pgAddrMsg').textContent = 'Endereço lógico ' + pageLogical(p) + ' carregado (página ' + p.workIdx + ', offset ' + p.addr + ')' + (p.workIdx >= PG_N ? ', fora do processo.' : '.');
+      renderAll();
+    }
+
+    /* cap. 14, seção 14.6, Fig. 14.7 — tabela de segmentos do processo ativo (Limit | Base) */
+    const SEG_ROWS = [
+      { limit: 5500, base: 1200 },
+      { limit: 4200, base: 8000 },
+      { limit: 10500, base: 15000 },
+      { limit: 7500, base: 32000 }
+    ];
+    const SEG_BOOK = { seg: 3, offset: 6914 };   // Fig. 14.7: [3 : 6.914] → 38.914
+
+    function initSegment() {
+      stopPartTimer();
+      state.seg = {
+        rows: SEG_ROWS.map((r, i) => ({ limit: r.limit, base: r.base, src: 'livro', kind: 'initial', seq: i })),
+        workIdx: SEG_BOOK.seg, addr: SEG_BOOK.offset, selected: SEG_BOOK.seg, seq: 4, step: 0, userSel: false
+      };
+    }
+
+    /* Novo endereço [segmento : offset] dentro de um dos segmentos do processo. */
+    function newSegmentWork() {
+      const p = state.seg;
+      let s2, o2;
+      do {
+        s2 = randInt(0, p.rows.length - 1);
+        o2 = randInt(100, Math.round(p.rows[s2].limit * 1.25));
+      } while (s2 === p.workIdx && o2 === p.addr);
+      p.workIdx = s2; p.addr = o2; p.selected = s2; p.step = 0; p.userSel = false;
+      stopPartTimer();
+    }
+
+    function segLoadAddress() {
+      const field = $('segAddrInput');
+      const m = /^\s*\[?\s*(\d{1,2})\s*:\s*(\d{1,6})\s*\]?\s*$/.exec(field.value);
+      if (!m) { $('segAddrMsg').textContent = 'Use o formato segmento:offset, por exemplo 3:6914.'; return; }
+      const p = state.seg;
+      const sg = parseInt(m[1], 10);
+      if (sg >= p.rows.length) { $('segAddrMsg').textContent = 'Segmento inexistente: a tabela tem os segmentos 0 a ' + (p.rows.length - 1) + ' (Fig. 14.7).'; return; }
+      p.workIdx = sg; p.addr = parseInt(m[2], 10); p.selected = sg; p.step = 0; p.userSel = false;
+      stopPartTimer();
+      $('segAddrMsg').textContent = 'Endereço lógico [' + sg + ' : ' + p.addr + '] carregado.';
+      renderAll();
+    }
+
+    /* Clique no processo ativo: reposiciona o endereço chamado pela CPU.
+       Dentro de um segmento/barra: endereço proporcional à altura do clique.
+       Na área tracejada acima: endereço além do limite (simula a violação).
+       Abaixo da base não existe endereço lógico (os endereços começam em 0). */
+    function setPageProcessAddress(clientY, outside) {
+      const segEls = $('procBar').querySelectorAll('.proc-seg');
+      if (!segEls.length) return;
+      let A = null;
+      if (outside) {
+        const d = Math.max(0, $('procBar').getBoundingClientRect().top - clientY);
+        A = PG_N * PG_SIZE + Math.max(1, Math.round(d * PG_SIZE / segEls[0].getBoundingClientRect().height));
+      } else {
+        let best = 0;
+        let bestD = Infinity;
+        segEls.forEach((el, i) => {
+          const r = el.getBoundingClientRect();
+          const d = clientY < r.top ? r.top - clientY : (clientY > r.bottom ? clientY - r.bottom : 0);
+          if (d < bestD) { bestD = d; best = i; }
+        });
+        const r = segEls[best].getBoundingClientRect();
+        const yy = Math.max(r.top, Math.min(r.bottom, clientY));
+        A = best * PG_SIZE + Math.max(0, Math.min(PG_SIZE - 1, Math.round((r.bottom - yy) / r.height * PG_SIZE)));
+      }
+      applyPageAddress(Math.min(A, 999999), outside ? 'fora do processo' : 'dentro do processo');
+    }
+
+    function applyPageAddress(A, where) {
+      setPageAddress(A);
+      sound.tick();
+      $('pgAddrMsg').textContent = 'Endereço ' + A + ' (página ' + state.page.workIdx + ', offset ' + state.page.addr + ') definido por clique (' + where + ').';
+      renderAll();
+    }
+
+    function setProcessAddress(clientY, outside) {
+      if (state.mode === 'page') { setPageProcessAddress(clientY, outside); return; }
+      const p = PS();
+      const seg = state.mode === 'seg';
+      const segEls = $('procBar').querySelectorAll('.proc-seg');
+      let S = p.workIdx;
+      let O = null;
+      if (outside) {
+        const limit = p.rows[S].limit;
+        const ref = (seg ? segEls[S] : segEls[0]).getBoundingClientRect();
+        const d = Math.max(0, $('procBar').getBoundingClientRect().top - clientY);
+        O = limit + Math.max(1, Math.round(d * limit / ref.height));
+      } else {
+        for (let i = 0; i < segEls.length; i++) {
+          const r = segEls[i].getBoundingClientRect();
+          if (clientY >= r.top && clientY <= r.bottom) {
+            const idx = seg ? i : p.workIdx;
+            const limit = p.rows[idx].limit;
+            S = idx;
+            O = Math.max(0, Math.min(limit - 1, Math.round((r.bottom - clientY) / r.height * limit)));
+            break;
+          }
+        }
+      }
+      if (O === null && !outside) {          // clique na borda da barra: usa o segmento mais próximo
+        const br = $('procBar').getBoundingClientRect();
+        if (clientY >= br.top && clientY <= br.bottom) {
+          let best = 0;
+          let bestD = Infinity;
+          segEls.forEach((el, i) => {
+            const r = el.getBoundingClientRect();
+            const d = clientY < r.top ? r.top - clientY : (clientY > r.bottom ? clientY - r.bottom : 0);
+            if (d < bestD) { bestD = d; best = i; }
+          });
+          const r = segEls[best].getBoundingClientRect();
+          const idx = seg ? best : p.workIdx;
+          const limit = p.rows[idx].limit;
+          const yy = Math.max(r.top, Math.min(r.bottom, clientY));
+          S = idx;
+          O = Math.max(0, Math.min(limit - 1, Math.round((r.bottom - yy) / r.height * limit)));
+        }
+      }
+      if (O === null) return;
+      applyProcessAddress(S, Math.min(O, 999999), outside ? 'fora do processo' : 'dentro do processo');
+    }
+
+    function applyProcessAddress(S, O, where) {
+      const p = PS();
+      const seg = state.mode === 'seg';
+      p.workIdx = S;
+      p.addr = O;
+      p.selected = S;
+      p.step = 0;
+      p.userSel = false;
+      stopPartTimer();
+      sound.tick();
+      $(seg ? 'segAddrMsg' : 'partAddrMsg').textContent = 'Endereço ' + (seg ? '[' + S + ' : ' + O + ']' : O) + ' definido por clique (' + where + ').';
+      renderAll();
+    }
+
+    /* Rótulos que mudam conforme a aba (os textos da figura ficam em inglês, como no livro). */
+    const MODE_TXT = {
+      part: {
+        head: 'Partition Table', ptbr: 'PTBR', sel: 'Partition', addr: 'Address', dia: 'A<L', irq: 'IRq: partition violation', L: 'A',
+        title: '🧱 Memória virtual por partições',
+        intro: 'A MMU tem um registrador base (B) e um registrador limite (L). Se o endereço lógico A for menor que L, o endereço físico é A + B; caso contrário, a MMU gera uma interrupção (cap. 14, seção 14.5). Clique em uma linha da tabela para destacar a partição na RAM. Clique no processo ativo para escolher o endereço chamado pela CPU; clique na área tracejada acima dele para escolher um endereço fora do processo (violação).',
+        note: 'Do livro (Fig. 14.5): as linhas iniciais 10000|6000, 11000|70000 e 15000|41000 e o exemplo 14257 → 55257. Valores sorteados são didáticos. A escala da RAM é ilustrativa. B+L−1, L−1 e A+B são calculados.'
+      },
+      page: {
+        head: 'Page Table', ptbr: 'PTBR', sel: 'Page', addr: 'Offset', dia: 'A<L', irq: 'IRq: page fault', L: 'O',
+        title: '📄 Memória virtual por páginas',
+        intro: 'Na paginação, o espaço de endereçamento do processo é dividido em páginas de mesmo tamanho (aqui, 4096 bytes) e a RAM em quadros do mesmo tamanho. A MMU separa o endereço lógico em Page e Offset, usa Page como índice na tabela de páginas (apontada pelo PTBR) e compõe o quadro com o offset (cap. 14, seção 14.7). Clique em uma linha para destacar o quadro na RAM. Clique em uma página do processo ativo para escolher o endereço; clique na área tracejada acima dele para escolher um endereço fora do processo (falta de página).',
+        note: 'Do livro (Fig. 14.9): página 0 → quadro 13h (19 em decimal, calculado), página 1 vazia, offset E9Ah (3738, calculado) e o endereço físico 00013E9Ah (81562, calculado). Os demais quadros e a escala (8 páginas, RAM de 32 quadros) são didáticos. Page = A ÷ 4096 e Offset = resto são calculados. Na RAM, o número laranja é o início do quadro (F × 4096) e o verde é o endereço físico.'
+      },
+      seg: {
+        head: 'Segment Table', ptbr: 'STBR', sel: 'Segment', addr: 'Offset', dia: 'O<L', irq: 'IRq: segmentation violation', L: 'O',
+        title: '🧩 Memória virtual por segmentos',
+        intro: 'Na tradução por segmentos, o endereço lógico é um par [segmento : offset]. Cada segmento é uma partição com seus próprios Base e Limit, guardados na tabela de segmentos do processo; a MMU localiza a tabela pelo STBR (cap. 14, seção 14.6). Se o offset O for menor que L, o endereço físico é O + B; caso contrário, a MMU gera uma interrupção. Clique em uma linha para destacar o segmento na RAM. Clique em um segmento do processo ativo para escolher o endereço [segmento : offset]; clique na área tracejada acima do processo para levar o offset além do limite (violação).',
+        note: 'Do livro (Fig. 14.7): a tabela de segmentos 5500|1200, 4200|8000, 10500|15000 e 7500|32000 e o exemplo [3 : 6914] → 38914. Offsets sorteados são didáticos. A escala da RAM é ilustrativa. B+L−1, L−1 e O+B são calculados.'
+      }
+    };
+
+    function applyModeLabels() {
+      const t = MODE_TXT[state.mode];
+      setText($('titlePartText'), t.title);
+      setText($('partIntro'), t.intro);
+      setText($('partNote'), t.note);
+      setText($('partTableHead'), t.head);
+      setText($('ramTableStrip'), t.head);
+      setText($('mmuPtbr').querySelector('.pf-label'), t.ptbr);
+      setText($('mmuPartition').querySelector('.pf-label'), t.sel);
+      setText($('mmuAddress').querySelector('.pf-label'), t.addr);
+      setText($('mmuDiamond').querySelector('span'), t.dia);
+      setText($('mmuIrq'), t.irq);
+      $('partRows').setAttribute('aria-label', state.mode === 'seg' ? 'Linhas da tabela de segmentos' : (state.mode === 'page' ? 'Linhas da tabela de páginas' : 'Linhas da tabela de partições'));
+      const pg = state.mode === 'page';
+      $('partStage').classList.toggle('mode-page', pg);
+      $('ramBar').classList.toggle('ram-frames', pg);
+      $('ramKernel').style.height = pg ? (PG_KERNEL / PG_FRAMES * 100) + '%' : '10%';
+      setText($('mmuLimit').querySelector('.pf-label'), pg ? 'Frame' : 'Limit');
+      setText($('tblCol1'), pg ? 'Page' : '');
+      setText($('tblCol2'), pg ? 'Frame' : 'Limit');
+      setText($('tblCol3'), pg ? 'Valid' : 'Base');
+    }
+
+    /* Processo ativo: uma barra (partição) ou barras empilhadas (segmentos), com o endereço chamado pela CPU. */
+    function renderProcessPages(p, ev) {
+      const bar = $('procBar');
+      bar.textContent = '';
+      bar.classList.add('pages');
+      const A = pageLogical(p);
+      bar.setAttribute('aria-valuenow', String(A));
+      bar.setAttribute('aria-valuetext', 'endereço ' + A + ' (página ' + p.workIdx + ', offset ' + p.addr + ')' + (ev.outside ? ', fora do processo' : ''));
+      const target = Math.min(p.workIdx, PG_N - 1);
+      for (let i = 0; i < PG_N; i++) {
+        const d = document.createElement('div');
+        d.className = 'proc-seg' + (i === target ? ' is-target' : '');
+        d.style.flex = '1 1 0';
+        const a = document.createElement('strong'); a.textContent = 'page ' + i;
+        const b = document.createElement('span'); b.textContent = (i * PG_SIZE) + '–' + (i * PG_SIZE + PG_SIZE - 1);
+        d.appendChild(a); d.appendChild(b);
+        if (i === target) {
+          const frac = p.addr / PG_SIZE;
+          const m = document.createElement('div');
+          m.id = 'procMark';
+          m.className = 'proc-mark' + (ev.outside ? ' bad' : '');
+          m.style.bottom = ev.outside ? 'calc(100% + 3px)' : (frac * 100) + '%';
+          const lab = document.createElement('span');
+          lab.className = 'proc-mark-label';
+          lab.style.bottom = ev.outside ? 'calc(100% + 6px)' : (frac > 0.8 ? 'calc(' + (frac * 100) + '% - 16px)' : 'calc(' + (frac * 100) + '% + 4px)');
+          lab.textContent = 'A = ' + A;
+          d.appendChild(m); d.appendChild(lab);
+        }
+        bar.appendChild(d);
+      }
+    }
+
+    function renderProcess(p, ev) {
+      $('procBar').classList.remove('pages');
+      if (state.mode === 'page') { renderProcessPages(p, ev); return; }
+      const bar = $('procBar');
+      bar.textContent = '';
+      bar.setAttribute('aria-valuenow', String(p.addr));
+      bar.setAttribute('aria-valuetext', (state.mode === 'seg' ? 'segmento ' + p.workIdx + ', offset ' : 'endereço ') + p.addr + (ev.valid ? '' : ' (fora do limite)'));
+      const seg = state.mode === 'seg';
+      const list = seg ? p.rows.map((r, i) => ({ idx: i, limit: r.limit })) : [{ idx: null, limit: ev.row.limit }];
+      list.forEach((sgm) => {
+        const d = document.createElement('div');
+        const target = seg ? sgm.idx === p.workIdx : true;
+        d.className = 'proc-seg' + (seg && target ? ' is-target' : '');
+        d.style.flex = sgm.limit + ' 1 0';
+        if (seg) {
+          const a = document.createElement('strong'); a.textContent = 'segment ' + sgm.idx;
+          const b = document.createElement('span'); b.textContent = '0 … ' + (sgm.limit - 1);
+          d.appendChild(a); d.appendChild(b);
+        } else {
+          const top = document.createElement('div'); top.className = 'proc-ends'; top.style.top = '3px';
+          const t1 = document.createElement('span'); t1.textContent = 'L−1'; const t2 = document.createElement('span'); t2.textContent = String(sgm.limit - 1);
+          top.appendChild(t1); top.appendChild(t2);
+          const bot = document.createElement('div'); bot.className = 'proc-ends'; bot.style.bottom = '3px';
+          const b1 = document.createElement('span'); b1.textContent = '0'; bot.appendChild(b1);
+          d.appendChild(top); d.appendChild(bot);
+        }
+        if (target) {
+          const frac = p.addr / sgm.limit;
+          const m = document.createElement('div');
+          m.id = 'procMark';
+          m.className = 'proc-mark' + (ev.valid ? '' : ' bad');
+          m.style.bottom = ev.valid ? (frac * 100) + '%' : 'calc(100% + 3px)';
+          const lab = document.createElement('span');
+          lab.className = 'proc-mark-label';
+          lab.style.bottom = ev.valid ? (frac > 0.8 ? 'calc(' + (frac * 100) + '% - 16px)' : 'calc(' + (frac * 100) + '% + 4px)') : 'calc(100% + 6px)';
+          lab.textContent = seg ? '[' + p.workIdx + ' : ' + p.addr + ']' : 'A = ' + p.addr;
+          d.appendChild(m); d.appendChild(lab);
+        }
+        bar.appendChild(d);
+      });
+    }
+
+    function partitionEval() {
+      const p = PS();
+      if (state.mode === 'page') {
+        const row = p.rows[p.workIdx] || null;                    // página fora do processo: sem linha
+        const valid = !!(row && row.valid);
+        return { row: row, valid: valid, outside: p.workIdx >= PG_N, phys: valid ? row.frame * PG_SIZE + p.addr : null };
+      }
+      const row = p.rows[p.workIdx];
+      const valid = p.addr < row.limit;                 // el < L
+      return { row: row, valid: valid, phys: valid ? p.addr + row.base : null };   // ef = el + B
+    }
+
+    /* ---- passo a passo da aba "por Partição" ---------------------------- */
+    function partMaxStep(ev) { return state.mode === 'page' ? (ev.valid ? 7 : 4) : (ev.valid ? 8 : 6); }
+
+    function stopPartTimer() {
+      if (state.partTimer) { clearInterval(state.partTimer); state.partTimer = null; }
+    }
+
+    function pageStepText(p, ev) {
+      const P = p.workIdx;
+      const O = p.addr;
+      const A = pageLogical(p);
+      const F = ev.row ? ev.row.frame : null;
+      switch (p.step) {
+        case 0: return ev.outside
+          ? 'O processo ativo tem 8 páginas de 4096 bytes (endereços de 0 a 32767, calculado). A CPU chama o endereço lógico A = ' + A + ', que está além da última página.'
+          : 'O processo ativo está dividido em 8 páginas de 4096 bytes (endereços de 0 a 32767, calculado). A CPU chama o endereço lógico A = ' + A + ', na página ' + P + ', offset ' + O + '.';
+        case 1: return 'A CPU envia A = ' + A + ' à MMU, que o decompõe: Page = A ÷ 4096 = ' + P + ' e Offset = A mod 4096 = ' + O + ' (calculado).';
+        case 2: return 'O PTBR indica em que endereço da RAM está a tabela de páginas do processo ativo (cap. 14, seção 14.7.1).';
+        case 3: return ev.outside
+          ? 'Page = ' + P + ' é usado como índice na tabela de páginas, mas a tabela só tem as páginas 0 a ' + (PG_N - 1) + ': não há entrada para esta página.'
+          : 'Page = ' + P + ' é o índice na tabela de páginas: a MMU lê a linha ' + P + '.';
+        case 4: return ev.valid
+          ? 'A linha ' + P + ' contém o quadro ' + F + ' (Valid = 1). Esse valor alimenta o campo Frame.'
+          : (ev.outside
+            ? 'A página ' + P + ' não tem entrada na tabela: a MMU gera uma falta de página (IRq: page fault) e a execução desvia para o núcleo, que deve tratá-la (cap. 14, seção 14.7.1).'
+            : 'A linha ' + P + ' está vazia (Valid = 0): a MMU gera uma falta de página (IRq: page fault) e a execução desvia para o núcleo, que deve tratá-la (cap. 14, seção 14.7.1).');
+        case 5: return 'Frame = ' + F + ' e Offset = ' + O + ' seguem para a composição do endereço físico.';
+        case 6: return 'Endereço físico = Frame × 4096 + Offset = ' + F + ' × 4096 + ' + O + ' = ' + ev.phys + ' (calculado). Páginas e quadros têm o mesmo tamanho, então o offset é preservado.';
+        default: return 'O endereço físico ' + ev.phys + ' aponta o byte na RAM, dentro do quadro ' + F + ' (de ' + (F * PG_SIZE) + ' a ' + (F * PG_SIZE + PG_SIZE - 1) + ', calculado).';
+      }
+    }
+
+    function partStepText(p, ev) {
+      if (state.mode === 'page') return pageStepText(p, ev);
+      const A = p.addr;
+      const L = ev.row.limit;
+      const B = ev.row.base;
+      const i = p.workIdx;
+      const seg = state.mode === 'seg';
+      const X = seg ? 'O' : 'A';
+      switch (p.step) {
+        case 0: return seg
+          ? 'O processo ativo está dividido em segmentos. A CPU chama o endereço lógico [' + i + ' : ' + A + '], isto é, o offset ' + A + ' dentro do segmento ' + i + '. Use Passo >> ou Play para acompanhar a MMU.'
+          : 'O processo ativo está em execução (endereços lógicos de 0 a ' + (L - 1) + ', calculado). A CPU chama o endereço lógico A = ' + A + ' dentro dele. Use Passo >> ou Play para acompanhar a MMU.';
+        case 1: return seg
+          ? 'A CPU envia [' + i + ' : ' + A + '] à MMU, que o decompõe em duas partes: Segment = ' + i + ' e Offset = ' + A + '.'
+          : 'A CPU envia A = ' + A + ' à MMU, que o recebe no campo Address.';
+        case 2: return seg
+          ? 'O STBR indica em que endereço da RAM está a tabela de segmentos do processo ativo (a tabela reside na RAM; cap. 14, seção 14.6).'
+          : 'O PTBR indica em que endereço da RAM está a tabela de partições (a tabela reside na RAM; cap. 14, seção 14.5).';
+        case 3: return seg
+          ? 'O número do segmento (Segment = ' + i + ') seleciona a linha ' + i + ' da tabela de segmentos.'
+          : 'A MMU consulta a tabela e identifica a partição ativa: linha ' + i + ' (campo Partition = ' + i + ').';
+        case 4: return 'Da linha ' + i + ' vêm os valores da MMU: Limit (L) = ' + L + ' e Base (B) = ' + B + '.';
+        case 5: return 'Comparação ' + X + ' < L: ' + A + (ev.valid ? ' < ' : ' ≥ ') + L + '. Resultado: ' + (ev.valid ? 'sim (yes).' : 'não (no).');
+        case 6: return ev.valid
+          ? X + ' < L: ' + (seg ? 'o offset está dentro do segmento' : 'o endereço é válido') + ' e segue para o somador, junto com a Base (B).'
+          : X + ' ≥ L: a MMU gera a interrupção ' + (seg ? 'IRq: segmentation violation (offset fora do segmento)' : 'IRq: partition violation (acesso fora da partição)') + '. O processo para aqui, sem endereço físico (cap. 14, seção ' + (seg ? '14.6' : '14.5') + ').';
+        case 7: return 'Somador: endereço físico = ' + X + ' + B = ' + A + ' + ' + B + ' = ' + ev.phys + ' (calculado).';
+        default: return 'O endereço físico ' + ev.phys + ' aponta o byte na RAM, dentro ' + (seg ? 'do segmento ' + i : 'da partição') + ' de ' + B + ' a ' + (B + L - 1) + ' (B a B+L−1, calculado).';
+      }
+    }
+
+    function partStepBy(delta) {
+      const p = PS();
+      const max = partMaxStep(partitionEval());
+      const next = Math.max(0, Math.min(max, p.step + delta));
+      if (next === p.step) return false;
+      p.step = next;
+      if (delta > 0) {
+        if (next === max) { if (partitionEval().valid) sound.correct(); else sound.fault(); }
+        else sound.tick();
+      }
+      renderAll();
+      return true;
+    }
+
+    function partTogglePlay() {
+      const p = PS();
+      if (state.partTimer) { stopPartTimer(); renderAll(); return; }
+      if (state.reduced) { partStepBy(1); return; }
+      if (p.step >= partMaxStep(partitionEval())) { p.step = 0; renderAll(); }
+      state.partTimer = setInterval(() => {
+        if (!partStepBy(1)) stopPartTimer();
+        if (PS().step >= partMaxStep(partitionEval())) stopPartTimer();
+        renderAll();
+      }, Number($('partSpeedSelect').value));
+      renderAll();
+    }
+
+    function partReset() {
+      const p = PS();
+      stopPartTimer();
+      p.step = 0;
+      p.userSel = false;
+      p.selected = p.workIdx;
+      renderAll();
+    }
+
+    function partLoadAddress() {
+      const field = $('partAddrInput');
+      const digits = field.value.replace(/\s+/g, '');
+      if (!/^[0-9]+$/.test(digits)) {
+        $('partAddrMsg').textContent = 'Digite só dígitos decimais (0–9), no máximo 6.';
+        field.value = digits.replace(/[^0-9]/g, '').slice(0, 6);
+        return;
+      }
+      const p = state.part;
+      p.addr = parseInt(digits, 10);
+      p.step = 0;
+      p.userSel = false;
+      p.selected = p.workIdx;
+      stopPartTimer();
+      $('partAddrMsg').textContent = 'Endereço lógico ' + p.addr + ' carregado na partição da linha ' + p.workIdx + '.';
+      renderAll();
+    }
+
+    function renderPartition() {
+      const pane = state.mode === 'seg' ? $('paneMemSeg') : (state.mode === 'page' ? $('panePgMem') : $('paneMemPart'));
+      if (!pane || !PS() || pane.hidden) return;
+      applyModeLabels();
+      if (state.mode === 'page') { renderPaging(); return; }
+      const seg = state.mode === 'seg';
+      const p = PS();
+      const ev = partitionEval();
+      const st = p.step;
+      const max = partMaxStep(ev);
+      const showSel = p.userSel || st >= 3;
+
+      /* controles e texto do passo */
+      setText($('partStepTitle'), 'Passo ' + st + ' de ' + max);
+      setText($('partStepText'), partStepText(p, ev));
+      $('btnPartBack').disabled = st === 0;
+      $('btnPartForward').disabled = st >= max;
+      setText($('btnPartPlay'), state.partTimer ? '⏸ Pausar' : (state.reduced ? '▶ Play (passo a passo)' : '▶ Play'));
+      if (document.activeElement !== $('partAddrInput')) $('partAddrInput').value = String(state.part.addr);
+      if (document.activeElement !== $('segAddrInput')) $('segAddrInput').value = state.seg.workIdx + ':' + state.seg.addr;
+
+      /* campos (preenchidos conforme o passo) */
+      const cpuText = seg ? '[' + p.workIdx + ' : ' + p.addr + ']' : String(p.addr);
+      setText($('partCpuAddr'), cpuText);
+      $('partCpu').setAttribute('aria-label', 'CPU gerando o endereço lógico ' + cpuText);
+      const selStep = seg ? 1 : 3;     // segmentos: Segment e Offset saem da decomposição, já no passo 1
+      setText($('mmuAddressVal'), st >= 1 ? String(p.addr) : '—');
+      setText($('mmuPartitionVal'), st >= selStep ? String(p.workIdx) : '—');
+      renderProcess(p, ev);
+      setText($('mmuLimitVal'), st >= 4 ? String(ev.row.limit) : '—');
+      setText($('mmuBaseVal'), st >= 4 ? String(ev.row.base) : '—');
+      setText($('mmuSum'), ev.valid && st >= 7 ? p.addr + '+' + ev.row.base : '—');
+      setText($('partPhysVal'), ev.valid && st >= 7 ? String(ev.phys) : '—');
+      $('mmuIrq').classList.toggle('fire', !ev.valid && st >= 6);
+
+      /* elementos ainda não alcançados ficam esmaecidos; os do passo atual ganham contorno */
+      const dim = {
+        mmuAddress: st < 1, mmuPtbr: st < 2, mmuPartition: st < selStep, mmuLimit: st < 4, mmuBase: st < 4,
+        mmuDiamond: st < 5, mmuAdder: !ev.valid || st < 6, partPhys: !ev.valid || st < 7, mmuIrq: ev.valid || st < 6
+      };
+      Object.keys(dim).forEach((id) => $(id).classList.toggle('dim', dim[id]));
+      const now = { 0: ['partCpu', 'procBox'], 1: seg ? ['mmuPartition', 'mmuAddress'] : ['mmuAddress'], 2: ['mmuPtbr', 'partTableHead', 'ramTableStrip'], 3: ['mmuPartition'],
+        4: ['mmuLimit', 'mmuBase'], 5: ['mmuDiamond'], 6: ev.valid ? ['mmuAdder'] : ['mmuIrq'], 7: ['partPhys'], 8: [] }[st] || [];
+      ['partCpu', 'procBox', 'mmuAddress', 'mmuPtbr', 'partTableHead', 'ramTableStrip', 'mmuPartition', 'mmuLimit', 'mmuBase', 'mmuDiamond', 'mmuAdder', 'mmuIrq', 'partPhys']
+        .forEach((id) => $(id).classList.toggle('now-hl', now.indexOf(id) >= 0));
+
+      /* tabela */
+      const box = $('partRows');
+      const focusedRow = document.activeElement && document.activeElement.classList.contains('part-row')
+        ? document.activeElement.getAttribute('data-row') : null;
+      box.textContent = '';
+      p.rows.forEach((r, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'part-row' + (st >= 3 && i === p.workIdx ? ' is-work' : '') + (showSel && i === p.selected ? ' is-sel' : '');
+        b.setAttribute('data-row', String(i));
+        b.setAttribute('aria-pressed', String(showSel && i === p.selected));
+        b.setAttribute('aria-label', 'Linha ' + i + ': Limit ' + r.limit + ', Base ' + r.base + (st >= 3 && i === p.workIdx ? ', partição do endereço de trabalho' : ''));
+        const idx = document.createElement('span'); idx.className = 'pr-idx'; idx.textContent = String(i);
+        const lim = document.createElement('span'); lim.className = 'pr-limit'; lim.textContent = String(r.limit);
+        const bas = document.createElement('span'); bas.className = 'pr-base'; bas.textContent = String(r.base);
+        b.appendChild(idx); b.appendChild(lim); b.appendChild(bas);
+        b.addEventListener('click', () => { p.selected = i; p.userSel = true; renderAll(); const nb = $('partRows').querySelector('[data-row="' + i + '"]'); if (nb) nb.focus(); });
+        box.appendChild(b);
+      });
+      if (focusedRow !== null) {
+        const nb = box.querySelector('[data-row="' + focusedRow + '"]');
+        if (nb) nb.focus();
+      }
+
+      /* RAM: base = 0 embaixo; kernel area em cima */
+      const parts = $('ramParts');
+      parts.textContent = '';
+      p.rows.forEach((r, i) => {
+        const d = document.createElement('div');
+        d.className = 'ram-part' + (showSel && i === p.selected ? ' sel' : '');
+        d.style.bottom = (r.base / RAM_TOP * 100) + '%';
+        d.style.height = (r.limit / RAM_TOP * 100) + '%';
+        d.textContent = String(i);
+        parts.appendChild(d);
+      });
+
+      /* marcas: B e B+L−1 (partição destacada) e A+B (resultado da soma, no último passo) */
+      const sel = p.rows[p.selected];
+      const marks = [];
+      if (showSel) {
+        marks.push({ v: sel.base, text: 'B ' + sel.base, cls: 'edge' });
+        marks.push({ v: sel.base + sel.limit - 1, text: 'B+L−1 ' + (sel.base + sel.limit - 1), cls: 'edge' });
+      }
+      const showPhys = ev.valid && st >= 8;
+      if (showPhys) marks.push({ v: ev.phys, text: MODE_TXT[state.mode].L + '+B ' + ev.phys, cls: 'res' });
+      const barH = $('ramBar').getBoundingClientRect().height || 500;
+      const ticks = $('ramTicks');
+      ticks.textContent = '';
+      let lastY = -99;
+      marks.slice().sort((a, b) => b.v - a.v).forEach((m) => {
+        let y = (1 - m.v / RAM_TOP) * barH;
+        if (y - lastY < 14) y = lastY + 14;
+        lastY = y;
+        const t = document.createElement('div');
+        t.className = 'ram-tick ' + m.cls;
+        t.style.top = y + 'px';
+        t.textContent = m.text;
+        ticks.appendChild(t);
+      });
+      const mark = $('ramResultMark');
+      mark.hidden = !showPhys;
+      if (showPhys) mark.style.top = ((1 - ev.phys / RAM_TOP) * 100) + '%';
+
+      drawPartitionArrows(ev);
+    }
+
+    /* Desenho da aba "por Páginas": PTBR, Page, Offset e Frame (sem losango). */
+    function renderPaging() {
+      const p = state.page;
+      const ev = partitionEval();
+      const st = p.step;
+      const max = partMaxStep(ev);
+      const A = pageLogical(p);
+      const selIdx = p.userSel ? p.selected : p.workIdx;
+      const selRow = p.userSel ? p.rows[p.selected] : (st >= 4 && ev.valid ? ev.row : null);
+
+      /* controles e texto do passo */
+      setText($('partStepTitle'), 'Passo ' + st + ' de ' + max);
+      setText($('partStepText'), partStepText(p, ev));
+      $('btnPartBack').disabled = st === 0;
+      $('btnPartForward').disabled = st >= max;
+      setText($('btnPartPlay'), state.partTimer ? '⏸ Pausar' : (state.reduced ? '▶ Play (passo a passo)' : '▶ Play'));
+      if (document.activeElement !== $('pgAddrInput')) $('pgAddrInput').value = String(A);
+
+      /* campos da MMU (preenchidos conforme o passo) */
+      setText($('partCpuAddr'), String(A));
+      $('partCpu').setAttribute('aria-label', 'CPU gerando o endereço lógico ' + A);
+      setText($('mmuPartitionVal'), st >= 1 ? String(p.workIdx) : '—');
+      setText($('mmuAddressVal'), st >= 1 ? String(p.addr) : '—');
+      setText($('mmuLimitVal'), st >= 4 && ev.valid ? String(ev.row.frame) : '—');
+      setText($('mmuSum'), ev.valid && st >= 6 ? ev.row.frame + '×4096+' + p.addr : '—');
+      setText($('partPhysVal'), ev.valid && st >= 6 ? String(ev.phys) : '—');
+      $('mmuIrq').classList.toggle('fire', !ev.valid && st >= 4);
+
+      const dim = {
+        mmuAddress: st < 1, mmuPtbr: st < 2, mmuPartition: st < 1, mmuLimit: st < 4,
+        mmuAdder: !ev.valid || st < 5, partPhys: !ev.valid || st < 6, mmuIrq: ev.valid || st < 4
+      };
+      Object.keys(dim).forEach((id) => $(id).classList.toggle('dim', dim[id]));
+      const now = { 0: ['partCpu', 'procBox'], 1: ['mmuPartition', 'mmuAddress'], 2: ['mmuPtbr', 'partTableHead', 'ramTableStrip'], 3: ['mmuPartition'],
+        4: ev.valid ? ['mmuLimit'] : ['mmuLimit', 'mmuIrq'], 5: ['mmuAdder'], 6: ['partPhys'], 7: [] }[st] || [];
+      ['partCpu', 'procBox', 'mmuAddress', 'mmuPtbr', 'partTableHead', 'ramTableStrip', 'mmuPartition', 'mmuLimit', 'mmuAdder', 'mmuIrq', 'partPhys']
+        .forEach((id) => $(id).classList.toggle('now-hl', now.indexOf(id) >= 0));
+
+      renderProcess(p, ev);
+
+      /* tabela de páginas: Page | Frame | Valid (linha extra quando a página não existe) */
+      const box = $('partRows');
+      const focusedRow = document.activeElement && document.activeElement.classList.contains('part-row')
+        ? document.activeElement.getAttribute('data-row') : null;
+      box.textContent = '';
+      const rowsView = p.rows.map((r, i) => ({ idx: i, frame: r.frame, valid: r.valid, extra: false }));
+      if (ev.outside && st >= 3) rowsView.push({ idx: p.workIdx, frame: null, valid: false, extra: true });
+      rowsView.forEach((r) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        const isWork = st >= 3 && r.idx === p.workIdx;
+        const faulty = isWork && !r.valid && st >= 4;
+        b.className = 'part-row' + (isWork && !faulty ? ' is-work' : '') + (faulty ? ' is-fault' : '') + (selRow && !r.extra && r.idx === selIdx ? ' is-sel' : '');
+        b.setAttribute('data-row', String(r.idx));
+        b.setAttribute('aria-pressed', String(!!selRow && !r.extra && r.idx === selIdx));
+        b.setAttribute('aria-label', 'Página ' + r.idx + ': ' + (r.extra ? 'sem entrada' : (r.valid ? 'quadro ' + r.frame + ', Valid 1' : 'vazia, Valid 0')));
+        const idx = document.createElement('span'); idx.className = 'pr-idx'; idx.textContent = String(r.idx);
+        const fr = document.createElement('span'); fr.className = 'pr-limit'; fr.textContent = r.extra ? 'no entry' : (r.valid ? String(r.frame) : '—');
+        const vd = document.createElement('span'); vd.className = 'pr-base'; vd.textContent = r.extra ? '—' : (r.valid ? '1' : '0');
+        b.appendChild(idx); b.appendChild(fr); b.appendChild(vd);
+        if (!r.extra) b.addEventListener('click', () => { p.selected = r.idx; p.userSel = true; renderAll(); const nb = $('partRows').querySelector('[data-row="' + r.idx + '"]'); if (nb) nb.focus(); });
+        box.appendChild(b);
+      });
+      if (focusedRow !== null) {
+        const nb = box.querySelector('[data-row="' + focusedRow + '"]');
+        if (nb) nb.focus();
+      }
+
+      /* RAM: quadros de 4096 bytes, 0 embaixo; kernel area nos 4 quadros do topo */
+      const parts = $('ramParts');
+      parts.textContent = '';
+      p.rows.forEach((r, i) => {
+        if (!r.valid) return;
+        const d = document.createElement('div');
+        d.className = 'ram-part' + (selRow && i === selIdx ? ' sel' : '');
+        d.style.bottom = (r.frame / PG_FRAMES * 100) + '%';
+        d.style.height = (100 / PG_FRAMES) + '%';
+        d.textContent = 'f' + r.frame + ' pg' + i;
+        parts.appendChild(d);
+      });
+
+      const marks = [];
+      if (selRow && selRow.valid) marks.push({ v: selRow.frame * PG_SIZE, text: String(selRow.frame * PG_SIZE), cls: 'edge' });
+      const showPhys = ev.valid && st >= 7;
+      if (showPhys) marks.push({ v: ev.phys, text: String(ev.phys), cls: 'res' });
+      const barH = $('ramBar').getBoundingClientRect().height || 500;
+      const ticks = $('ramTicks');
+      ticks.textContent = '';
+      let lastY = -99;
+      marks.slice().sort((a, b) => b.v - a.v).forEach((m) => {
+        let y = (1 - m.v / PG_RAM_TOP) * barH;
+        if (y - lastY < 14) y = lastY + 14;
+        lastY = y;
+        const t = document.createElement('div');
+        t.className = 'ram-tick ' + m.cls;
+        t.style.top = y + 'px';
+        t.textContent = m.text;
+        ticks.appendChild(t);
+      });
+      const mark = $('ramResultMark');
+      mark.hidden = !showPhys;
+      if (showPhys) mark.style.top = ((1 - ev.phys / PG_RAM_TOP) * 100) + '%';
+
+      drawPagingArrows(ev);
+    }
+
+    function drawPagingArrows(ev) {
+      const stage = $('partStage');
+      if (!stage || !stage.offsetParent) return;
+      const sr = stage.getBoundingClientRect();
+      const g = $('partArrowsG');
+      g.textContent = '';
+      const NS = 'http://www.w3.org/2000/svg';
+      const p = state.page;
+      const st = p.step;
+      const P = (el, side, dx, dy) => {
+        const r = el.getBoundingClientRect();
+        let x = r.left + r.width / 2;
+        let y = r.top + r.height / 2;
+        if (side === 'left') x = r.left;
+        else if (side === 'right') x = r.right;
+        else if (side === 'top') y = r.top;
+        else if (side === 'bottom') y = r.bottom;
+        return { x: x - sr.left + (dx || 0), y: y - sr.top + (dy || 0) };
+      };
+      const arrow = (step, pts, opts) => {
+        if (step > st) return;
+        const o = opts || {};
+        const kind = step === st ? (o.bad ? 'bad' : 'now') : 'done';
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', 'M' + pts.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join(' L'));
+        path.setAttribute('class', 'arr ' + kind + (o.dash ? ' dash' : ''));
+        path.setAttribute('marker-end', 'url(#' + (kind === 'now' ? 'mkNow' : (kind === 'bad' ? 'mkBad' : 'mkDone')) + ')');
+        g.appendChild(path);
+      };
+      const label = (step, t, x, y, anchor) => {
+        if (step > st) return;
+        const el = document.createElementNS(NS, 'text');
+        el.setAttribute('x', x.toFixed(1));
+        el.setAttribute('y', y.toFixed(1));
+        el.setAttribute('class', 'arr-label');
+        el.setAttribute('text-anchor', anchor || 'start');
+        el.textContent = t;
+        g.appendChild(el);
+      };
+      const hvh = (a, b, xm) => { const m = xm === undefined ? (a.x + b.x) / 2 : xm; return [a, { x: m, y: a.y }, { x: m, y: b.y }, b]; };
+      const vhv = (a, b) => { const m = (a.y + b.y) / 2; return [a, { x: a.x, y: m }, { x: b.x, y: m }, b]; };
+      const wRow = $('partRows').querySelector('[data-row="' + p.workIdx + '"]');
+
+      /* passo 0: CPU → endereço chamado dentro do processo */
+      const mk = $('procMark');
+      if (mk) {
+        const c = P($('partCpu'), 'top');
+        const m = P(mk, 'left', -1, 0);
+        const gx = $('procBar').getBoundingClientRect().left - sr.left - 18;
+        arrow(0, [c, { x: c.x, y: c.y - 14 }, { x: gx, y: c.y - 14 }, { x: gx, y: m.y }, m]);
+      }
+
+      /* passo 1: CPU → Page e Offset (decomposição) */
+      const cpuR = P($('partCpu'), 'right', 8, 0);
+      arrow(1, hvh(cpuR, P($('mmuAddress'), 'left')));
+      arrow(1, hvh(cpuR, P($('mmuPartition'), 'left'), cpuR.x + 12));
+
+      /* passo 2: PTBR → início da tabela; tabela → sua posição na RAM */
+      const ptbrL = P($('mmuPtbr'), 'left');
+      const headL = P($('partTableHead'), 'left');
+      const xg = Math.min(ptbrL.x, headL.x) - 34;
+      arrow(2, [ptbrL, { x: xg, y: ptbrL.y }, { x: xg, y: headL.y }, headL]);
+      arrow(2, hvh(P($('partTableHead'), 'right'), P($('ramTableStrip'), 'left')), { dash: true });
+
+      /* passo 3: Page → índice (linha) da tabela */
+      if (wRow) {
+        const partL = P($('mmuPartition'), 'left');
+        const idxL = P(wRow.querySelector('.pr-idx'), 'left', -2, 0);
+        const xg2 = Math.min(partL.x, idxL.x) - 16;
+        arrow(3, [partL, { x: xg2, y: partL.y }, { x: xg2, y: idxL.y }, idxL]);
+
+        /* passo 4: conteúdo da linha → campo Frame (ou falta de página) */
+        const fr = wRow.querySelector('.pr-limit').getBoundingClientRect();
+        arrow(4, vhv({ x: fr.left + fr.width * 0.85 - sr.left, y: fr.bottom - sr.top }, P($('mmuLimit'), 'top')), { bad: !ev.valid });
+      }
+      if (!ev.valid) arrow(4, [P($('mmuLimit'), 'right'), { x: P($('mmuIrq'), 'bottom').x, y: P($('mmuLimit'), 'right').y }, P($('mmuIrq'), 'bottom')], { bad: true });
+
+      if (ev.valid) {
+        /* passo 5: Frame e Offset → composição */
+        const addT = P($('mmuAdder'), 'top');
+        const frB = P($('mmuLimit'), 'bottom');
+        arrow(5, vhv(frB, addT));
+        label(5, 'F', addT.x + 9, (frB.y + addT.y) / 2 + 5);
+        const offR = P($('mmuAddress'), 'right');
+        const addL = P($('mmuAdder'), 'left');
+        arrow(5, hvh(offR, addL));
+        label(5, 'O', (offR.x + addL.x) / 2 + 6, offR.y - 8);
+
+        /* passo 6: composição → physical address; passo 7: → quadro na RAM */
+        arrow(6, hvh(P($('mmuAdder'), 'right'), P($('partPhys'), 'left')));
+        arrow(7, hvh(P($('partPhys'), 'right'), P($('ramResultMark'), 'left', -2, 0)));
+      }
+    }
+
+    /* Camada de setas (SVG) calculada a partir da posição real dos elementos.
+       Seta do passo atual = laranja grossa; setas de passos anteriores = azul-acinzentado. */
+    function drawPartitionArrows(ev) {
+      const stage = $('partStage');
+      if (!stage || !stage.offsetParent) return;
+      const sr = stage.getBoundingClientRect();
+      const g = $('partArrowsG');
+      g.textContent = '';
+      const NS = 'http://www.w3.org/2000/svg';
+      const st = PS().step;
+      const P = (el, side, dx, dy) => {
+        const r = el.getBoundingClientRect();
+        let x = r.left + r.width / 2;
+        let y = r.top + r.height / 2;
+        if (side === 'left') x = r.left;
+        else if (side === 'right') x = r.right;
+        else if (side === 'top') y = r.top;
+        else if (side === 'bottom') y = r.bottom;
+        return { x: x - sr.left + (dx || 0), y: y - sr.top + (dy || 0) };
+      };
+      /* step = passo em que a seta aparece; opts.bad = seta de violação */
+      const arrow = (step, pts, opts) => {
+        if (step > st) return;
+        const o = opts || {};
+        const kind = step === st ? (o.bad ? 'bad' : 'now') : 'done';
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', 'M' + pts.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join(' L'));
+        path.setAttribute('class', 'arr ' + kind + (o.dash ? ' dash' : ''));
+        path.setAttribute('marker-end', 'url(#' + (kind === 'now' ? 'mkNow' : (kind === 'bad' ? 'mkBad' : 'mkDone')) + ')');
+        g.appendChild(path);
+      };
+      const label = (step, t, x, y, anchor) => {
+        if (step > st) return;
+        const el = document.createElementNS(NS, 'text');
+        el.setAttribute('x', x.toFixed(1));
+        el.setAttribute('y', y.toFixed(1));
+        el.setAttribute('class', 'arr-label');
+        el.setAttribute('text-anchor', anchor || 'start');
+        el.textContent = t;
+        g.appendChild(el);
+      };
+      const hvh = (a, b, xm) => { const m = xm === undefined ? (a.x + b.x) / 2 : xm; return [a, { x: m, y: a.y }, { x: m, y: b.y }, b]; };
+      const vhv = (a, b) => { const m = (a.y + b.y) / 2; return [a, { x: a.x, y: m }, { x: b.x, y: m }, b]; };
+
+      const p = PS();
+      const wRow = $('partRows').querySelector('[data-row="' + p.workIdx + '"]');
+
+      const letter = MODE_TXT[state.mode].L;
+      const segMode = state.mode === 'seg';
+
+      /* passo 0: CPU → endereço chamado dentro do processo ativo */
+      const mk = $('procMark');
+      if (mk) {
+        const c = P($('partCpu'), 'top');
+        const m = P(mk, 'left', -1, 0);
+        const barR = $('procBar').getBoundingClientRect();
+        const gx = barR.left - sr.left - 18;
+        arrow(0, [c, { x: c.x, y: c.y - 14 }, { x: gx, y: c.y - 14 }, { x: gx, y: m.y }, m]);
+      }
+
+      /* passo 1: CPU → Address (partições) ou CPU → Segment e Offset (segmentos) */
+      const cpuR = P($('partCpu'), 'right', 8, 0);
+      arrow(1, hvh(cpuR, P($('mmuAddress'), 'left')));
+      if (segMode) arrow(1, hvh(cpuR, P($('mmuPartition'), 'left'), cpuR.x + 12));
+
+      /* passo 2: PTBR → início da tabela; tabela → sua posição na RAM */
+      const ptbrL = P($('mmuPtbr'), 'left');
+      const headL = P($('partTableHead'), 'left');
+      const xg = Math.min(ptbrL.x, headL.x) - 34;
+      arrow(2, [ptbrL, { x: xg, y: ptbrL.y }, { x: xg, y: headL.y }, headL]);
+      arrow(2, hvh(P($('partTableHead'), 'right'), P($('ramTableStrip'), 'left')), { dash: true });
+
+      /* passo 3: Partition → linha; passo 4: colunas Limit e Base → MMU */
+      if (wRow) {
+        const partL = P($('mmuPartition'), 'left');
+        const idxL = P(wRow.querySelector('.pr-idx'), 'left', -2, 0);
+        const xg2 = Math.min(partL.x, idxL.x) - 16;
+        arrow(3, [partL, { x: xg2, y: partL.y }, { x: xg2, y: idxL.y }, idxL]);
+
+        const lr = wRow.querySelector('.pr-limit').getBoundingClientRect();
+        const br = wRow.querySelector('.pr-base').getBoundingClientRect();
+        arrow(4, vhv({ x: lr.left + lr.width * 0.85 - sr.left, y: lr.bottom - sr.top }, P($('mmuLimit'), 'top')));
+        arrow(4, vhv({ x: br.left + br.width * 0.85 - sr.left, y: br.bottom - sr.top }, P($('mmuBase'), 'top')));
+      }
+
+      /* passo 5: Limit → losango (L) e Address → losango (A) */
+      const dia = $('mmuDiamond');
+      const limB = P($('mmuLimit'), 'bottom');
+      const diaT = P(dia, 'top');
+      arrow(5, vhv(limB, diaT));
+      label(5, 'L', diaT.x + 9, (limB.y + diaT.y) / 2 + 5);
+      const diaL = P(dia, 'left');
+      const xm = diaL.x - 30;
+      arrow(5, hvh(P($('mmuAddress'), 'right'), diaL, xm));
+      label(5, letter, xm + 6, diaL.y - 8);
+
+      /* passo 6: yes → somador (A) e Base → somador (B), ou no → IRq */
+      if (ev.valid) {
+        const diaR = P(dia, 'right');
+        const addL = P($('mmuAdder'), 'left');
+        arrow(6, [diaR, addL]);
+        label(6, letter, (diaR.x + addL.x) / 2, diaR.y - 8, 'middle');
+        label(6, 'yes', (diaR.x + addL.x) / 2, diaR.y + 18, 'middle');
+        const basB = P($('mmuBase'), 'bottom');
+        const addT = P($('mmuAdder'), 'top');
+        arrow(6, vhv(basB, addT));
+        label(6, 'B', addT.x + 9, (basB.y + addT.y) / 2 + 5);
+      } else {
+        const diaB = P(dia, 'bottom');
+        const irqT = P($('mmuIrq'), 'top');
+        arrow(6, [diaB, irqT], { bad: true });
+        label(6, 'no', diaB.x + 9, diaB.y + 20);
+      }
+
+      /* passo 7: somador → physical address; passo 8: → posição na RAM */
+      if (ev.valid) {
+        arrow(7, hvh(P($('mmuAdder'), 'right'), P($('partPhys'), 'left')));
+        arrow(8, hvh(P($('partPhys'), 'right'), P($('ramResultMark'), 'left', -2, 0)));
+      }
+    }
+
+    function bindPartition() {
+      $('btnPartForward').addEventListener('click', () => { stopPartTimer(); partStepBy(1); });
+      $('btnPartBack').addEventListener('click', () => { stopPartTimer(); partStepBy(-1); });
+      $('btnPartPlay').addEventListener('click', partTogglePlay);
+      $('btnPartReset').addEventListener('click', partReset);
+      $('partSpeedSelect').addEventListener('change', () => { if (state.partTimer) { stopPartTimer(); partTogglePlay(); } });
+      $('procBar').addEventListener('click', (ev) => setProcessAddress(ev.clientY, false));
+      $('procOut').addEventListener('click', (ev) => setProcessAddress(ev.clientY, true));
+      $('procBar').addEventListener('keydown', (ev) => {
+        if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (state.mode === 'page') {
+          const q = state.page;
+          const st2 = Math.max(1, Math.round(PG_SIZE / 50)) * (ev.shiftKey ? 5 : 1);
+          applyPageAddress(Math.max(0, Math.min(999999, pageLogical(q) + (ev.key === 'ArrowUp' ? st2 : -st2))), 'teclado');
+          return;
+        }
+        const p = PS();
+        const step = Math.max(1, Math.round(p.rows[p.workIdx].limit / 50)) * (ev.shiftKey ? 5 : 1);
+        applyProcessAddress(p.workIdx, Math.max(0, Math.min(999999, p.addr + (ev.key === 'ArrowUp' ? step : -step))), 'teclado');
+      });
+      $('btnNextMission').addEventListener('click', nextMission);
+      BADGES.forEach((b) => {
+        $('badge-' + b.id).addEventListener('click', () => {
+          state.badgeShown = state.badgeShown === b.id ? null : b.id;
+          renderAll();
+        });
+      });
+      $('btnPartLoad').addEventListener('click', partLoadAddress);
+      $('btnPgLoad').addEventListener('click', pgLoadAddress);
+      $('btnPgNew').addEventListener('click', () => { newPageWork(); $('pgAddrMsg').textContent = ''; sound.tick(); renderAll(); });
+      $('pgAddrInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); pgLoadAddress(); } });
+      $('pgAddrInput').addEventListener('input', () => {
+        const f = $('pgAddrInput');
+        const clean = f.value.replace(/[^0-9]/g, '');
+        $('pgAddrMsg').textContent = clean !== f.value ? 'Só dígitos decimais (0–9) são aceitos.' : '';
+        f.value = clean;
+      });
+      const subTabs = Array.from(document.querySelectorAll('.tab-btn[data-pgpane]'));
+      subTabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => switchPgPane(tab.getAttribute('data-pgpane')));
+        tab.addEventListener('keydown', (ev) => {
+          let next = -1;
+          if (ev.key === 'ArrowRight') next = (i + 1) % subTabs.length;
+          else if (ev.key === 'ArrowLeft') next = (i - 1 + subTabs.length) % subTabs.length;
+          else if (ev.key === 'Home') next = 0;
+          else if (ev.key === 'End') next = subTabs.length - 1;
+          if (next < 0) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          switchPgPane(subTabs[next].getAttribute('data-pgpane'));
+          subTabs[next].focus();
+        });
+      });
+      $('btnSegLoad').addEventListener('click', segLoadAddress);
+      $('btnSegNew').addEventListener('click', () => { newSegmentWork(); $('segAddrMsg').textContent = ''; sound.tick(); renderAll(); });
+      $('segAddrInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); segLoadAddress(); } });
+      $('segAddrInput').addEventListener('input', () => {
+        const f = $('segAddrInput');
+        const clean = f.value.replace(/[^0-9:\[\] ]/g, '');
+        $('segAddrMsg').textContent = clean !== f.value ? 'Só dígitos e dois-pontos (segmento:offset) são aceitos.' : '';
+        f.value = clean;
+      });
+      $('btnPartNew').addEventListener('click', () => { newPartitionWork(); $('partAddrMsg').textContent = ''; sound.tick(); renderAll(); });
+      $('partAddrInput').addEventListener('input', () => {
+        const f = $('partAddrInput');
+        const clean = f.value.replace(/[^0-9]/g, '');
+        $('partAddrMsg').textContent = clean !== f.value ? 'Só dígitos decimais (0–9) são aceitos.' : '';
+        f.value = clean;
+      });
+      $('partAddrInput').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); partLoadAddress(); } });
+      window.addEventListener('resize', () => renderPartition());
+      if (window.ResizeObserver) new ResizeObserver(() => renderPartition()).observe($('partStage'));
+    }
+
+    /* Novo endereço lógico: a página sorteada entra na tabela de páginas (com quadro ou vazia)
+       e o offset é sorteado entre 000h e FFFh. */
+    function generateAddress() {
+      const entry = addPageTableEntry();
+      const next = entry.page + hex(Math.floor(Math.random() * 4096), 3);
+      logMessage('Tabela de páginas: página ' + entry.page + 'h ' + (entry.frame ? 'recebeu o quadro ' + entry.frame + 'h.' : 'entrou vazia (falta de página).'));
+      $('addrInput').value = next;
+      $('addrMsg').textContent = '';
+      initRun({ addr: next, split: state.split });
+      logMessage('Endereço lógico sorteado: ' + next + 'h.');
+      newPartitionWork();
+      renderAll();
+    }
+
+    /* ====================================================================
+       MODAL
+       ==================================================================== */
+    function openModal(opener) {
+      state.lastFocus = opener;
+      pause();
+      $('modalHelp').hidden = false;
+      $('btnCloseHelp').focus();
+      renderAll();
+    }
+
+    function closeModal() {
+      $('modalHelp').hidden = true;
+      if (state.lastFocus) state.lastFocus.focus();
+    }
+
+    /* ====================================================================
+       EVENTOS
+       ==================================================================== */
+    function bindEvents() {
+      $('btnPlayPause').addEventListener('click', togglePlay);
+      $('btnStep').addEventListener('click', () => { pause(); step(); });
+      $('btnReset').addEventListener('click', () => { initRun({ full: true }); renderAll(); });
+      $('speedSelect').addEventListener('change', (e) => {
+        state.speedMs = Number(e.target.value);
+        if (state.running) { stopTimer(); state.running = false; togglePlay(); }
+      });
+      $('predictToggle').addEventListener('change', (e) => {
+        state.predictMode = e.target.checked;
+        logMessage('Modo prever ' + (state.predictMode ? 'ativado' : 'desativado') + '.');
+        renderAll();
+      });
+
+      $('btnSplitLeft').addEventListener('click', () => setSplit(state.split - 1));
+      $('btnSplitRight').addEventListener('click', () => setSplit(state.split + 1));
+      $('btnConfirmSplit').addEventListener('click', confirmSplit);
+
+      const bitsBox = $('bitsBox');
+      let dragging = false;
+      bitsBox.addEventListener('pointerdown', (ev) => {
+        if (state.stage !== 0) return;
+        dragging = true;
+        if (bitsBox.setPointerCapture) bitsBox.setPointerCapture(ev.pointerId);
+        setSplit(nearestSplitFromPointer(ev));
+      });
+      bitsBox.addEventListener('pointermove', (ev) => {
+        if (dragging) setSplit(nearestSplitFromPointer(ev));
+      });
+      const endDrag = () => { dragging = false; };
+      bitsBox.addEventListener('pointerup', endDrag);
+      bitsBox.addEventListener('pointercancel', endDrag);
+      bitsBox.addEventListener('keydown', (ev) => {
+        if (ev.target.id !== 'btnDivider') return;
+        if (ev.key === 'ArrowLeft') { ev.preventDefault(); ev.stopPropagation(); setSplit(state.split - 1); }
+        else if (ev.key === 'ArrowRight') { ev.preventDefault(); ev.stopPropagation(); setSplit(state.split + 1); }
+      });
+
+      const addrInput = $('addrInput');
+      addrInput.addEventListener('input', () => {
+        const s = sanitizeHex(addrInput.value);
+        addrInput.value = s.clean;
+        $('addrMsg').textContent = s.msg;
+      });
+      addrInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); applyAddress(addrInput.value); }
+      });
+      $('btnLoadAddr').addEventListener('click', () => applyAddress(addrInput.value));
+      $('btnNewAddr').addEventListener('click', generateAddress);
+      $('btnSoundToggle').addEventListener('click', () => {
+        state.soundOn = !state.soundOn;
+        saveSoundPref(state.soundOn);
+        if (state.soundOn) sound.toggleOn();
+        renderAll();
+      });
+
+      /* Abas: clique, ← →, Home e End (setas só valem com uma aba focada) */
+      bindPartition();
+      const tabs = Array.from(document.querySelectorAll('.tab-btn[data-pane]'));
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => switchPane(tab.getAttribute('data-pane')));
+        tab.addEventListener('keydown', (ev) => {
+          let next = -1;
+          if (ev.key === 'ArrowRight') next = (i + 1) % tabs.length;
+          else if (ev.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+          else if (ev.key === 'Home') next = 0;
+          else if (ev.key === 'End') next = tabs.length - 1;
+          if (next < 0) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          switchPane(tabs[next].getAttribute('data-pane'));
+          tabs[next].focus();
+        });
+      });
+      document.querySelectorAll('.quick-row button[data-addr]').forEach((b) => {
+        b.addEventListener('click', () => applyAddress(b.getAttribute('data-addr')));
+      });
+
+      const predictInput = $('predictInput');
+      predictInput.addEventListener('input', () => {
+        const s = sanitizeHex(predictInput.value);
+        predictInput.value = s.clean;
+        state.predictFeedback = s.msg;
+        setText($('predictFeedback'), state.predictFeedback);
+      });
+      predictInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); checkPrediction(); }
+      });
+      $('btnCheckPredict').addEventListener('click', checkPrediction);
+      $('btnPredictHint').addEventListener('click', predictHint);
+      $('btnPredictAuto').addEventListener('click', predictAuto);
+
+      $('btnClearLog').addEventListener('click', () => { state.log = []; logMessage('Log limpo.'); renderAll(); });
+      $('btnThemeToggle').addEventListener('click', () => {
+        const html = document.documentElement;
+        html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      });
+
+      $('btnOpenHelp').addEventListener('click', (ev) => openModal(ev.currentTarget));
+      $('btnCloseHelp').addEventListener('click', closeModal);
+      $('modalHelp').addEventListener('click', (ev) => { if (ev.target === $('modalHelp')) closeModal(); });
+
+      document.addEventListener('keydown', onKeyDown);
+
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      state.reduced = mq.matches;
+      const onMq = (e) => { state.reduced = e.matches; if (state.reduced) pause(); renderAll(); };
+      if (mq.addEventListener) mq.addEventListener('change', onMq);
+      else if (mq.addListener) mq.addListener(onMq);
+    }
+
+    function onKeyDown(ev) {
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      if (!$('modalHelp').hidden) {
+        if (ev.key === 'Escape') { ev.preventDefault(); closeModal(); }
+        else if (ev.key === 'Tab') {
+          const items = $('modalHelp').querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])');
+          if (items.length) {
+            const first = items[0];
+            const last = items[items.length - 1];
+            if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+            else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+          }
+        }
+        return;
+      }
+      const tag = ev.target && ev.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (!$('paneMemPart').hidden || !$('paneMemSeg').hidden || (!$('paneMemPages').hidden && !$('panePgMem').hidden)) {                    // aba 2: atalhos do passo a passo por partição
+        if (ev.key === ' ' || ev.code === 'Space') { if (tag === 'BUTTON') return; ev.preventDefault(); partTogglePlay(); }
+        else if (ev.key === 'ArrowRight') { ev.preventDefault(); stopPartTimer(); partStepBy(1); }
+        else if (ev.key === 'ArrowLeft') { ev.preventDefault(); stopPartTimer(); partStepBy(-1); }
+        else if (ev.key === 'r' || ev.key === 'R') { ev.preventDefault(); partReset(); }
+        return;
+      }
+      if (ev.key === ' ' || ev.code === 'Space') {
+        if (tag === 'BUTTON') return;          // o botão focado trata o próprio Espaço
+        ev.preventDefault();
+        togglePlay();
+      } else if (ev.key === 'ArrowRight') {
+        ev.preventDefault();
+        pause();
+        step();
+      } else if (ev.key === 'r' || ev.key === 'R') {
+        ev.preventDefault();
+        initRun({ full: true });
+        renderAll();
+      }
+    }
+
+    /* ====================================================================
+       INICIALIZAÇÃO
+       ==================================================================== */
+    function init() {
+      state.soundOn = loadSoundPref();
+      bindEvents();
+      initRun({ full: true });
+      renderAll();
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+  </script>
+
+  <!--
+    REFERÊNCIAS DO LIVRO (livro/txt/cap_14.txt)
+    - cap. 14, seção 14.4   — endereços físicos e lógicos; MMU; interrupção de hardware
+    - cap. 14, seção 14.7   — páginas e quadros (páginas de 4 KBytes = 4.096 bytes)
+    - cap. 14, seção 14.7.1 — tabela de páginas, PTBR; Intel 80386: 20 bits de página + 12 de offset;
+                              exemplo 01803E9Ah → página 01803h, offset E9Ah; passos 1 a 3 da MMU;
+                              entrada vazia → falta de página (page fault)
+    - cap. 14, seção 14.7.2 — flag Valid (0 → falta de página)
+    - Figura 14.9           — MMU com paginação: 00000h → 13h, 00001h vazia, 01803h → 2Fh; resultado 0002FE9Ah
+    Calculado a partir do texto: binário e decomposição de endereços diferentes do exemplo;
+    valor da coluna Valid (1 para entrada com quadro, 0 para vazia); endereço físico de outras páginas;
+    2^L e 2^R nas mensagens de divisor errado.
+  -->
+</body>
+</html>
